@@ -83,7 +83,9 @@ export default function DoctorsPage() {
             title: "Action",
             render: (_, record) => (
                 <div className="flex gap-2">
-                    <Button onClick={() => router.push(`/dashboard/doctors/edit?id=${record.id}`)}>Edit</Button>
+                    <Button onClick={() => router.push(`/dashboard/doctors/${record.id}`)}>
+                        Xem chi tiết
+                    </Button>
                     <Popconfirm
                         title="Bạn có chắc muốn xóa bác sĩ này?"
                         onConfirm={() => handleDelete(record.id)}
