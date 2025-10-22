@@ -1,17 +1,17 @@
 export type User = {
     id: string;
-    user_name: string;
-    password_hash: string;
+    username: string;
+    passwordHash: string;
     role?: string;
 };
 
 // ✅ Hàm login sẽ gọi API Next.js để set session
-export async function login(user_name: string, password: string): Promise<User | null> {
+export async function login(username: string, passwordHash: string): Promise<User | null> {
     try {
         const res = await fetch("/api/auth/login", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ user_name, password }),
+            body: JSON.stringify({ username, passwordHash }),
         });
 
         const data = await res.json();

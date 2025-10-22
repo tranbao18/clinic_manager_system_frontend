@@ -5,7 +5,7 @@ import { login } from "@/app/api/auth";
 import { notification } from "antd";
 
 export default function LoginPage() {
-    const [user_name, setUserName] = useState("");
+    const [username, setUserName] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
@@ -13,12 +13,12 @@ export default function LoginPage() {
 
     const handleLogin = async () => {
         setLoading(true);
-        const user = await login(user_name, password);
+        const user = await login(username, password);
         try {
             if (user) {
                 api.success({
                     message: "Đăng nhập thành công 🎉",
-                    description: `Xin chào ${user.user_name}, chào mừng bạn quay lại hệ thống!`,
+                    description: `Xin chào ${user.username}, chào mừng bạn quay lại hệ thống!`,
                     placement: "topRight",
                 });
                 router.push("/dashboard");
@@ -56,7 +56,7 @@ export default function LoginPage() {
                     <input
                         type="text"
                         className="w-full mt-1 p-2 border rounded-md"
-                        value={user_name}
+                        value={username}
                         onChange={(e) => setUserName(e.target.value)}
                         placeholder="yourusername"
                     />

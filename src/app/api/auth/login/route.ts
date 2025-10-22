@@ -3,26 +3,43 @@ import { getIronSession } from "iron-session";
 import { sessionOptions, SessionData } from "@/lib/session";
 
 export async function POST(req: Request) {
-    const { user_name, password } = await req.json();
+    try {
+        const { username, passwordHash  } = await req.json();
 
-    const res = await fetch("https://68d0d0aae6c0cbeb39a2833e.mockapi.io/user");
-    const users = await res.json();
-    const found = users.find(
-        (u: any) => u.user_name === user_name && u.password_hash === password
-    );
+        // 🔹 Gọi API user list
+        const res = await fetch("https://68ef7b4db06cc802829d91ae.mockapi.io/users");
+        if (!res.ok) {
+            return NextResponse.json({ error: "Không thể kết nối server người dùng" }, { status: 500 });
+        }
 
-    if (!found) {
-        return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
+        const users = await res.json();
+
+        // 🔹 Tìm user khớp username & password
+        const found = users.find(
+            (u: any) => u.username === username && u.passwordHash === passwordHash 
+        );
+
+        if (!found) {
+            return NextResponse.json({ error: "Tên đăng nhập hoặc mật khẩu sai" }, { status: 401 });
+        }
+
+        // ✅ Tạo phản hồi trước
+        const response = NextResponse.json({ user: found });
+
+        // ✅ Gắn session
+        const session = await getIronSession<SessionData>(req, response, sessionOptions);
+        session.user = {
+            id: found.id,
+            username: found.username,
+            role: found.role,
+        };
+        await session.save();
+
+        return response;
+    } catch (err: any) {
+        return NextResponse.json(
+            { error: err.message || "Lỗi hệ thống" },
+            { status: 500 }
+        );
     }
-
-    const response = NextResponse.json({ user: found });
-    const session = await getIronSession<SessionData>(req, response, sessionOptions);
-    session.user = { 
-        id: found.id,
-        user_name: found.user_name,
-        role: found.role
-    };
-    await session.save();
-
-    return response;
 }

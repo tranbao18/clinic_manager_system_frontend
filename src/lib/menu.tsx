@@ -29,10 +29,20 @@ export const getMenuByRole = (role: string) => {
             { key: "5", icon: <AreaChartOutlined />, label: <Link href="/dashboard/report">Báo cáo</Link> },
             { key: "7", icon: <ScheduleOutlined />, label: <Link href="/dashboard/schedules">Lịch trực</Link> },
         ],
+        role4: [
+            { key: "5", icon: <AreaChartOutlined />, label: <Link href="/dashboard/report">Báo cáo</Link> },
+            { key: "7", icon: <ScheduleOutlined />, label: <Link href="/dashboard/schedules">Lịch trực</Link> },
+        ],
+        role5: [
+            { key: "5", icon: <AreaChartOutlined />, label: <Link href="/dashboard/report">Báo cáo</Link> },
+            { key: "7", icon: <ScheduleOutlined />, label: <Link href="/dashboard/schedules">Lịch trực</Link> },
+        ],
     };
 
-    if (role === "role 1") return allMenus.admin;
-    if (role === "role 2") return allMenus.role2;
-    if (role === "role 3") return allMenus.role3;
+    if (role === "Admin") return allMenus.admin;
+    if (role === "Doctor") return allMenus.role2;
+    if (role === "Nurse") return allMenus.role3;
+    if (role === "Receptionist") return allMenus.role4;
+    if (role === "Accountant") return allMenus.role5;
     return [];
 };

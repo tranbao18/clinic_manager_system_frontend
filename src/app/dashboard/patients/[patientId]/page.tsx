@@ -1,73 +1,123 @@
 "use client";
 
-import { useParams } from "next/navigation";
-
-const patient = {
-    id: 1,
-    firstName: "Uzair",
-    lastName: "Ahmad",
-    email: "uzair@gmail.com",
-    phone: "+0123456789",
-    dob: "1 Jan, 1999",
-    gender: "Male",
-    history: [
-        { department: "Cardiovascular", doctor: "Dr. Ammar", date: "12 Apr, 2025", room: "2560" },
-        { department: "Cardiovascular", doctor: "Dr. Ali", date: "27 Apr, 2025", room: "2560" },
-        { department: "Cardiovascular", doctor: "Dr. Khan", date: "2 Mar, 2025", room: "2560" },
-    ],
-};
+import { useEffect, useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { Input, Button, Form, Spin, message, Card, Select } from "antd";
+import {
+    getPatientById,
+    updatePatient,
+    Patient,
+} from "@/lib/services/patientsService"; // ✅ Sửa lại import
 
 export default function PatientDetailPage() {
-    const { patientId } = useParams();
+    const { patientId } = useParams<{ patientId: string }>();
+    const router = useRouter();
+    const [form] = Form.useForm();
+    const [patient, setPatient] = useState<Patient | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+
+    useEffect(() => {
+        if (!patientId) return; // ⛔ Không gọi khi chưa có id
+
+        const fetchPatient = async () => {
+            try {
+                setLoading(true);
+                const res = await fetch(`/api/patients/${patientId}`, { cache: "no-store" });
+                const text = await res.text();
+                console.log("Raw response:", text); // 👈 Xem JSON thực tế
+                const data = JSON.parse(text);
+                if (!res.ok) throw new Error(data.error || "API Error");
+
+                setPatient(data);
+                form.setFieldsValue({
+                    ...data,
+                    dob: data.dob?.split("T")[0] || "",
+                });
+            } catch (err) {
+                console.error(err);
+                message.error("Không thể tải thông tin bệnh nhân");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchPatient();
+    }, [patientId]);
+
+
+    const handleUpdate = async (values: Partial<Patient>) => {
+        try {
+            setSaving(true);
+            await updatePatient(patientId, values);
+            message.success("Cập nhật thông tin thành công!");
+            router.push("/dashboard/patients");
+        } catch (error) {
+            message.error("Cập nhật thất bại");
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    if (loading || !patient) {
+        return (
+            <div className="flex justify-center items-center py-10">
+                <Spin size="large" />
+            </div>
+        );
+    }
+
 
     return (
-        <div className="p-6 bg-gray-50 min-h-screen">
-            <div className="bg-white shadow rounded-lg p-4">
-                <h2 className="text-xl font-semibold mb-4">
-                    {patient.firstName} {patient.lastName}
-                </h2>
+        <div className="p-6 max-w-2xl mx-auto">
+            <Card title="Thông tin chi tiết bệnh nhân">
+                <Form layout="vertical" form={form} onFinish={handleUpdate}>
+                    <Form.Item label="Họ và tên" name="fullName">
+                        <Input />
+                    </Form.Item>
 
-                <div className="grid grid-cols-2 gap-6">
-                    {/* Patient Details */}
-                    <div>
-                        <h3 className="font-medium mb-2">Thông tin chi tiết</h3>
-                        <div className="space-y-2">
-                            <p><b>Mã:</b> {patient.id}</p>
-                            <p><b>Họ :</b> {patient.firstName}</p>
-                            <p><b>Tên :</b> {patient.lastName}</p>
-                            <p><b>Email:</b> {patient.email}</p>
-                            <p><b>Số điện thoại:</b> {patient.phone}</p>
-                            <p><b>Ngày sinh:</b> {patient.dob}</p>
-                            <p><b>Giới tính:</b> {patient.gender}</p>
-                        </div>
-                    </div>
+                    <Form.Item label="Ngày sinh" name="dob">
+                        <Input type="date" />
+                    </Form.Item>
 
-                    {/* Admission History */}
-                    <div>
-                        <h3 className="font-medium mb-2">Lịch thử khám bệnh</h3>
-                        <table className="w-full border">
-                            <thead>
-                                <tr className="bg-gray-100">
-                                    <th className="p-2 border">Khoa</th>
-                                    <th className="p-2 border">Bác sĩ</th>
-                                    <th className="p-2 border">Ngày</th>
-                                    <th className="p-2 border">Phòng</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {patient.history.map((h, i) => (
-                                    <tr key={i}>
-                                        <td className="p-2 border">{h.department}</td>
-                                        <td className="p-2 border">{h.doctor}</td>
-                                        <td className="p-2 border">{h.date}</td>
-                                        <td className="p-2 border">{h.room}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
+                    <Form.Item
+                        label="Giới tính"
+                        name="gender"
+                        rules={[{ required: true, message: "Vui lòng chọn giới tính" }]}
+                    >
+                        <Select placeholder="Chọn giới tính">
+                            <Select.Option value="male">Male</Select.Option>
+                            <Select.Option value="female">Female</Select.Option>
+                        </Select>
+                    </Form.Item>
+
+                    <Form.Item label="Địa chỉ" name="address">
+                        <Input />
+                    </Form.Item>
+
+                    <Form.Item label="Số điện thoại" name="phone">
+                        <Input />
+                    </Form.Item>
+
+                    <Form.Item label="Email" name="email">
+                        <Input type="email" />
+                    </Form.Item>
+
+                    <Form.Item label="Tiền sử bệnh" name="medicalHistory">
+                        <Input.TextArea rows={3} />
+                    </Form.Item>
+
+                    <div className="flex justify-end gap-3">
+                        <Button onClick={() => router.back()}>Quay lại</Button>
+                        <Button
+                            type="primary"
+                            htmlType="submit"
+                            loading={saving}
+                        >
+                            Lưu thay đổi
+                        </Button>
                     </div>
-                </div>
-            </div>
+                </Form>
+            </Card>
         </div>
     );
 }

@@ -1,69 +1,176 @@
 "use client";
 
-import { Layout, Table, Button } from "antd";
-const { Content } = Layout;
+import { useEffect, useState } from "react";
+import { Table, Button, Popconfirm, message, Spin, Input, Select, Space } from "antd";
+import type { ColumnsType } from "antd/es/table";
+import { useRouter } from "next/navigation";
+import { getPatients, deletePatient, Patient } from "@/lib/services/patientsService";
 
-const patientData = [
-    {
-        key: "1",
-        id: 1,
-        name: "Uzair",
-        phone: "+0123456789",
-        email: "uzair@gmail.com",
-        dob: "1/Jan/1999",
-        gender: "Male",
-    },
-    {
-        key: "2",
-        id: 2,
-        name: "Haris",
-        phone: "+0123456789",
-        email: "haris@gmail.com",
-        dob: "1/Dec/1991",
-        gender: "Male",
-    },
-    {
-        key: "3",
-        id: 3,
-        name: "Hamza",
-        phone: "+0123456789",
-        email: "hamza@gmail.com",
-        dob: "1/Jan/2001",
-        gender: "Male",
-    },
-];
-
-const columns = [
-    { title: "ID", dataIndex: "id" },
-    { title: "Name", dataIndex: "name" },
-    { title: "Phone Number", dataIndex: "phone" },
-    { title: "Email", dataIndex: "email" },
-    { title: "Date of Birth", dataIndex: "dob" },
-    { title: "Gender", dataIndex: "gender" },
-    {
-        title: "Action",
-        render: () => (
-            <div className="flex gap-2">
-                <Button type="link">Edit</Button>
-                <Button danger type="link">Delete</Button>
-                <Button type="primary">Admit</Button>
-            </div>
-        ),
-    },
-];
+const { Search } = Input;
+const { Option } = Select;
 
 export default function PatientsPage() {
+    const [patients, setPatients] = useState<Patient[]>([]);
+    const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [searchText, setSearchText] = useState("");
+    const [genderFilter, setGenderFilter] = useState<string | null>(null);
+    const router = useRouter();
+
+    const fetchPatients = async () => {
+        try {
+            setLoading(true);
+            const data = await getPatients();
+            setPatients(data);
+            setFilteredPatients(data);
+        } catch (error) {
+            message.error("Không thể tải danh sách bệnh nhân");
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        fetchPatients();
+    }, []);
+
+    const normalizeText = (str: string) => {
+        return str
+            .normalize("NFD") // tách dấu tiếng Việt
+            .replace(/[\u0300-\u036f]/g, "") // xóa dấu
+            .replace(/[^a-zA-Z0-9\s]/g, "") // bỏ ký tự đặc biệt
+            .toLowerCase()
+            .trim();
+    };
+
+    const handleFilter = (text: string, gender: string | null) => {
+        let filtered = [...patients];
+
+        const search = normalizeText(text);
+
+        if (search) {
+            filtered = filtered.filter((item) =>
+                normalizeText(item.fullName).includes(search)
+            );
+        }
+
+        if (gender) {
+            filtered = filtered.filter((item) => item.gender === gender);
+        }
+
+        setFilteredPatients(filtered);
+    };
+
+    const onSearch = (value: string) => {
+        setSearchText(value);
+        handleFilter(value, genderFilter);
+    };
+
+    const onGenderChange = (value: string | null) => {
+        setGenderFilter(value);
+        handleFilter(searchText, value);
+    };
+
+    const handleDelete = async (id: string) => {
+        try {
+            await deletePatient(id);
+            message.success("Đã xóa bệnh nhân");
+            fetchPatients();
+        } catch (error) {
+            message.error("Xóa thất bại");
+        }
+    };
+
+    const columns: ColumnsType<Patient> = [
+        {
+            title: "Họ và tên",
+            dataIndex: "fullName",
+            key: "fullName",
+        },
+        {
+            title: "Giới tính",
+            dataIndex: "gender",
+            key: "gender",
+        },
+        {
+            title: "Email",
+            dataIndex: "email",
+            key: "email",
+        },
+        {
+            title: "Số điện thoại",
+            dataIndex: "phone",
+            key: "phone",
+        },
+        {
+            title: "Hành động",
+            key: "action",
+            render: (_, record) => (
+                <div className="flex gap-2">
+                    <Button
+                        type="primary"
+                        onClick={() => router.push(`/dashboard/patients/${record.id}`)}
+                    >
+                        Xem chi tiết
+                    </Button>
+                    <Popconfirm
+                        title="Bạn có chắc chắn muốn xóa?"
+                        onConfirm={() => handleDelete(record.id)}
+                        okText="Xóa"
+                        cancelText="Hủy"
+                    >
+                        <Button danger>Xóa</Button>
+                    </Popconfirm>
+                </div>
+            ),
+        },
+    ];
+
     return (
-        <Layout style={{ minHeight: "100vh" }}>
-            <Layout>
-                <Content className="m-4 p-4 bg-white rounded shadow">
-                    <div className="flex justify-between items-center mb-4">
-                        <h2 className="text-xl font-bold">Patients</h2>
-                        <Button type="primary">Add Patient</Button>
-                    </div>
-                    <Table columns={columns} dataSource={patientData} pagination={false} />
-                </Content>
-            </Layout>
-        </Layout>
+        <div className="p-6">
+            <h1 className="text-2xl font-bold mb-4">Danh sách bệnh nhân</h1>
+
+            {/* 🔎 Thanh tìm kiếm + lọc giới tính + thêm mới */}
+            <Space className="mb-4 flex flex-wrap" align="center">
+                <Search
+                    placeholder="Nhập tên bệnh nhân..."
+                    allowClear
+                    enterButton="Tìm kiếm"
+                    onSearch={onSearch}
+                    style={{ width: 300 }}
+                />
+
+                <Select
+                    placeholder="Lọc theo giới tính"
+                    allowClear
+                    onChange={onGenderChange}
+                    style={{ width: 200 }}
+                >
+                    <Option value="Male">Male</Option>
+                    <Option value="Female">Female</Option>
+                </Select>
+
+                {/* 🧩 Nút thêm mới */}
+                <Button
+                    type="primary"
+                    onClick={() => router.push("/dashboard/patients/new")}
+                >
+                    + Thêm bệnh nhân
+                </Button>
+            </Space>
+
+            {loading ? (
+                <div className="flex justify-center items-center py-10">
+                    <Spin size="large" />
+                </div>
+            ) : (
+                <Table
+                    rowKey="id"
+                    columns={columns}
+                    dataSource={filteredPatients}
+                    pagination={{ pageSize: 8 }}
+                />
+            )}
+        </div>
     );
 }

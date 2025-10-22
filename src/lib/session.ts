@@ -14,7 +14,7 @@ export const sessionOptions: IronSessionOptions = {
 export type SessionData = {
     user?: {
         id: string;
-        user_name: string;
+        username: string;
         role: string;
         token?: string;
     };
