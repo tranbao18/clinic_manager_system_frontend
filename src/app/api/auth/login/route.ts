@@ -1,45 +1,57 @@
-import { NextResponse } from "next/server";
+// src/app/api/login/route.ts
 import { getIronSession } from "iron-session";
 import { sessionOptions, SessionData } from "@/lib/session";
+import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-    try {
-        const { username, passwordHash  } = await req.json();
+  const res = new NextResponse();
 
-        // 🔹 Gọi API user list
-        const res = await fetch("https://68ef7b4db06cc802829d91ae.mockapi.io/users");
-        if (!res.ok) {
-            return NextResponse.json({ error: "Không thể kết nối server người dùng" }, { status: 500 });
-        }
+  try {
+    const { username, password } = await req.json();
 
-        const users = await res.json();
+    // Gọi API backend thật sự (mock URL)
+    const backendRes = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      }
+    );
 
-        // 🔹 Tìm user khớp username & password
-        const found = users.find(
-            (u: any) => u.username === username && u.passwordHash === passwordHash 
-        );
+    const data = await backendRes.json();
 
-        if (!found) {
-            return NextResponse.json({ error: "Tên đăng nhập hoặc mật khẩu sai" }, { status: 401 });
-        }
-
-        // ✅ Tạo phản hồi trước
-        const response = NextResponse.json({ user: found });
-
-        // ✅ Gắn session
-        const session = await getIronSession<SessionData>(req, response, sessionOptions);
-        session.user = {
-            id: found.id,
-            username: found.username,
-            role: found.role,
-        };
-        await session.save();
-
-        return response;
-    } catch (err: any) {
-        return NextResponse.json(
-            { error: err.message || "Lỗi hệ thống" },
-            { status: 500 }
-        );
+    if (!backendRes.ok) {
+      return NextResponse.json(
+        { error: data.message || "Đăng nhập thất bại" },
+        { status: backendRes.status }
+      );
     }
+
+    // Lưu user vào session
+    const session = await getIronSession<SessionData>(req, res, sessionOptions);
+    session.user = {
+      id: data.user.id,
+      username: data.user.username,
+      role: data.user.role,
+      token: data.token,
+    };
+    await session.save();
+
+    // Trả JSON có cả token để frontend lưu
+    return NextResponse.json(
+      {
+        message: "Đăng nhập thành công",
+        user: session.user,
+        token: data.token, // <— thêm dòng này
+      },
+      { headers: res.headers }
+    );
+  } catch (err: any) {
+    console.error("Login route error:", err);
+    return NextResponse.json(
+      { error: err.message || "Lỗi hệ thống" },
+      { status: 500 }
+    );
+  }
 }

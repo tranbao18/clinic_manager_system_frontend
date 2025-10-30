@@ -7,42 +7,44 @@ import {
     ScheduleOutlined,
     AreaChartOutlined,
     UserOutlined,
+    IdcardOutlined,
 } from "@ant-design/icons";
 
 export const getMenuByRole = (role: string) => {
     const allMenus = {
         admin: [
-            { key: "1", icon: <DashboardOutlined />, label: <Link href="/dashboard">Dashboard</Link> },
-            { key: "2", icon: <SolutionOutlined />, label: <Link href="/dashboard/doctors">Bác sĩ</Link> },
-            { key: "3", icon: <TeamOutlined />, label: <Link href="/dashboard/patients">Bệnh nhân</Link> },
-            { key: "4", icon: <ScheduleOutlined />, label: <Link href="/dashboard/appointments">Lịch hẹn</Link> },
-            { key: "5", icon: <AreaChartOutlined />, label: <Link href="/dashboard/report">Báo cáo</Link> },
-            { key: "6", icon: <UserOutlined />, label: <Link href="/dashboard/employees">Nhân viên</Link> },
-            { key: "7", icon: <ScheduleOutlined />, label: <Link href="/dashboard/schedules">Lịch trực</Link> },
-            { key: "8", icon: <UserOutlined />, label: <Link href="/dashboard/settings">Cài đặt</Link> },
+            { key: "1", icon: <DashboardOutlined />, label: "Dashboard", href: "/dashboard" },
+            { key: "6", icon: <UserOutlined />, label: "Nhân viên", href: "/dashboard/employees" },
+            { key: "2", icon: <SolutionOutlined />, label: "Bác sĩ", href: "/dashboard/doctors" },
+            { key: "3", icon: <TeamOutlined />, label: "Bệnh nhân", href: "/dashboard/patients" },
+            { key: "4", icon: <ScheduleOutlined />, label: "Lịch hẹn", href: "/dashboard/appointments" },
+            { key: "5", icon: <AreaChartOutlined />, label: "Báo cáo", href: "/dashboard/report" },
+            { key: "7", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
         ],
-        role2: [
-            { key: "3", icon: <TeamOutlined />, label: <Link href="/dashboard/patients">Bệnh nhân</Link> },
-            { key: "4", icon: <ScheduleOutlined />, label: <Link href="/dashboard/appointments">Lịch hẹn</Link> },
+        doctor: [
+            { key: "1", icon: <IdcardOutlined />, label: "Khám bệnh", href: "/dashboard" },
+            { key: "2", icon: <TeamOutlined />, label: "Bệnh nhân", href: "/dashboard/patients" },
+            { key: "3", icon: <ScheduleOutlined />, label: "Lịch hẹn", href: "/dashboard/appointments" },
+            { key: "4", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
         ],
-        role3: [
-            { key: "5", icon: <AreaChartOutlined />, label: <Link href="/dashboard/report">Báo cáo</Link> },
-            { key: "7", icon: <ScheduleOutlined />, label: <Link href="/dashboard/schedules">Lịch trực</Link> },
+        nurse: [
+            { key: "7", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
         ],
-        role4: [
-            { key: "5", icon: <AreaChartOutlined />, label: <Link href="/dashboard/report">Báo cáo</Link> },
-            { key: "7", icon: <ScheduleOutlined />, label: <Link href="/dashboard/schedules">Lịch trực</Link> },
+        receptionist: [
+            { key: "1", icon: <TeamOutlined />, label: "Bệnh nhân", href: "/dashboard/patients" },
+            { key: "2", icon: <ScheduleOutlined />, label: "Lịch hẹn", href: "/dashboard/appointments" },
         ],
-        role5: [
-            { key: "5", icon: <AreaChartOutlined />, label: <Link href="/dashboard/report">Báo cáo</Link> },
-            { key: "7", icon: <ScheduleOutlined />, label: <Link href="/dashboard/schedules">Lịch trực</Link> },
+        accountant: [
+            { key: "1", icon: <AreaChartOutlined />, label: "Hoá đơn", href:"/dashboard/invoices"},
+            { key: "2", icon: <ScheduleOutlined />, label: "Bảng lương", href:"/dashboard/payroll"},
+            { key: "1", icon: <AreaChartOutlined />, label: "Báo cáo", href:"/dashboard/report"},
         ],
     };
 
     if (role === "Admin") return allMenus.admin;
-    if (role === "Doctor") return allMenus.role2;
-    if (role === "Nurse") return allMenus.role3;
-    if (role === "Receptionist") return allMenus.role4;
-    if (role === "Accountant") return allMenus.role5;
+    if (role === "Doctor") return allMenus.doctor;
+    if (role === "Nurse") return allMenus.nurse;
+    if (role === "Receptionist") return allMenus.receptionist;
+    if (role === "Accountant") return allMenus.accountant;
     return [];
 };

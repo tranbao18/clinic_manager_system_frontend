@@ -5,7 +5,7 @@ import { sessionOptions, SessionData } from "@/lib/session";
 
 // GET /api/session
 export async function GET() {
-    const cookieStore = await cookies(); // 👈 phải await
+    const cookieStore = await cookies();
     const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
 
     if (!session.user) {
