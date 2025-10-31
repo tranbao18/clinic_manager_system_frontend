@@ -22,6 +22,7 @@ interface Employee {
   key: string;
   _id: string;
   fullname: string;
+  dob: string;
   gender: string;
   phone: string;
   email: string;
@@ -83,6 +84,11 @@ export default function EmployeesPage() {
     }
   };
 
+  const mapGenderToApiValue = (gender: string) => {
+    if (gender === "Male") return "Nam";
+    if (gender === "Female") return "Nữ";
+    return gender;
+  };
   // 🔹 Cấu hình bảng
   const columns: ColumnsType<Employee> = [
     { title: "Họ tên", dataIndex: "fullname" },
@@ -92,9 +98,10 @@ export default function EmployeesPage() {
     { title: "Email", dataIndex: "email" },
     { title: "Số điện thoại", dataIndex: "phone" },
     {
-      title: "Ngày tạo",
-      dataIndex: "created_at",
+      title: "Ngày sinh",
+      dataIndex: "dob",
       render: (value: string) => {
+        if (!value) return "-";
         const date = new Date(value);
         return `${date.getDate().toString().padStart(2, "0")}/${(
           date.getMonth() + 1
@@ -103,6 +110,7 @@ export default function EmployeesPage() {
           .padStart(2, "0")}/${date.getFullYear()}`;
       },
     },
+
     {
       title: "Hành động",
       render: (_, record) => (
@@ -133,7 +141,8 @@ export default function EmployeesPage() {
           key: e._id || index.toString(),
           _id: e._id,
           fullname: e.fullname,
-          gender: e.gender,
+          dob: e.dob,
+          gender: mapGenderToApiValue(e.gender),
           phone: e.phone,
           email: e.email,
           position: e.position,

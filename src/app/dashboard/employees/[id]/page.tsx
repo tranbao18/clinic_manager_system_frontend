@@ -15,6 +15,7 @@ import {
 } from "antd";
 import EmployeesService from "@/lib/services/employeesService";
 import UsersService from "@/lib/services/usersService";
+import AuthService from "@/lib/services/authService";
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -57,25 +58,40 @@ export default function EmployeeDetailPage() {
       .padStart(2, "0")}/${d.getFullYear()}`;
   };
 
+  const mapGenderDisplay = (gender?: string) => {
+    if (!gender) return "-";
+    if (gender === "Male") return "Nam";
+    if (gender === "Female") return "Nữ";
+    return gender;
+  };
+
+
   // 🔹 Fetch data
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
+
+        // 1️⃣ Lấy thông tin nhân viên (luôn tồn tại)
         const empData = await EmployeesService.getById(id as string);
         setEmployee(empData);
-        const userData = await UsersService.getByEmployeeId(id as string);
-        setAccount(userData);
 
+        // 2️⃣ Lấy thông tin tài khoản (có thể null)
+        const data = await AuthService.getEmployeeById(id as string);
+        setAccount(data?.user || null);
+
+        // 3️⃣ Gán giá trị cho form
         form.setFieldsValue({
           fullname: empData.fullname,
           gender: empData.gender,
+          dob: empData.date_of_birth || empData.dob,
           position: empData.position,
           specialization: empData.specialization,
           phone: empData.phone,
           email: empData.email,
           address: empData.address,
         });
+
       } catch {
         message.error("Không thể tải dữ liệu nhân viên hoặc tài khoản");
       } finally {
@@ -120,9 +136,8 @@ export default function EmployeeDetailPage() {
         )}
 
         <div
-          className={`transition-opacity duration-300 ${
-            loading ? "opacity-50" : "opacity-100"
-          }`}
+          className={`transition-opacity duration-300 ${loading ? "opacity-50" : "opacity-100"
+            }`}
         >
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-3xl font-bold">Chi tiết Nhân viên</h2>
@@ -149,8 +164,9 @@ export default function EmployeeDetailPage() {
                     {employee?.fullname}
                   </Descriptions.Item>
                   <Descriptions.Item label="Giới tính">
-                    {employee?.gender}
+                    {mapGenderDisplay(employee?.gender)}
                   </Descriptions.Item>
+
                   <Descriptions.Item label="Chức vụ">
                     {employee?.position}
                   </Descriptions.Item>
@@ -163,7 +179,11 @@ export default function EmployeeDetailPage() {
                   <Descriptions.Item label="Số điện thoại">
                     {employee?.phone}
                   </Descriptions.Item>
-                  <Descriptions.Item label="Địa chỉ" span={2}>
+                  <Descriptions.Item label="Ngày sinh">
+                    {employee?.dob ? formattedDate(employee.dob) : "-"}
+                  </Descriptions.Item>
+
+                  <Descriptions.Item label="Địa chỉ">
                     {employee?.address || "-"}
                   </Descriptions.Item>
                 </Descriptions>
@@ -206,10 +226,10 @@ export default function EmployeeDetailPage() {
                     </Select>
                   </Form.Item>
                   <Form.Item label="Chức vụ" name="position">
-                    <Input disabled/>
+                    <Input disabled />
                   </Form.Item>
                   <Form.Item label="Chuyên môn" name="specialization">
-                    <Input disabled/>
+                    <Input disabled />
                   </Form.Item>
                   <Form.Item
                     label="Email"
@@ -252,8 +272,8 @@ export default function EmployeeDetailPage() {
                 <Descriptions.Item label="Tên đăng nhập">
                   {account.username}
                 </Descriptions.Item>
-                <Descriptions.Item label="Mật khẩu">
-                  {account.password_hash}
+                <Descriptions.Item label="Vai trò">
+                  {account.role}
                 </Descriptions.Item>
                 <Descriptions.Item label="Ngày tạo">
                   {formattedDate(account.created_at)}

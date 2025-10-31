@@ -17,16 +17,18 @@ async function getAuthHeaders() {
 }
 
 const UsersService = {
+  // src/lib/services/usersService.ts
   async getByEmployeeId(employeeId: string) {
     const headers = await getAuthHeaders();
-    const response = await fetch(`${API_URL}?employee_id=${employeeId}`, {
+    const response = await fetch(`/api/auth/employee/${employeeId}`, {
       headers,
       cache: "no-store",
     });
 
     if (!response.ok) throw new Error("Không thể tải thông tin tài khoản");
-    const users = await response.json();
-    return users.length > 0 ? users[0] : null;
+
+    const data = await response.json(); // { user, employee }
+    return data; // trả nguyên object
   },
 
   async getById(id: string) {

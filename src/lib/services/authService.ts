@@ -1,4 +1,5 @@
 // src/lib/services/authService.ts
+import { getAuthHeaderClient } from "@/lib/authHeaderClient";
 const BASE_URL = "/api/auth";
 
 const AuthService = {
@@ -34,6 +35,35 @@ const AuthService = {
 
     return data.user;
   },
+
+
+  async getAccountByUserId(id: string) {
+    const res = await fetch(`${BASE_URL}/account/${id}`, {
+      method: "GET",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+    });
+
+    if (!res.ok) throw new Error("Không thể tải thông tin tài khoản");
+    return res.json();
+  },
+
+  async getEmployeeById(employeeId: string) {
+    const res = await fetch(`${BASE_URL}/employee/${employeeId}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...getAuthHeaderClient(),
+      },
+      cache: "no-store",
+    });
+
+    if (!res.ok) throw new Error("Không thể tải thông tin nhân viên và tài khoản");
+    return res.json(); // trả về { user, employee }
+  }
+
+
+
 };
 
 export default AuthService;

@@ -23,7 +23,7 @@ export async function middleware(req: NextRequest) {
     }
 
     // 3. Kiểm tra session cookie
-    const sessionCookie = req.cookies.get("myapp_session");
+    const sessionCookie = req.cookies.get("clinic_session");
 
     if (!sessionCookie) {
         return NextResponse.redirect(new URL("/auth/login", req.url));

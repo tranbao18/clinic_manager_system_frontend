@@ -14,6 +14,7 @@ import {
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
 import AuthService from "@/lib/services/authService";
+import EmployeesService from "@/lib/services/employeesService";
 
 const { Content } = Layout;
 
@@ -55,45 +56,55 @@ export default function NewEmployeePage() {
     return mapping[position] || "Receptionist";
   }
 
-  // ✅ Gộp lại: vừa tạo nhân viên + tài khoản
+  // ✅ Gộp lại: tạo account trước → rồi tạo employee
   const onFinish = async (values: any) => {
     try {
       setLoading(true);
+
+      // 1️⃣ Map role từ chức vụ
       const role = mapPositionToRole(values.position);
 
-      // Chuẩn hoá payload cho nhân viên
-      const employeeData = {
-        fullname: values.fullname,
-        dob: values.dob ? dayjs(values.dob).toISOString() : null,
-        gender: mapGenderToApiValue(values.gender),
-        phone: values.phone,
-        email: values.email,
-        position: values.position,
-        specialization: values.specialization || "",
+      // 2️⃣ Tạo dữ liệu account (truyền qua /api/auth/register)
+      const accountPayload = {
+        role,
+        employee: {
+          fullname: values.fullname,
+          dob: values.dob ? dayjs(values.dob).toISOString() : null,
+          gender: mapGenderToApiValue(values.gender),
+          phone: values.phone,
+          email: values.email,
+          position: values.position,
+          specialization: values.specialization || "",
+        },
       };
 
-      // Gửi payload đúng định dạng backend yêu cầu
-      const result = await AuthService.registerAccountForEmployee(
-        role,
-        employeeData
+      // 3️⃣ Gọi API tạo account
+      const accountRes = await AuthService.registerAccountForEmployee(
+        accountPayload.role,
+        accountPayload.employee
       );
+
+      if (!accountRes?.user?._id) {
+        throw new Error("Không nhận được ID người dùng sau khi tạo tài khoản");
+      }
 
       message.success(
         <>
-          Nhân viên & tài khoản đã tạo thành công! <br />
-          <strong>Tài khoản:</strong> {result.user.username} <br />
-          <strong>Mật khẩu:</strong> {result.user.generated_password}
+          🎉 Nhân viên & tài khoản đã được tạo! <br />
+          <strong>Tài khoản:</strong> {accountRes.user.username} <br />
+          <strong>Mật khẩu:</strong> {accountRes.user.generated_password}
         </>
       );
 
       router.push("/dashboard/employees");
     } catch (error: any) {
-      console.error(error);
+      console.error("❌ Error:", error);
       message.error(error.message || "Lỗi khi tạo nhân viên");
     } finally {
       setLoading(false);
     }
   };
+
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
