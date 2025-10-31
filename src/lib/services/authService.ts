@@ -49,18 +49,29 @@ const AuthService = {
   },
 
   async getEmployeeById(employeeId: string) {
-    const res = await fetch(`${BASE_URL}/employee/${employeeId}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        ...getAuthHeaderClient(),
-      },
-      cache: "no-store",
-    });
+    try {
+      const res = await fetch(`${BASE_URL}/employee/${employeeId}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaderClient(),
+        },
+        cache: "no-store",
+      });
 
-    if (!res.ok) throw new Error("Không thể tải thông tin nhân viên và tài khoản");
-    return res.json(); // trả về { user, employee }
+      if (res.status === 404) {
+        // chỉ có user chưa tồn tại, vẫn trả employee=null
+        return { employee: null, user: null };
+      }
+
+      if (!res.ok) throw new Error("Lỗi server");
+      return res.json();
+    } catch (err) {
+      console.error(err);
+      return { employee: null, user: null };
+    }
   }
+
 
 
 

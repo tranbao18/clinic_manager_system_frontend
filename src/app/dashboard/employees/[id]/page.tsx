@@ -182,7 +182,6 @@ export default function EmployeeDetailPage() {
                   <Descriptions.Item label="Ngày sinh">
                     {employee?.dob ? formattedDate(employee.dob) : "-"}
                   </Descriptions.Item>
-
                   <Descriptions.Item label="Địa chỉ">
                     {employee?.address || "-"}
                   </Descriptions.Item>
@@ -205,6 +204,7 @@ export default function EmployeeDetailPage() {
                 layout="vertical"
                 onFinish={handleSave}
                 initialValues={employee || {}}
+                style={{ display: editMode ? "block" : "none" }}
               >
                 <div className="grid grid-cols-2 gap-4">
                   <Form.Item
