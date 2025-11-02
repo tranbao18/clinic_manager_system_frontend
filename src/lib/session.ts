@@ -3,7 +3,7 @@ import { IronSessionOptions } from "iron-session";
 
 export interface SessionData {
   user?: {
-    id: string;
+    _id: string;
     username: string;
     role: string;
     token?: string;

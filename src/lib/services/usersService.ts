@@ -18,19 +18,39 @@ async function getAuthHeaders() {
 
 const UsersService = {
   // src/lib/services/usersService.ts
-  async getByEmployeeId(employeeId: string) {
-    const headers = await getAuthHeaders();
-    const response = await fetch(`/api/auth/employee/${employeeId}`, {
-      headers,
-      cache: "no-store",
-    });
+  async getByUserId(userId: string) {
+    try {
+      const headers = {
+        "Content-Type": "application/json",
+        ...getAuthHeaderClient(),
+      };
 
-    if (!response.ok) throw new Error("Không thể tải thông tin tài khoản");
+      console.log(
+        "🔗 Fetching user:",
+        `${BASE_URL}/api/auth/account/${userId}`
+      );
 
-    const data = await response.json(); // { user, employee }
-    return data; // trả nguyên object
+      const resUser = await fetch(`${BASE_URL}/api/auth/account/${userId}`, {
+        method: "GET",
+        headers,
+        cache: "no-store",
+      });
+
+      if (!resUser.ok) {
+        const text = await resUser.text();
+        console.error("Fetch user failed:", text);
+        throw new Error("Không thể lấy thông tin user");
+      }
+
+      // ✅ Backend trả về { user: {...}, employee: {...} }
+      const { user, employee } = await resUser.json();
+
+      return { user, employee };
+    } catch (err) {
+      console.error(err);
+      return { user: null, employee: null };
+    }
   },
-
   async getById(id: string) {
     const headers = await getAuthHeaders();
     const response = await fetch(`${API_URL}/${id}`, {

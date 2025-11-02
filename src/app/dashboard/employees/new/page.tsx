@@ -105,7 +105,6 @@ export default function NewEmployeePage() {
     }
   };
 
-
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Content className="p-8">
@@ -183,16 +182,17 @@ export default function NewEmployeePage() {
               <Form.Item
                 label="Chuyên khoa"
                 name="specialization"
+                dependencies={["position"]}
                 rules={[
-                  { required: true, message: "Vui lòng chọn chuyên khoa" },
+                  ({ getFieldValue }) => ({
+                    required: getFieldValue("position") === "Bác sĩ",
+                    message: "Vui lòng chọn chuyên khoa",
+                  }),
                 ]}
+                hidden={form.getFieldValue("position") !== "Bác sĩ"}
               >
                 <Select
-                  placeholder="Chọn chuyên khoa"
-                  options={specializations.map((s) => ({
-                    label: s,
-                    value: s,
-                  }))}
+                  options={specializations.map((s) => ({ label: s, value: s }))}
                 />
               </Form.Item>
             )}

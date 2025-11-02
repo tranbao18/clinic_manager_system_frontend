@@ -1,74 +1,156 @@
 "use client";
-
 import { useEffect, useState } from "react";
-import { Card, Avatar, Typography, Divider, Spin } from "antd";
-import { UserOutlined, MailOutlined, PhoneOutlined, IdcardOutlined } from "@ant-design/icons";
+import {
+  Card,
+  Avatar,
+  Typography,
+  Divider,
+  Spin,
+  message,
+  Row,
+  Col,
+} from "antd";
+import {
+  UserOutlined,
+  MailOutlined,
+  PhoneOutlined,
+  IdcardOutlined,
+  EnvironmentOutlined,
+  CalendarOutlined,
+} from "@ant-design/icons";
+import { useRouter } from "next/navigation";
+import UsersService from "@/lib/services/usersService";
+import EmployeesPage from "../employees/page";
 
 const { Title, Text } = Typography;
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<any>(null);
+  const [data, setData] = useState<{ user?: any; employee?: any } | null>(null);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    // 🧠 Dữ liệu mẫu tạm thời trong khi chưa có API
-    const sampleUser = {
-      id: "EMP001",
-      fullname: "Nguyễn Văn A",
-      username: "nguyenvana",
-      role: "Bác sĩ nha khoa",
-      email: "nguyenvana@clinic.com",
-      phone: "0987 654 321",
-      address: "123 Đường Nguyễn Huệ, TP.HCM",
-      createdAt: "2024-08-15T09:30:00Z",
+    const fetchProfile = async () => {
+      try {
+        const storedUser = localStorage.getItem("user");
+        console.log("📦 storedUser:", storedUser);
+
+        if (!storedUser) throw new Error("Chưa đăng nhập");
+
+        const parsed = JSON.parse(storedUser);
+        const userId = parsed.id || parsed._id;
+        if (!userId) throw new Error("Không tìm thấy ID người dùng");
+
+        const result = await UsersService.getByUserId(userId);
+        setData(result);
+      } catch (err: any) {
+        console.error(err);
+        message.error(err.message || "Không thể tải thông tin tài khoản");
+        router.push("/auth/login");
+      } finally {
+        setLoading(false);
+      }
     };
 
-    setTimeout(() => {
-      setUser(sampleUser);
-      setLoading(false);
-    }, 1000);
-  }, []);
+    fetchProfile();
+  }, [router]);
 
-  if (loading) return <Spin fullscreen />;
+  if (loading)
+    return (
+      <div className="w-full h-screen flex justify-center items-center">
+        <Spin size="large" />
+      </div>
+    );
+
+  if (!data)
+    return (
+      <div className="w-full h-screen flex justify-center items-center">
+        Không có thông tin người dùng
+      </div>
+    );
+
+  const { user, employee } = data;
 
   return (
-    <div className="p-6 flex justify-center">
+    <div className="p-6 flex justify-center bg-gray-50 min-h-screen">
       <Card
-        className="w-full max-w-2xl shadow-lg rounded-xl"
-        title={
-          <div className="flex items-center gap-4">
-            <Avatar size={64} icon={<UserOutlined />} />
-            <div>
-              <Title level={4} className="mb-0">
-                {user.fullname}
-              </Title>
-              <Text type="secondary">{user.role}</Text>
-            </div>
-          </div>
-        }
+        className="w-full max-w-3xl shadow-xl rounded-2xl border border-gray-200"
+        bodyStyle={{ padding: "2rem" }}
       >
-        <Divider />
+        {/* Header */}
+        <div className="flex flex-col items-center text-center mb-6">
+          <Avatar
+            size={96}
+            icon={<UserOutlined />}
+            className="mb-4 bg-blue-500"
+          />
+          <Title level={3} className="!mb-0">
+            {employee?.fullname || user?.username}
+          </Title>
+          <Text type="secondary" className="text-gray-500">
+            {employee?.position || user?.role || "Nhân viên"}
+          </Text>
+        </div>
 
-        <div className="space-y-3">
-          <p>
-            <IdcardOutlined /> <Text strong>Mã nhân viên:</Text> {user.id}
-          </p>
-          <p>
-            <MailOutlined /> <Text strong>Email:</Text> {user.email}
-          </p>
-          <p>
-            <PhoneOutlined /> <Text strong>Số điện thoại:</Text> {user.phone}
-          </p>
-          <p>
-            <Text strong>Địa chỉ:</Text> {user.address}
-          </p>
-          <p>
-            <Text strong>Tài khoản đăng nhập:</Text> {user.username}
-          </p>
-          <p>
-            <Text strong>Ngày tạo tài khoản:</Text>{" "}
-            {new Date(user.createdAt).toLocaleDateString("vi-VN")}
-          </p>
+        <Divider className="border-gray-200" />
+
+        {/* Info section */}
+        <Row gutter={[16, 16]}>
+          <Col xs={24} sm={12}>
+            <Card
+              className="rounded-xl shadow-sm border border-gray-100"
+              size="small"
+            >
+              <p className="mb-2">
+                <IdcardOutlined className="text-blue-500 mr-2" />
+                <Text strong>Mã nhân viên:</Text> {employee?._id || "-"}
+              </p>
+              <p className="mb-2">
+                <MailOutlined className="text-blue-500 mr-2" />
+                <Text strong>Email:</Text> {employee?.email || user?.email || "-"}
+              </p>
+              <p>
+                <PhoneOutlined className="text-blue-500 mr-2" />
+                <Text strong>Điện thoại:</Text> {employee?.phone || "-"}
+              </p>
+            </Card>
+          </Col>
+
+          <Col xs={24} sm={12}>
+            <Card
+              className="rounded-xl shadow-sm border border-gray-100"
+              size="small"
+            >
+              <p className="mb-2">
+                <EnvironmentOutlined className="text-blue-500 mr-2" />
+                <Text strong>Ngày sinh:</Text> {employee?.dob
+              ? new Date(employee.dob).toLocaleDateString("vi-VN")
+              : "-"}
+              </p>
+              <p className="mb-2">
+                <UserOutlined className="text-blue-500 mr-2" />
+                <Text strong>Tài khoản:</Text> {user?.username || "-"}
+              </p>
+              <p>
+                <CalendarOutlined className="text-blue-500 mr-2" />
+                <Text strong>Ngày tạo:</Text>{" "}
+                {user?.created_at
+                  ? new Date(user.created_at).toLocaleDateString("vi-VN")
+                  : "-"}
+              </p>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Footer */}
+        <Divider className="border-gray-200 mt-6" />
+        <div className="text-center text-gray-500 text-sm">
+          <Text type="secondary">
+            Thông tin tài khoản được cập nhật lần cuối:{" "}
+            {user?.updated_at
+              ? new Date(user.updated_at).toLocaleDateString("vi-VN")
+              : "-"}
+          </Text>
         </div>
       </Card>
     </div>
