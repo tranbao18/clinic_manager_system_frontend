@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input, Button, Form, message, Card, Select } from "antd";
 import { createPatient, Patient } from "@/lib/services/patientsService";
@@ -9,6 +9,25 @@ export default function AddPatientPage() {
     const router = useRouter();
     const [form] = Form.useForm();
     const [saving, setSaving] = useState(false);
+    const [role, setRole] = useState<string>("");
+
+    useEffect(() => {
+        const fetchRole = async () => {
+            try {
+                const res = await fetch("/api/session", { cache: "no-store" });
+                const data = await res.json();
+                const r = (data?.user?.role || "").toLowerCase();
+                setRole(r);
+                if (r && r !== "receptionist") {
+                    router.push("/dashboard/patients");
+                }
+            } catch {
+                router.push("/auth/login");
+            }
+        };
+        fetchRole();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const handleAddPatient = async (values: Omit<Patient, "id">) => {
         try {

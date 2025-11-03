@@ -12,10 +12,11 @@ import {
   Form,
   Input,
   Select,
+  DatePicker,
 } from "antd";
 import EmployeesService from "@/lib/services/employeesService";
-import UsersService from "@/lib/services/usersService";
 import AuthService from "@/lib/services/authService";
+import dayjs, { Dayjs } from "dayjs";
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -29,7 +30,7 @@ interface Employee {
   position: string;
   specialization?: string;
   address?: string;
-  date_of_birth?: string;
+  dob?: string;
   created_at: string;
 }
 
@@ -38,6 +39,7 @@ interface UserAccount {
   username: string;
   password_hash: string;
   created_at: string;
+  role?: string;
 }
 
 export default function EmployeeDetailPage() {
@@ -48,7 +50,7 @@ export default function EmployeeDetailPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [form] = Form.useForm(); // ✅ KHỞI TẠO ĐÚNG CHUẨN
+  const [form] = Form.useForm();
 
   const formattedDate = (dateString?: string) => {
     if (!dateString) return "-";
@@ -64,7 +66,6 @@ export default function EmployeeDetailPage() {
     if (gender === "Female") return "Nữ";
     return gender;
   };
-
 
   // 🔹 Fetch data
   useEffect(() => {
@@ -84,14 +85,13 @@ export default function EmployeeDetailPage() {
         form.setFieldsValue({
           fullname: empData.fullname,
           gender: empData.gender,
-          dob: empData.date_of_birth || empData.dob,
+          dob: empData.date_of_birth || empData.dob ? dayjs(empData.date_of_birth || empData.dob) : null,
           position: empData.position,
           specialization: empData.specialization,
           phone: empData.phone,
           email: empData.email,
           address: empData.address,
         });
-
       } catch {
         message.error("Không thể tải dữ liệu nhân viên hoặc tài khoản");
       } finally {
@@ -103,14 +103,29 @@ export default function EmployeeDetailPage() {
   }, [id, form]);
 
   // 🔹 Lưu cập nhật
-  const handleSave = async (values: any) => {
+  const handleSave = async (values: {
+    fullname: string;
+    gender: string;
+    email: string;
+    phone?: string;
+    address?: string;
+    dob?: Dayjs | null;
+    position?: string;
+    specialization?: string;
+  }) => {
     try {
       setSaving(true);
       if (!employee?._id) return;
 
-      await EmployeesService.updateEmployee(employee._id, values);
+      // Chuyển đổi dayjs object thành ISO string nếu có
+      const payload = {
+        ...values,
+        dob: values.dob ? dayjs(values.dob).toISOString() : undefined,
+      };
+
+      await EmployeesService.updateEmployee(employee._id, payload);
       message.success("Cập nhật thông tin nhân viên thành công!");
-      setEmployee({ ...employee, ...values });
+      setEmployee({ ...employee, ...payload });
       setEditMode(false);
     } catch {
       message.error("Không thể cập nhật thông tin nhân viên");
@@ -136,8 +151,9 @@ export default function EmployeeDetailPage() {
         )}
 
         <div
-          className={`transition-opacity duration-300 ${loading ? "opacity-50" : "opacity-100"
-            }`}
+          className={`transition-opacity duration-300 ${
+            loading ? "opacity-50" : "opacity-100"
+          }`}
         >
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-3xl font-bold">Chi tiết Nhân viên</h2>
@@ -157,112 +173,111 @@ export default function EmployeeDetailPage() {
 
           {/* 🔹 Thông tin nhân viên */}
           <Card title="Thông tin nhân viên" className="mb-6">
-            {!editMode ? (
-              <>
-                <Descriptions bordered column={2} size="middle">
-                  <Descriptions.Item label="Họ và tên">
-                    {employee?.fullname}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Giới tính">
-                    {mapGenderDisplay(employee?.gender)}
-                  </Descriptions.Item>
+            <div style={{ display: !editMode ? "block" : "none" }}>
+              <Descriptions bordered column={2} size="middle">
+                <Descriptions.Item label="Họ và tên">
+                  {employee?.fullname}
+                </Descriptions.Item>
+                <Descriptions.Item label="Giới tính">
+                  {mapGenderDisplay(employee?.gender)}
+                </Descriptions.Item>
 
-                  <Descriptions.Item label="Chức vụ">
-                    {employee?.position}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Chuyên môn">
-                    {employee?.specialization || "-"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Email">
-                    {employee?.email}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Số điện thoại">
-                    {employee?.phone}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Ngày sinh">
-                    {employee?.dob ? formattedDate(employee.dob) : "-"}
-                  </Descriptions.Item>
-                  <Descriptions.Item label="Địa chỉ">
-                    {employee?.address || "-"}
-                  </Descriptions.Item>
-                </Descriptions>
+                <Descriptions.Item label="Chức vụ">
+                  {employee?.position}
+                </Descriptions.Item>
+                <Descriptions.Item label="Chuyên môn">
+                  {employee?.specialization || "-"}
+                </Descriptions.Item>
+                <Descriptions.Item label="Email">
+                  {employee?.email}
+                </Descriptions.Item>
+                <Descriptions.Item label="Số điện thoại">
+                  {employee?.phone}
+                </Descriptions.Item>
+                <Descriptions.Item label="Ngày sinh">
+                  {employee?.dob ? formattedDate(employee.dob) : "-"}
+                </Descriptions.Item>
 
-                <Descriptions
-                  bordered
-                  column={1}
-                  size="middle"
-                  className="mt-4"
+                <Descriptions.Item label="Địa chỉ">
+                  {employee?.address || "-"}
+                </Descriptions.Item>
+              </Descriptions>
+
+              <Descriptions bordered column={1} size="middle" className="mt-4">
+                <Descriptions.Item label="Ngày tạo hồ sơ">
+                  {formattedDate(employee?.created_at)}
+                </Descriptions.Item>
+              </Descriptions>
+            </div>
+
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={handleSave}
+              style={{ display: editMode ? "block" : "none" }}
+            >
+              <div className="grid grid-cols-2 gap-4">
+                <Form.Item
+                  label="Họ và tên"
+                  name="fullname"
+                  rules={[{ required: true, message: "Nhập họ tên" }]}
                 >
-                  <Descriptions.Item label="Ngày tạo hồ sơ">
-                    {formattedDate(employee?.created_at)}
-                  </Descriptions.Item>
-                </Descriptions>
-              </>
-            ) : (
-              <Form
-                form={form}
-                layout="vertical"
-                onFinish={handleSave}
-                initialValues={employee || {}}
-                style={{ display: editMode ? "block" : "none" }}
-              >
-                <div className="grid grid-cols-2 gap-4">
-                  <Form.Item
-                    label="Họ và tên"
-                    name="fullname"
-                    rules={[{ required: true, message: "Nhập họ tên" }]}
-                  >
-                    <Input />
-                  </Form.Item>
-                  <Form.Item
-                    label="Giới tính"
-                    name="gender"
-                    rules={[{ required: true }]}
-                  >
-                    <Select>
-                      <Option value="Nam">Nam</Option>
-                      <Option value="Nữ">Nữ</Option>
-                      <Option value="Khác">Khác</Option>
-                    </Select>
-                  </Form.Item>
-                  <Form.Item label="Chức vụ" name="position">
-                    <Input disabled />
-                  </Form.Item>
-                  <Form.Item label="Chuyên môn" name="specialization">
-                    <Input disabled />
-                  </Form.Item>
-                  <Form.Item
-                    label="Email"
-                    name="email"
-                    rules={[
-                      { required: true },
-                      { type: "email", message: "Email không hợp lệ" },
-                    ]}
-                  >
-                    <Input />
-                  </Form.Item>
-                  <Form.Item label="Số điện thoại" name="phone">
-                    <Input />
-                  </Form.Item>
-                  <Form.Item
-                    label="Địa chỉ"
-                    name="address"
-                    className="col-span-2"
-                  >
-                    <Input.TextArea rows={2} />
-                  </Form.Item>
-                </div>
+                  <Input />
+                </Form.Item>
+                <Form.Item
+                  label="Giới tính"
+                  name="gender"
+                  rules={[{ required: true }]}
+                >
+                  <Select>
+                    <Option value="Nam">Nam</Option>
+                    <Option value="Nữ">Nữ</Option>
+                    <Option value="Khác">Khác</Option>
+                  </Select>
+                </Form.Item>
+                <Form.Item label="Chức vụ" name="position">
+                  <Input disabled />
+                </Form.Item>
+                <Form.Item label="Chuyên môn" name="specialization">
+                  <Input disabled />
+                </Form.Item>
+                <Form.Item
+                  label="Email"
+                  name="email"
+                  rules={[
+                    { required: true },
+                    { type: "email", message: "Email không hợp lệ" },
+                  ]}
+                >
+                  <Input />
+                </Form.Item>
+                <Form.Item label="Số điện thoại" name="phone">
+                  <Input />
+                </Form.Item>
+                <Form.Item label="Ngày sinh" name="dob">
+                  <DatePicker
+                    style={{ width: "100%" }}
+                    format="DD/MM/YYYY"
+                    placeholder="Chọn ngày sinh"
+                  />
+                </Form.Item>
+                <Form.Item
+                  label="Địa chỉ"
+                  name="address"
+                >
+                  <Input.TextArea />
+                </Form.Item>
+              </div>
 
-                <div className="text-right">
-                  <Button onClick={() => setEditMode(false)} className="mr-2">
-                    Hủy
-                  </Button>
-                  <Button type="primary" htmlType="submit" loading={saving}>
-                    Lưu thay đổi
-                  </Button>
-                </div>
-              </Form>
-            )}
+              <div className="text-right">
+                <Button onClick={() => setEditMode(false)} className="mr-2">
+                  Hủy
+                </Button>
+                <Button type="primary" htmlType="submit" loading={saving}>
+                  Lưu thay đổi
+                </Button>
+              </div>
+            </Form>
           </Card>
 
           {/* 🔹 Thông tin tài khoản */}
@@ -273,10 +288,7 @@ export default function EmployeeDetailPage() {
                   {account.username}
                 </Descriptions.Item>
                 <Descriptions.Item label="Vai trò">
-                  {account.role}
-                </Descriptions.Item>
-                <Descriptions.Item label="Ngày tạo">
-                  {formattedDate(account.created_at)}
+                  {account.role || "-"}
                 </Descriptions.Item>
               </Descriptions>
             ) : (

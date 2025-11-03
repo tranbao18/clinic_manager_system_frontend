@@ -3,7 +3,19 @@ import { getAuthHeaderClient } from "@/lib/authHeaderClient";
 const BASE_URL = "/api/auth";
 
 const AuthService = {
-  async registerAccountForEmployee(role: string, employee: any) {
+  async registerAccountForEmployee(
+    role: string,
+    employee: {
+      fullname: string;
+      dob?: string | null;
+      gender: string;
+      phone: string;
+      email: string;
+      position: string;
+      specialization?: string;
+      address?: string;
+    }
+  ) {
     const res = await fetch(`${BASE_URL}/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -30,8 +42,9 @@ const AuthService = {
     if (!res.ok)
       throw new Error(data.error || "Tên đăng nhập hoặc mật khẩu sai");
 
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("user", JSON.stringify(data.user));
+    // Lưu token vào sessionStorage thay vì localStorage
+    sessionStorage.setItem("token", data.token);
+    sessionStorage.setItem("user", JSON.stringify(data.user));
 
     return data.user;
   },
@@ -50,12 +63,17 @@ const AuthService = {
 
   async getEmployeeById(employeeId: string) {
     try {
+      const authHeaders = getAuthHeaderClient();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (authHeaders.Authorization) {
+        headers.Authorization = authHeaders.Authorization;
+      }
+      
       const res = await fetch(`${BASE_URL}/employee/${employeeId}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          ...getAuthHeaderClient(),
-        },
+        headers,
         cache: "no-store",
       });
 
@@ -70,11 +88,46 @@ const AuthService = {
       console.error(err);
       return { employee: null, user: null };
     }
-  }
+  },
 
+  async logout() {
+    try {
+      const authHeaders = getAuthHeaderClient();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (authHeaders.Authorization) {
+        headers.Authorization = authHeaders.Authorization;
+      }
+      
+      const res = await fetch(`${BASE_URL}/logout`, {
+        method: "POST",
+        headers,
+        credentials: "include",
+      });
 
+      // Xóa token và user từ cả localStorage và sessionStorage
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
 
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Lỗi khi đăng xuất");
+      }
 
+      const data = await res.json();
+      return data;
+    } catch (err: unknown) {
+      // Vẫn xóa storage ngay cả khi có lỗi
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+      throw err;
+    }
+  },
 };
 
 export default AuthService;

@@ -20,7 +20,7 @@ export default function Navbar() {
             .then((data) => setRole(data?.user?.role || ""));
     }, []);
 
-    const menuItems = getMenuByRole(role);
+    const menuItems = getMenuByRole(role?.toLowerCase?.() || "");
 
     // 🔹 Khi pathname đổi -> tìm item khớp sâu nhất
     useEffect(() => {

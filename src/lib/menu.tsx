@@ -15,8 +15,6 @@ export const getMenuByRole = (role: string) => {
         admin: [
             { key: "1", icon: <DashboardOutlined />, label: "Dashboard", href: "/dashboard" },
             { key: "6", icon: <UserOutlined />, label: "Nhân viên", href: "/dashboard/employees" },
-            { key: "2", icon: <SolutionOutlined />, label: "Bác sĩ", href: "/dashboard/doctors" },
-            { key: "3", icon: <TeamOutlined />, label: "Bệnh nhân", href: "/dashboard/patients" },
             { key: "4", icon: <ScheduleOutlined />, label: "Lịch hẹn", href: "/dashboard/appointments" },
             { key: "5", icon: <AreaChartOutlined />, label: "Báo cáo", href: "/dashboard/report" },
             { key: "7", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
@@ -41,10 +39,10 @@ export const getMenuByRole = (role: string) => {
         ],
     };
 
-    if (role === "Admin") return allMenus.admin;
-    if (role === "Doctor") return allMenus.doctor;
-    if (role === "Nurse") return allMenus.nurse;
-    if (role === "Receptionist") return allMenus.receptionist;
-    if (role === "Accountant") return allMenus.accountant;
+    if (role === "admin") return allMenus.admin;
+    if (role === "doctor") return allMenus.doctor;
+    if (role === "nurse") return allMenus.nurse;
+    if (role === "receptionist") return allMenus.receptionist;
+    if (role === "accountant") return allMenus.accountant;
     return [];
 };

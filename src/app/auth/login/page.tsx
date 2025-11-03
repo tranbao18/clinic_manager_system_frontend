@@ -22,6 +22,12 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
+      // ✅ XÓA TOKEN CŨ TRƯỚC KHI LOGIN MỚI
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      sessionStorage.removeItem("token");
+      sessionStorage.removeItem("user");
+
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -38,9 +44,9 @@ export default function LoginPage() {
         return;
       }
 
-      // ✅ Lưu token & user
-      localStorage.setItem("token", data.token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // ✅ Lưu token & user MỚI vào sessionStorage (xóa khi đóng tab)
+      sessionStorage.setItem("token", data.token);
+      sessionStorage.setItem("user", JSON.stringify(data.user));
 
       api.success({
         message: "Đăng nhập thành công 🎉",
@@ -48,10 +54,11 @@ export default function LoginPage() {
       });
 
       router.push("/dashboard");
-    } catch (err: any) {
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
       api.error({
         message: "Lỗi hệ thống",
-        description: err.message || "Có lỗi xảy ra khi đăng nhập",
+        description: error.message || "Có lỗi xảy ra khi đăng nhập",
       });
     } finally {
       setLoading(false);

@@ -32,13 +32,15 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const storedUser = localStorage.getItem("user");
-        console.log("📦 storedUser:", storedUser);
+        // Lấy user từ session (server) thay vì localStorage
+        const meRes = await fetch("/api/users/me", {
+          credentials: "include",
+          cache: "no-store",
+        });
+        if (!meRes.ok) throw new Error("Chưa đăng nhập");
+        const me = await meRes.json();
 
-        if (!storedUser) throw new Error("Chưa đăng nhập");
-
-        const parsed = JSON.parse(storedUser);
-        const userId = parsed.id || parsed._id;
+        const userId = me.id || me._id;
         if (!userId) throw new Error("Không tìm thấy ID người dùng");
 
         const result = await UsersService.getByUserId(userId);
@@ -75,7 +77,7 @@ export default function ProfilePage() {
     <div className="p-6 flex justify-center bg-gray-50 min-h-screen">
       <Card
         className="w-full max-w-3xl shadow-xl rounded-2xl border border-gray-200"
-        bodyStyle={{ padding: "2rem" }}
+        styles={{ body: { padding: "2rem" } }}
       >
         {/* Header */}
         <div className="flex flex-col items-center text-center mb-6">

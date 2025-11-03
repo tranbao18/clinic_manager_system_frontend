@@ -1,7 +1,7 @@
 "use client";
 
 import { Layout } from "antd";
-import { Avatar } from "@mui/material";
+import { Avatar } from "antd";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -10,15 +10,17 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { useEffect, useState } from "react";
+import { UserOutlined } from "@ant-design/icons";
+import AuthService from "@/lib/services/authService";
 
 const { Header: AntHeader } = Layout;
 
 export default function Header() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<{ username?: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Lấy thông tin user đang đăng nhập
+  // ✅ Chỉ fetch profile, không auto-clear token khi khởi động
   useEffect(() => {
     const fetchProfile = async () => {
       try {
@@ -41,14 +43,20 @@ export default function Header() {
 
   const handleLogout = async () => {
     try {
-      await fetch("/api/logout", {
+      // Gọi AuthService logout để xóa token ở backend và frontend
+      await AuthService.logout();
+      
+      // Xóa session (thông qua /api/logout route)
+      await fetch("/auth/logout", {
         method: "POST",
         credentials: "include",
       });
-      localStorage.removeItem("token");
+      
       router.push("/auth/login");
     } catch (err) {
       console.error("Logout failed", err);
+      // Vẫn chuyển đến trang login dù có lỗi
+      router.push("/auth/login");
     }
   };
 
@@ -58,11 +66,14 @@ export default function Header() {
     <AntHeader className="bg-white flex justify-between items-center px-4 shadow">
       <div className="flex items-center gap-4"></div>
 
-      {/* ✅ Hiển thị thông tin user */}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <div className="flex items-center gap-2 cursor-pointer">
-            <Avatar alt={user?.username} src={user?.avatar || "/avatar.png"} />
+            <Avatar
+              size={36}
+              className="bg-gray-500"
+              icon={<UserOutlined />}
+            />
             <span>{user?.username || "User"}</span>
           </div>
         </DropdownMenuTrigger>

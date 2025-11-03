@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
+import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
-const API_URL = "https://68efe26cb06cc802829f0c31.mockapi.io/patients";
+const API_URL = "http://localhost:5050/api/patients";
 
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = await context.params; // 👈 BẮT BUỘC await ở đây
+        const { id } = await context.params;
+        const headers = await getAuthHeaderServer();
 
-        console.log("📡 API HIT /api/patients/[id] with ID:", id);
-
-        const res = await fetch(`${API_URL}/${id}`, { cache: "no-store" });
+        const res = await fetch(`${API_URL}/${id}`, { cache: "no-store", headers });
         if (!res.ok) {
             const text = await res.text();
             console.error(`External API (GET patient ${id}) error:`, res.status, text);
-            return NextResponse.json({ error: `Không tìm thấy bệnh nhân ${id}`, detail: text }, { status: res.status });
+            return NextResponse.json({ error: "Không tìm thấy bệnh nhân", detail: text }, { status: res.status });
         }
 
         const data = await res.json();
@@ -23,40 +23,51 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
     }
 }
 
-export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = await context.params; // 👈 await ở đây
-
+        const { id } = await context.params;
         const body = await req.json();
+        const headers = {
+            ...await getAuthHeaderServer(),
+            "Content-Type": "application/json",
+        };
+
         const res = await fetch(`${API_URL}/${id}`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
+            method: "PUT",
+            headers,
             body: JSON.stringify(body),
         });
 
         if (!res.ok) {
             const text = await res.text();
-            console.error(`External API (PATCH patient ${id}) error:`, res.status, text);
-            return NextResponse.json({ error: `Không thể cập nhật bệnh nhân ${id}`, detail: text }, { status: res.status });
+            console.error(`External API (PUT patient ${id}) error:`, res.status, text);
+            return NextResponse.json(
+                { error: `Không thể cập nhật bệnh nhân ${id}`, detail: text },
+                { status: res.status }
+            );
         }
 
         const data = await res.json();
         return NextResponse.json(data);
     } catch (err: any) {
-        console.error("PATCH /api/patients/[id] exception:", err);
+        console.error("PUT /api/patients/[id] exception:", err);
         return NextResponse.json({ error: err.message || "Lỗi hệ thống" }, { status: 500 });
     }
 }
 
 export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = await context.params; // 👈 await ở đây
+        const { id } = await context.params;
+        const headers = await getAuthHeaderServer();
 
-        const res = await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+        const res = await fetch(`${API_URL}/${id}`, { method: "DELETE", headers });
         if (!res.ok) {
             const text = await res.text();
             console.error(`External API (DELETE patient ${id}) error:`, res.status, text);
-            return NextResponse.json({ error: `Không thể xóa bệnh nhân ${id}`, detail: text }, { status: res.status });
+            return NextResponse.json(
+                { error: `Không thể xóa bệnh nhân ${id}`, detail: text },
+                { status: res.status }
+            );
         }
 
         return NextResponse.json({ message: "Xóa bệnh nhân thành công" });

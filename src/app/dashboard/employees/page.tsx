@@ -33,6 +33,7 @@ interface Employee {
 
 export default function EmployeesPage() {
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+  const [role, setRole] = useState<string>("");
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
@@ -89,6 +90,21 @@ export default function EmployeesPage() {
     if (gender === "Female") return "Nữ";
     return gender;
   };
+  useEffect(() => {
+    const fetchRole = async () => {
+      try {
+        const res = await fetch("/api/session", { cache: "no-store" });
+        const data = await res.json();
+        setRole((data?.user?.role || "").toLowerCase());
+      } catch {
+        setRole("");
+      }
+    };
+    fetchRole();
+  }, []);
+
+  const canDelete = role === "admin";
+
   // 🔹 Cấu hình bảng
   const columns: ColumnsType<Employee> = [
     { title: "Họ tên", dataIndex: "fullname" },
@@ -118,14 +134,16 @@ export default function EmployeesPage() {
           <Button onClick={() => router.push(`/dashboard/employees/${record._id}`)}>
             Xem chi tiết
           </Button>
-          <Popconfirm
-            title="Bạn có chắc muốn xóa nhân viên này?"
-            onConfirm={() => handleDelete(record._id)}
-            okText="Xóa"
-            cancelText="Hủy"
-          >
-            <Button danger>Xóa</Button>
-          </Popconfirm>
+          {canDelete && (
+            <Popconfirm
+              title="Bạn có chắc muốn xóa nhân viên này?"
+              onConfirm={() => handleDelete(record._id)}
+              okText="Xóa"
+              cancelText="Hủy"
+            >
+              <Button danger>Xóa</Button>
+            </Popconfirm>
+          )}
         </div>
       ),
     },
