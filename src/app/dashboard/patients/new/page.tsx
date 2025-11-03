@@ -2,115 +2,225 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Input, Button, Form, message, Card, Select } from "antd";
+import {
+  Input,
+  Button,
+  Form,
+  message,
+  Card,
+  Select,
+  DatePicker,
+  Space,
+} from "antd";
+import dayjs from "dayjs";
+import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import { createPatient, Patient } from "@/lib/services/patientsService";
 
 export default function AddPatientPage() {
-    const router = useRouter();
-    const [form] = Form.useForm();
-    const [saving, setSaving] = useState(false);
-    const [role, setRole] = useState<string>("");
+  const router = useRouter();
+  const [form] = Form.useForm();
+  const [saving, setSaving] = useState(false);
+  const [role, setRole] = useState<string>("");
 
-    useEffect(() => {
-        const fetchRole = async () => {
-            try {
-                const res = await fetch("/api/session", { cache: "no-store" });
-                const data = await res.json();
-                const r = (data?.user?.role || "").toLowerCase();
-                setRole(r);
-                if (r && r !== "receptionist") {
-                    router.push("/dashboard/patients");
-                }
-            } catch {
-                router.push("/auth/login");
-            }
-        };
-        fetchRole();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
-
-    const handleAddPatient = async (values: Omit<Patient, "id">) => {
-        try {
-            setSaving(true);
-            await createPatient(values);
-            message.success("Thêm bệnh nhân thành công!");
-            router.push("/dashboard/patients");
-        } catch (error) {
-            console.error(error);
-            message.error("Không thể thêm bệnh nhân");
-        } finally {
-            setSaving(false);
+  // ✅ Chặn truy cập nếu không phải lễ tân
+  useEffect(() => {
+    const fetchRole = async () => {
+      try {
+        const res = await fetch("/api/session", { cache: "no-store" });
+        const data = await res.json();
+        const r = (data?.user?.role || "").toLowerCase();
+        setRole(r);
+        if (r && r !== "receptionist") {
+          router.push("/dashboard/patients");
         }
+      } catch {
+        router.push("/auth/login");
+      }
     };
+    fetchRole();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    return (
-        <div className="p-6 max-w-2xl mx-auto">
-            <Card title="Thêm bệnh nhân mới">
-                <Form
-                    layout="vertical"
-                    form={form}
-                    onFinish={handleAddPatient}
-                    initialValues={{
-                        fullName: "",
-                        dob: "",
-                        gender: "",
-                        address: "",
-                        phone: "",
-                        email: "",
-                        medicalHistory: "",
+  // ✅ Gửi dữ liệu
+  const handleAddPatient = async (values: any) => {
+    try {
+      setSaving(true);
+
+      const formattedValues: Omit<Patient, "id"> = {
+        fullname: values.fullname,
+        dob: values.dob ? values.dob.toISOString() : null,
+        gender: values.gender,
+        address: values.address,
+        phone: values.phone,
+        email: values.email,
+        medical_history: values.medical_history || [],
+      };
+
+      await createPatient(formattedValues);
+      message.success("Thêm bệnh nhân thành công!");
+      router.push("/dashboard/patients");
+    } catch (error) {
+      console.error(error);
+      message.error("Không thể thêm bệnh nhân");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="p-6 max-w-3xl mx-auto">
+      <Card
+        title="🩺 Thêm bệnh nhân mới"
+        className="shadow-md rounded-2xl"
+        bordered={false}
+      >
+        <Form
+          layout="vertical"
+          form={form}
+          onFinish={handleAddPatient}
+          initialValues={{
+            fullname: "",
+            dob: null,
+            gender: "",
+            address: "",
+            phone: "",
+            email: "",
+            medical_history: [],
+          }}
+        >
+          {/* Họ và tên */}
+          <Form.Item
+            label="Họ và tên"
+            name="fullname"
+            rules={[{ required: true, message: "Vui lòng nhập họ tên" }]}
+          >
+            <Input placeholder="VD: Phan Thanh Tùng" />
+          </Form.Item>
+
+          {/* Ngày sinh & Giới tính */}
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item
+              label="Ngày sinh"
+              name="dob"
+              rules={[{ required: true, message: "Vui lòng chọn ngày sinh" }]}
+            >
+              <DatePicker
+                className="w-full"
+                format="YYYY-MM-DD"
+                placeholder="Chọn ngày sinh"
+              />
+            </Form.Item>
+
+            <Form.Item
+              label="Giới tính"
+              name="gender"
+              rules={[{ required: true, message: "Vui lòng chọn giới tính" }]}
+            >
+              <Select placeholder="Chọn giới tính">
+                <Select.Option value="Male">Nam</Select.Option>
+                <Select.Option value="Female">Nữ</Select.Option>
+              </Select>
+            </Form.Item>
+          </div>
+
+          {/* Địa chỉ */}
+          <Form.Item
+            label="Địa chỉ"
+            name="address"
+            rules={[{ required: true, message: "Vui lòng nhập địa chỉ" }]}
+          >
+            <Input placeholder="VD: 12 Nguyễn Huệ, TP.HCM" />
+          </Form.Item>
+
+          {/* Số điện thoại & Email */}
+          <div className="grid grid-cols-2 gap-4">
+            <Form.Item
+              label="Số điện thoại"
+              name="phone"
+              rules={[
+                { required: true, message: "Vui lòng nhập số điện thoại" },
+                {
+                  pattern: /^[0-9]{9,11}$/,
+                  message: "Số điện thoại không hợp lệ",
+                },
+              ]}
+            >
+              <Input placeholder="VD: 0909555123" />
+            </Form.Item>
+
+            <Form.Item
+              label="Email"
+              name="email"
+              rules={[
+                { type: "email", message: "Email không hợp lệ" },
+              ]}
+            >
+              <Input placeholder="VD: tung.phan@gmail.com" />
+            </Form.Item>
+          </div>
+
+          {/* Tiền sử bệnh - Danh sách động */}
+          <Form.List name="medical_history">
+            {(fields, { add, remove }) => (
+              <>
+                <label className="block font-medium mb-2">🩹 Tiền sử bệnh</label>
+                {fields.map(({ key, name, ...restField }) => (
+                  <Space
+                    key={key}
+                    style={{
+                      display: "flex",
+                      marginBottom: 8,
+                      alignItems: "baseline",
                     }}
-                >
+                    align="baseline"
+                  >
                     <Form.Item
-                        label="Họ và tên"
-                        name="fullName"
-                        rules={[{ required: true, message: "Vui lòng nhập họ tên" }]}
+                      {...restField}
+                      name={[name, "khoa"]}
+                      rules={[
+                        { required: true, message: "Nhập tên khoa" },
+                      ]}
                     >
-                        <Input />
+                      <Input placeholder="VD: Tim mạch" />
                     </Form.Item>
-
-                    <Form.Item label="Ngày sinh" name="dob">
-                        <Input type="date" />
-                    </Form.Item>
-
                     <Form.Item
-                        label="Giới tính"
-                        name="gender"
-                        rules={[{ required: true, message: "Vui lòng chọn giới tính" }]}
+                      {...restField}
+                      name={[name, "description"]}
+                      rules={[
+                        { required: true, message: "Nhập mô tả bệnh" },
+                      ]}
                     >
-                        <Select placeholder="Chọn giới tính">
-                            <Select.Option value="male">Nam</Select.Option>
-                            <Select.Option value="female">Nữ</Select.Option>
-                        </Select>
+                      <Input placeholder="VD: Tăng huyết áp nhẹ" />
                     </Form.Item>
+                    <MinusCircleOutlined
+                      onClick={() => remove(name)}
+                      className="text-red-500 text-lg cursor-pointer"
+                    />
+                  </Space>
+                ))}
+                <Form.Item>
+                  <Button
+                    type="dashed"
+                    onClick={() => add()}
+                    block
+                    icon={<PlusOutlined />}
+                  >
+                    Thêm tiền sử bệnh
+                  </Button>
+                </Form.Item>
+              </>
+            )}
+          </Form.List>
 
-                    <Form.Item label="Địa chỉ" name="address">
-                        <Input />
-                    </Form.Item>
-
-                    <Form.Item label="Số điện thoại" name="phone">
-                        <Input />
-                    </Form.Item>
-
-                    <Form.Item label="Email" name="email">
-                        <Input type="email" />
-                    </Form.Item>
-
-                    <Form.Item label="Tiền sử bệnh" name="medicalHistory">
-                        <Input.TextArea rows={3} />
-                    </Form.Item>
-
-                    <div className="flex justify-end gap-3">
-                        <Button onClick={() => router.back()}>Hủy</Button>
-                        <Button
-                            type="primary"
-                            htmlType="submit"
-                            loading={saving}
-                        >
-                            Thêm bệnh nhân
-                        </Button>
-                    </div>
-                </Form>
-            </Card>
-        </div>
-    );
+          {/* Nút hành động */}
+          <div className="flex justify-end gap-3 mt-6">
+            <Button onClick={() => router.back()}>Hủy</Button>
+            <Button type="primary" htmlType="submit" loading={saving}>
+              Thêm bệnh nhân
+            </Button>
+          </div>
+        </Form>
+      </Card>
+    </div>
+  );
 }
