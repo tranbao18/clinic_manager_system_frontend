@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import {
     Input,
     Button,
@@ -38,6 +38,7 @@ const mapGenderFromApiValue = (gender: string) => {
 
 export default function PatientDetailPage() {
     const { patientId } = useParams<{ patientId: string }>();
+    const router = useRouter(); 
     const [form] = Form.useForm();
     const [patient, setPatient] = useState<any>(null);
     const [loading, setLoading] = useState(true);
@@ -131,6 +132,11 @@ export default function PatientDetailPage() {
 
     return (
         <div className="p-6 max-w-5xl mx-auto space-y-6">
+            <div>
+                <Button onClick={() => router.back()} className="mb-4">
+                    ← Quay lại
+                </Button>
+            </div>
             {/* 🔹 Nếu đang ở chế độ XEM THÔNG TIN */}
             {!isEditing && (
                 <>
@@ -212,8 +218,8 @@ export default function PatientDetailPage() {
                     className="shadow-md rounded-2xl"
                 >
                     <Form
-                        layout="vertical"
                         form={form}
+                        layout="vertical"
                         onFinish={handleUpdate}
                         className="mt-4"
                     >

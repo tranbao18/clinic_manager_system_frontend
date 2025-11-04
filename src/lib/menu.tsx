@@ -14,6 +14,7 @@ export const getMenuByRole = (role: string) => {
     const allMenus = {
         admin: [
             { key: "1", icon: <DashboardOutlined />, label: "Dashboard", href: "/dashboard" },
+            { key: "2", icon: <TeamOutlined />, label: "Bệnh nhân", href: "/dashboard/patients" },
             { key: "6", icon: <UserOutlined />, label: "Nhân viên", href: "/dashboard/employees" },
             { key: "4", icon: <ScheduleOutlined />, label: "Lịch hẹn", href: "/dashboard/appointments" },
             { key: "5", icon: <AreaChartOutlined />, label: "Báo cáo", href: "/dashboard/report" },

@@ -1,14 +1,15 @@
 // src/lib/services/appointmentsService.ts
 export interface Appointment {
-    id: string;
-    patientId: number;
-    doctorId: number;
-    // API trả về ISO string, nên để string
-    appointmentDate: string;
+    _id: string;
+    patient_id: string;
+    doctor_id: string;
+    appointment_date: string; // ISO string
     status: string;
     reason: string;
-    createdAt: string;
+    created_at: string;
+    updated_at: string;
 }
+
 
 export async function getAppointments(): Promise<Appointment[]> {
     try {
@@ -23,7 +24,7 @@ export async function getAppointments(): Promise<Appointment[]> {
         // đảm bảo luôn trả về mảng
         return Array.isArray(data) ? data : [];
     } catch (error: any) {
-        console.error("❌ getAppointments error:", error?.message || error);
+        console.error("❌ getAppointments errors:", error?.message || error);
         return [];
     }
 }

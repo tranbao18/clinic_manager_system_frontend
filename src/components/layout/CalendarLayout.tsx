@@ -2,12 +2,7 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import {
-    Card,
-    CardContent,
-    CardHeader,
-    CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     Select,
     SelectTrigger,
@@ -26,8 +21,9 @@ import {
 type Appointment = {
     id: string;
     doctorName: string;
+    patientName: string;
     appointmentDate: string; // ISO
-    status: "Scheduled" | "Cancelled" | "Pending" | string;
+    status: "Scheduled" | "Cancelled" | "Pending" | "Completed" | string;
     reason: string;
     createdAt: string;
 };
@@ -67,7 +63,9 @@ export default function CalendarLayout({ appointments }: CalendarLayoutProps) {
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-    const [selectedAppointments, setSelectedAppointments] = useState<Appointment[]>([]);
+    const [selectedAppointments, setSelectedAppointments] = useState<
+        Appointment[]
+    >([]);
     const [open, setOpen] = useState(false);
 
     const weeks = generateCalendar(currentYear, currentMonth);
@@ -81,7 +79,6 @@ export default function CalendarLayout({ appointments }: CalendarLayoutProps) {
         });
     };
 
-
     const handleClickDate = (date: Date) => {
         const appts = getAppointmentByDate(date);
         if (appts.length > 0) {
@@ -92,12 +89,24 @@ export default function CalendarLayout({ appointments }: CalendarLayoutProps) {
     };
 
     const monthNames = [
-        "Tháng 1", "Tháng 2", "Tháng 3", "Tháng 4",
-        "Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8",
-        "Tháng 9", "Tháng 10", "Tháng 11", "Tháng 12",
+        "Tháng 1",
+        "Tháng 2",
+        "Tháng 3",
+        "Tháng 4",
+        "Tháng 5",
+        "Tháng 6",
+        "Tháng 7",
+        "Tháng 8",
+        "Tháng 9",
+        "Tháng 10",
+        "Tháng 11",
+        "Tháng 12",
     ];
 
-    const yearRange = Array.from({ length: 11 }, (_, i) => today.getFullYear() - 5 + i);
+    const yearRange = Array.from(
+        { length: 11 },
+        (_, i) => today.getFullYear() - 5 + i
+    );
 
     return (
         <>
@@ -222,16 +231,23 @@ export default function CalendarLayout({ appointments }: CalendarLayoutProps) {
                                                         key={i}
                                                         className={cn(
                                                             "p-1 rounded text-xs truncate",
-                                                            a.status === "Scheduled" && "bg-green-100 text-green-700",
-                                                            a.status === "Pending" && "bg-yellow-100 text-yellow-700",
-                                                            a.status === "Cancelled" && "bg-red-100 text-red-700"
+                                                            a.status === "Scheduled" &&
+                                                            "bg-green-100 text-green-700",
+                                                            a.status === "Pending" &&
+                                                            "bg-yellow-100 text-yellow-700",
+                                                            a.status === "Cancelled" &&
+                                                            "bg-red-100 text-red-700",
+                                                            a.status === "Completed" &&
+                                                            "bg-blue-100 text-blue-700"
                                                         )}
                                                     >
-                                                        {a.doctorName}
+                                                        {a.patientName}
                                                     </div>
                                                 ))
                                             ) : (
-                                                <div className="text-muted-foreground text-xs italic">&nbsp;</div>
+                                                <div className="text-muted-foreground text-xs italic">
+                                                    &nbsp;
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -248,8 +264,7 @@ export default function CalendarLayout({ appointments }: CalendarLayoutProps) {
                     <DialogHeader>
                         <DialogTitle>
                             Lịch hẹn ngày{" "}
-                            {selectedDate &&
-                                selectedDate.toLocaleDateString("vi-VN")}
+                            {selectedDate && selectedDate.toLocaleDateString("vi-VN")}
                         </DialogTitle>
                         <DialogDescription>
                             Chi tiết các cuộc hẹn trong ngày này.
@@ -257,16 +272,30 @@ export default function CalendarLayout({ appointments }: CalendarLayoutProps) {
                     </DialogHeader>
 
                     {selectedAppointments.map((a) => {
-                        const time = new Date(a.appointmentDate).toLocaleTimeString("vi-VN", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                        });
+                        const time = new Date(a.appointmentDate).toLocaleTimeString(
+                            "vi-VN",
+                            {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                            }
+                        );
                         return (
                             <div key={a.id} className="border rounded p-3 mb-2">
-                                <p><strong>Bác sĩ:</strong> {a.doctorName}</p>
-                                <p><strong>Giờ hẹn:</strong> {time}</p>
-                                <p><strong>Lý do:</strong> {a.reason}</p>
-                                <p><strong>Trạng thái:</strong> {a.status}</p>
+                                <p>
+                                    <strong>Bác sĩ:</strong> {a.doctorName}
+                                </p>
+                                <p>
+                                    <strong>Bệnh nhân:</strong> {a.patientName}
+                                </p>
+                                <p>
+                                    <strong>Giờ hẹn:</strong> {time}
+                                </p>
+                                <p>
+                                    <strong>Lý do:</strong> {a.reason}
+                                </p>
+                                <p>
+                                    <strong>Trạng thái:</strong> {a.status}
+                                </p>
                             </div>
                         );
                     })}

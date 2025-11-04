@@ -41,6 +41,15 @@ export default function AddPatientPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const specializations = [
+    "Nội tổng hợp",
+    "Nhi khoa",
+    "Da liễu",
+    "Tim mạch",
+    "Chấn thương chỉnh hình",
+    "Tai mũi họng",
+  ];
+
   // ✅ Gửi dữ liệu
   const handleAddPatient = async (values: any) => {
     try {
@@ -151,9 +160,7 @@ export default function AddPatientPage() {
             <Form.Item
               label="Email"
               name="email"
-              rules={[
-                { type: "email", message: "Email không hợp lệ" },
-              ]}
+              rules={[{ type: "email", message: "Email không hợp lệ" }]}
             >
               <Input placeholder="VD: tung.phan@gmail.com" />
             </Form.Item>
@@ -163,7 +170,9 @@ export default function AddPatientPage() {
           <Form.List name="medical_history">
             {(fields, { add, remove }) => (
               <>
-                <label className="block font-medium mb-2">🩹 Tiền sử bệnh</label>
+                <label className="block font-medium mb-2">
+                  🩹 Tiền sử bệnh
+                </label>
                 {fields.map(({ key, name, ...restField }) => (
                   <Space
                     key={key}
@@ -178,17 +187,27 @@ export default function AddPatientPage() {
                       {...restField}
                       name={[name, "khoa"]}
                       rules={[
-                        { required: true, message: "Nhập tên khoa" },
+                        {
+                          required: true,
+                          message: "Vui lòng chọn chuyên khoa",
+                        },
                       ]}
                     >
-                      <Input placeholder="VD: Tim mạch" />
+                      <Select
+                        placeholder="Chọn chuyên khoa"
+                        className="min-w-[180px]"
+                      >
+                        {specializations.map((spec) => (
+                          <Select.Option key={spec} value={spec}>
+                            {spec}
+                          </Select.Option>
+                        ))}
+                      </Select>
                     </Form.Item>
                     <Form.Item
                       {...restField}
                       name={[name, "description"]}
-                      rules={[
-                        { required: true, message: "Nhập mô tả bệnh" },
-                      ]}
+                      rules={[{ required: true, message: "Nhập mô tả bệnh" }]}
                     >
                       <Input placeholder="VD: Tăng huyết áp nhẹ" />
                     </Form.Item>

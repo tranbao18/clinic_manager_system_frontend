@@ -28,6 +28,12 @@ export interface Patient {
     email?: string;
 }
 
+const mapGenderFromApiValue = (gender: string) => {
+    if (gender === "Male") return "Nam";
+    if (gender === "Female") return "Nữ";
+    return gender;
+};
+
 export default function PatientsPage() {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
@@ -46,8 +52,13 @@ export default function PatientsPage() {
             // ✅ Kiểm tra nếu API trả về object { patients: [...] }
             const list = Array.isArray(data) ? data : data.patients || [];
 
-            setPatients(list);
-            setFilteredPatients(list);
+            const mappedList = list.map((patient: any) => ({
+                ...patient,
+                gender: mapGenderFromApiValue(patient.gender),
+            }));
+
+            setPatients(mappedList);
+            setFilteredPatients(mappedList);
         } catch (error) {
             console.error("Fetch patients error:", error);
             message.error("Không thể tải danh sách bệnh nhân");
