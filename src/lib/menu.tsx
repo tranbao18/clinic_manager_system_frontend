@@ -30,8 +30,9 @@ export const getMenuByRole = (role: string) => {
             { key: "7", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
         ],
         receptionist: [
-            { key: "1", icon: <TeamOutlined />, label: "Bệnh nhân", href: "/dashboard/patients" },
-            { key: "2", icon: <ScheduleOutlined />, label: "Lịch hẹn", href: "/dashboard/appointments" },
+            { key: "1", icon: <DashboardOutlined />, label: "Dashboard", href: "/dashboard" },
+            { key: "2", icon: <TeamOutlined />, label: "Bệnh nhân", href: "/dashboard/patients" },
+            { key: "3", icon: <ScheduleOutlined />, label: "Lịch hẹn", href: "/dashboard/appointments" },
         ],
         accountant: [
             { key: "1", icon: <AreaChartOutlined />, label: "Hoá đơn", href:"/dashboard/invoices"},

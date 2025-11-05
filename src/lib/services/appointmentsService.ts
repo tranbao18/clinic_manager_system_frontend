@@ -10,21 +10,80 @@ export interface Appointment {
     updated_at: string;
 }
 
+export interface CreateAppointmentData {
+    patient_id: string;
+    doctor_id: string;
+    appointment_date: string; // ISO string
+    status?: string;
+    reason?: string;
+}
 
+export interface UpdateAppointmentData {
+    patient_id?: string;
+    doctor_id?: string;
+    appointment_date?: string;
+    status?: string;
+    reason?: string;
+}
+
+// 📦 Lấy danh sách lịch hẹn
 export async function getAppointments(): Promise<Appointment[]> {
     try {
-        // ✳️ Chú ý: phải có dấu "/" ở đầu để fetch route nội bộ
         const res = await fetch("/api/appointments", { cache: "no-store" });
-
         if (!res.ok) {
             throw new Error(`Failed to fetch appointments: ${res.status}`);
         }
-
         const data = await res.json();
-        // đảm bảo luôn trả về mảng
         return Array.isArray(data) ? data : [];
     } catch (error: any) {
         console.error("❌ getAppointments errors:", error?.message || error);
         return [];
+    }
+}
+
+// 🔍 Lấy chi tiết lịch hẹn theo ID
+export async function getAppointmentById(id: string): Promise<Appointment> {
+    const res = await fetch(`/api/appointments/${id}`, { cache: "no-store" });
+    if (!res.ok) throw new Error("Không thể lấy thông tin lịch hẹn");
+    return res.json();
+}
+
+// ➕ Tạo lịch hẹn mới
+export async function createAppointment(data: CreateAppointmentData): Promise<Appointment> {
+    const res = await fetch("/api/appointments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Không thể tạo lịch hẹn" }));
+        throw new Error(error.error || "Không thể tạo lịch hẹn");
+    }
+    return res.json();
+}
+
+// ✏️ Cập nhật lịch hẹn
+export async function updateAppointment(
+    id: string,
+    data: UpdateAppointmentData
+): Promise<Appointment> {
+    const res = await fetch(`/api/appointments/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Không thể cập nhật lịch hẹn" }));
+        throw new Error(error.error || "Không thể cập nhật lịch hẹn");
+    }
+    return res.json();
+}
+
+// ❌ Xóa lịch hẹn
+export async function deleteAppointment(id: string): Promise<void> {
+    const res = await fetch(`/api/appointments/${id}`, { method: "DELETE" });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Không thể xóa lịch hẹn" }));
+        throw new Error(error.error || "Không thể xóa lịch hẹn");
     }
 }
