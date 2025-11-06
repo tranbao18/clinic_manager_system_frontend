@@ -1,36 +1,35 @@
-// src/app/api/appointments/route.ts
+// src/app/api/schedules/route.ts
 import { NextResponse } from "next/server";
-import { getAuthHeaderServer } from "@/lib/authHeaderServer"; // ✅ thêm dòng này để dùng hàm lấy token
+import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
-const API_URL = "http://localhost:5050/api/appointments/";
+const API_URL = "http://localhost:5050/api/schedules";
 
-export async function GET() {
+// GET /api/schedules - Lấy danh sách lịch trực
+export async function GET(req: Request) {
     try {
-        // ✅ Lấy token từ session hoặc cookie
         const headers = await getAuthHeaderServer();
+        const { searchParams } = new URL(req.url);
+        const employee_id = searchParams.get("employee_id");
 
-        // ✅ Gọi API backend với token
-        const res = await fetch(API_URL, {
+        const url = employee_id ? `${API_URL}/${employee_id}` : API_URL;
+        const res = await fetch(url, {
             cache: "no-store",
             headers,
         });
 
-        // ❌ Nếu lỗi từ backend, log ra chi tiết
         if (!res.ok) {
             const text = await res.text();
-            console.error("External API (GET appointments) error:", res.status, text);
+            console.error("External API (GET schedules) error:", res.status, text);
             return NextResponse.json(
-                { error: "Không thể lấy danh sách lịch hẹn", detail: text },
+                { error: "Không thể lấy danh sách lịch trực", detail: text },
                 { status: res.status }
             );
         }
 
         const data = await res.json();
-        // ✅ Đảm bảo luôn trả về mảng (phòng trường hợp backend trả object)
-        const list = Array.isArray(data) ? data : data.appointments || [];
-        return NextResponse.json(list);
+        return NextResponse.json(data);
     } catch (err: any) {
-        console.error("GET /api/appointments exception:", err);
+        console.error("GET /api/schedules exception:", err);
         return NextResponse.json(
             { error: err.message || "Lỗi hệ thống" },
             { status: 500 }
@@ -38,6 +37,7 @@ export async function GET() {
     }
 }
 
+// POST /api/schedules - Tạo/cập nhật lịch trực (chỉ Admin)
 export async function POST(req: Request) {
     try {
         const headers = await getAuthHeaderServer();
@@ -46,17 +46,18 @@ export async function POST(req: Request) {
         const res = await fetch(API_URL, {
             method: "POST",
             headers: {
-                ...headers,
                 "Content-Type": "application/json",
+                ...headers,
             },
             body: JSON.stringify(body),
+            cache: "no-store",
         });
 
         if (!res.ok) {
             const text = await res.text();
-            console.error("External API (POST appointment) error:", res.status, text);
+            console.error("External API (POST schedules) error:", res.status, text);
             return NextResponse.json(
-                { error: "Không thể tạo lịch hẹn", detail: text },
+                { error: "Không thể tạo/cập nhật lịch trực", detail: text },
                 { status: res.status }
             );
         }
@@ -64,10 +65,11 @@ export async function POST(req: Request) {
         const data = await res.json();
         return NextResponse.json(data);
     } catch (err: any) {
-        console.error("POST /api/appointments exception:", err);
+        console.error("POST /api/schedules exception:", err);
         return NextResponse.json(
             { error: err.message || "Lỗi hệ thống" },
             { status: 500 }
         );
     }
 }
+

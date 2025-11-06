@@ -1,12 +1,22 @@
 import CalendarLayout from "@/components/layout/CalendarLayout";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
+import { getIronSession } from "iron-session";
+import { cookies } from "next/headers";
+import { sessionOptions, SessionData } from "@/lib/session";
+import AppointmentsClient from "./AppointmentsClient";
 
 export default async function AppointmentsPage() {
     let appointments: any[] = [];
     let doctors: any[] = [];
     let patients: any[] = [];
+    let userRole = "";
 
     try {
+        // Lấy user role từ session
+        const cookieStore = await cookies();
+        const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
+        userRole = session?.user?.role || "";
+
         const headers = await getAuthHeaderServer();
         // ✅ 1. Gọi API nội bộ (Next.js route) — có tự động gắn token qua getAuthHeaderServer()
         const resAppt = await fetch(`http://localhost:5050/api/appointments`, {
@@ -37,6 +47,8 @@ export default async function AppointmentsPage() {
 
             return {
                 id: a._id,
+                doctor_id: a.doctor_id,
+                patient_id: a.patient_id,
                 doctorName: doctor ? doctor.fullname : "Không rõ",
                 patientName: patient ? patient.fullname : "Không rõ",
                 appointmentDate: a.appointment_date,
@@ -52,7 +64,12 @@ export default async function AppointmentsPage() {
     return (
         <div className="p-6">
             <h1 className="text-xl font-bold mb-4">📅 Lịch hẹn khám</h1>
-            <CalendarLayout appointments={appointments} />
+            <AppointmentsClient
+                initialAppointments={appointments}
+                userRole={userRole}
+                doctors={doctors}
+                patients={patients}
+            />
         </div>
     );
 }
