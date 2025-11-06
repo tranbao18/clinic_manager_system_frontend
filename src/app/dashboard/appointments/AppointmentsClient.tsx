@@ -1,9 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import CalendarLayout from "@/components/layout/CalendarLayout";
-import { getAppointments } from "@/lib/services/appointmentsService";
-import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 type Appointment = {
     id: string;
@@ -30,14 +28,12 @@ type Patient = {
 
 type AppointmentsClientProps = {
     initialAppointments: Appointment[];
-    userRole: string;
     doctors: Doctor[];
     patients: Patient[];
 };
 
 export default function AppointmentsClient({
     initialAppointments,
-    userRole,
     doctors,
     patients,
 }: AppointmentsClientProps) {
@@ -49,8 +45,24 @@ export default function AppointmentsClient({
             if (!res.ok) throw new Error("Failed to refresh");
             const data = await res.json();
 
+            // Map status từ API về UI values
+            const mapApiToUiStatus = (s: string) => {
+                if (s === "warning") return "Scheduled";
+                if (s === "success") return "Completed";
+                if (s === "error") return "Cancelled";
+                return s;
+            };
+
             // Map lại với doctors và patients
-            const mappedAppointments = data.map((a: any) => {
+            const mappedAppointments = data.map((a: {
+                _id: string;
+                doctor_id?: string;
+                patient_id?: string;
+                appointment_date: string;
+                status: string;
+                reason?: string;
+                created_at?: string;
+            }) => {
                 const doctor = doctors.find((d) => d._id === a.doctor_id);
                 const patient = patients.find((p) => p._id === a.patient_id);
 
@@ -61,7 +73,7 @@ export default function AppointmentsClient({
                     doctorName: doctor ? doctor.fullname : "Không rõ",
                     patientName: patient ? patient.fullname : "Không rõ",
                     appointmentDate: a.appointment_date,
-                    status: a.status,
+                    status: mapApiToUiStatus(a.status),
                     reason: a.reason,
                     createdAt: a.created_at,
                 };
@@ -78,10 +90,8 @@ export default function AppointmentsClient({
     return (
         <CalendarLayout
             appointments={appointments}
-            userRole={userRole}
             doctors={doctors}
             patients={patients}
-            onRefresh={handleRefresh}
         />
     );
 }

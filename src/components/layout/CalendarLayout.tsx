@@ -604,7 +604,6 @@ export default function CalendarLayout({
 
           <div className="space-y-4 mt-4">
             {isEditing && editingAppointment ? (
-              // 📝 Form chỉnh sửa
               <Card className="p-6 border-2 shadow-lg">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-lg font-semibold text-primary">
@@ -639,49 +638,6 @@ export default function CalendarLayout({
                       </Select>
                     </div>
 
-                    <div className="flex gap-2 items-center">
-                        <label className="flex items-center gap-2 text-sm cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={showOldAppointments}
-                                onChange={(e) => setShowOldAppointments(e.target.checked)}
-                                className="w-4 h-4 cursor-pointer"
-                            />
-                            <span>Hiển thị lịch hẹn cũ</span>
-                        </label>
-
-                        <Select
-                            value={currentMonth.toString()}
-                            onValueChange={(v) => setCurrentMonth(parseInt(v))}
-                        >
-                            <SelectTrigger className="w-[120px]">
-                                <SelectValue placeholder="Chọn tháng" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {monthNames.map((m, i) => (
-                                    <SelectItem key={i} value={i.toString()}>
-                                        {m}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-
-                        <Select
-                            value={currentYear.toString()}
-                            onValueChange={(v) => setCurrentYear(parseInt(v))}
-                        >
-                            <SelectTrigger className="w-[100px]">
-                                <SelectValue placeholder="Chọn năm" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {yearRange.map((y) => (
-                                    <SelectItem key={y} value={y.toString()}>
-                                        {y}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-=======
                     <div>
                       <label className="block text-sm font-medium mb-2">
                         Bác sĩ <span className="text-red-500">*</span>
@@ -770,8 +726,7 @@ export default function CalendarLayout({
                   </div>
                 </div>
               </Card>
-            ) : // 📋 Hiển thị danh sách appointments dạng card
-            selectedAppointments.length === 0 ? (
+            ) : selectedAppointments.length === 0 ? (
               <Card className="p-8 text-center">
                 <p className="text-muted-foreground">
                   Không có lịch hẹn nào trong ngày này

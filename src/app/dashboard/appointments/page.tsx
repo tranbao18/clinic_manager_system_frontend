@@ -1,8 +1,10 @@
-import CalendarLayout from "@/components/layout/CalendarLayout";
+import AppointmentsClient from "./AppointmentsClient";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
+import { cookies } from "next/headers";
+import { getIronSession } from "iron-session";
+import { sessionOptions, SessionData } from "@/lib/session";
 
-import { env } from "process";
-
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
 export default async function AppointmentsPage() {
     let appointments: any[] = [];
@@ -16,17 +18,21 @@ export default async function AppointmentsPage() {
         const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
         userRole = session?.user?.role || "";
 
-        const headers = await getAuthHeaderServer();
-        // ✅ 1. Gọi API nội bộ (Next.js route) — có tự động gắn token qua getAuthHeaderServer()
-            const resAppt = await fetch(`${env.NEXT_PUBLIC_BACKEND_URL}/api/appointments`, {
+        const authHeaders = await getAuthHeaderServer();
+        const headers: HeadersInit = authHeaders.Authorization 
+            ? { Authorization: authHeaders.Authorization }
+            : {};
+        
+        // ✅ 1. Gọi API appointments
+        const resAppt = await fetch(`${API_URL}/api/appointments`, {
             cache: "no-store",
             headers,
         });
         if (!resAppt.ok) throw new Error(`Appointments HTTP ${resAppt.status}`);
         appointments = await resAppt.json();
 
-        // ✅ Gọi API employees và lọc chỉ lấy Bác sĩ
-            const resDoctors = await fetch(`${env.NEXT_PUBLIC_BACKEND_URL}/api/employees`, {
+        // ✅ 2. Gọi API employees và lọc chỉ lấy Bác sĩ
+        const resDoctors = await fetch(`${API_URL}/api/employees`, {
             cache: "no-store",
             headers,
         });
@@ -36,8 +42,8 @@ export default async function AppointmentsPage() {
             doctors = allEmployees.filter((emp: any) => emp.position === "Bác sĩ");
         }
 
-        // ✅ Gọi API patients
-            const resPatients = await fetch(`${env.NEXT_PUBLIC_BACKEND_URL}/api/patients`, {
+        // ✅ 3. Gọi API patients
+        const resPatients = await fetch(`${API_URL}/api/patients`, {
             cache: "no-store",
             headers,
         });
@@ -75,8 +81,8 @@ export default async function AppointmentsPage() {
     return (
         <div className="p-6">
             <h1 className="text-xl font-bold mb-4">📅 Lịch hẹn khám</h1>
-            <CalendarLayout 
-                appointments={appointments} 
+            <AppointmentsClient
+                initialAppointments={appointments}
                 doctors={doctors}
                 patients={patients}
             />
