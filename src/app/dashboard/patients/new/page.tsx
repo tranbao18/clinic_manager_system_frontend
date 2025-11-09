@@ -116,13 +116,14 @@ export default function AddPatientPage() {
               <DatePicker
                 className="w-full"
                 format="YYYY-MM-DD"
-                placeholder="Chọn ngày sinh"
+                placeholder="2000-01-01"
               />
             </Form.Item>
 
             <Form.Item
               label="Giới tính"
               name="gender"
+              initialValue="Nam"
               rules={[{ required: true, message: "Vui lòng chọn giới tính" }]}
             >
               <Select placeholder="Chọn giới tính">

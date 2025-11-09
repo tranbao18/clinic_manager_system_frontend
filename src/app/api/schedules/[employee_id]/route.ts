@@ -2,7 +2,9 @@
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
-const API_URL = "http://localhost:5050/api/schedules";
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL 
+    ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/schedules`
+    : "http://127.0.0.1:5050/api/schedules";
 
 // GET /api/schedules/[employee_id] - Lấy lịch trực của một nhân viên
 export async function GET(
@@ -32,7 +34,15 @@ export async function GET(
         return NextResponse.json(data);
     } catch (err: unknown) {
         console.error("GET /api/schedules/[employee_id] exception:", err);
-        const message = err instanceof Error ? err.message : "Lỗi hệ thống";
+        const error = err instanceof Error ? err : { message: "Lỗi hệ thống", code: "" };
+        const message = error.message || "Lỗi hệ thống";
+        // Kiểm tra nếu là lỗi kết nối
+        if ((error as any).code === 'ECONNREFUSED' || message.includes('fetch failed')) {
+            return NextResponse.json(
+                { error: "Không thể kết nối đến server backend. Vui lòng kiểm tra xem backend đã chạy chưa." },
+                { status: 503 }
+            );
+        }
         return NextResponse.json({ error: message }, { status: 500 });
     }
 }
@@ -71,7 +81,15 @@ export async function PUT(
         return NextResponse.json(data);
     } catch (err: unknown) {
         console.error("PUT /api/schedules/[employee_id] exception:", err);
-        const message = err instanceof Error ? err.message : "Lỗi hệ thống";
+        const error = err instanceof Error ? err : { message: "Lỗi hệ thống", code: "" };
+        const message = error.message || "Lỗi hệ thống";
+        // Kiểm tra nếu là lỗi kết nối
+        if ((error as any).code === 'ECONNREFUSED' || message.includes('fetch failed')) {
+            return NextResponse.json(
+                { error: "Không thể kết nối đến server backend. Vui lòng kiểm tra xem backend đã chạy chưa." },
+                { status: 503 }
+            );
+        }
         return NextResponse.json({ error: message }, { status: 500 });
     }
 }
@@ -105,7 +123,15 @@ export async function DELETE(
         return NextResponse.json(data);
     } catch (err: unknown) {
         console.error("DELETE /api/schedules/[employee_id] exception:", err);
-        const message = err instanceof Error ? err.message : "Lỗi hệ thống";
+        const error = err instanceof Error ? err : { message: "Lỗi hệ thống", code: "" };
+        const message = error.message || "Lỗi hệ thống";
+        // Kiểm tra nếu là lỗi kết nối
+        if ((error as any).code === 'ECONNREFUSED' || message.includes('fetch failed')) {
+            return NextResponse.json(
+                { error: "Không thể kết nối đến server backend. Vui lòng kiểm tra xem backend đã chạy chưa." },
+                { status: 503 }
+            );
+        }
         return NextResponse.json({ error: message }, { status: 500 });
     }
 }

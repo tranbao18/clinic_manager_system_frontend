@@ -3,6 +3,7 @@
 export interface ShiftSchedule {
     employee_id: string;
     employee_name: string;
+    employee_position?: string; // Position của nhân viên
     shift_schedule: any; // Mixed type - có thể là object, array, hoặc bất kỳ cấu trúc nào
 }
 

@@ -200,7 +200,12 @@ export default function SchedulesPage() {
         schedules.forEach((schedule) => {
             if (!schedule.shift_schedule || !Array.isArray(schedule.shift_schedule)) return;
 
-            const employee = employees.find(emp => emp._id === schedule.employee_id);
+            // Ưu tiên lấy position từ schedule data (từ API), fallback sang employees array nếu có
+            let position = schedule.employee_position;
+            if (!position && role === "admin") {
+                const employee = employees.find(emp => emp._id === schedule.employee_id);
+                position = employee?.position;
+            }
             
             schedule.shift_schedule.forEach((item: ScheduleItem) => {
                 if (item.date === dateStr) {
@@ -208,7 +213,7 @@ export default function SchedulesPage() {
                         ...item,
                         employee_id: schedule.employee_id,
                         employee_name: schedule.employee_name,
-                        employee_position: employee?.position || "N/A",
+                        employee_position: position || "N/A",
                     });
                 }
             });

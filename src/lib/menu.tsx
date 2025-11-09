@@ -21,23 +21,26 @@ export const getMenuByRole = (role: string) => {
             { key: "7", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
         ],
         doctor: [
-            { key: "1", icon: <IdcardOutlined />, label: "Khám bệnh", href: "/dashboard" },
+            { key: "1", icon: <IdcardOutlined />, label: "Dashboard", href: "/dashboard" },
             { key: "2", icon: <TeamOutlined />, label: "Bệnh nhân", href: "/dashboard/patients" },
             { key: "3", icon: <ScheduleOutlined />, label: "Lịch hẹn", href: "/dashboard/appointments" },
             { key: "4", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
         ],
         nurse: [
+            { key: "2", icon: <TeamOutlined />, label: "Bệnh nhân", href: "/dashboard/patients" },
             { key: "7", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
         ],
         receptionist: [
             { key: "1", icon: <DashboardOutlined />, label: "Dashboard", href: "/dashboard" },
             { key: "2", icon: <TeamOutlined />, label: "Bệnh nhân", href: "/dashboard/patients" },
             { key: "3", icon: <ScheduleOutlined />, label: "Lịch hẹn", href: "/dashboard/appointments" },
+            { key: "4", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
         ],
         accountant: [
             { key: "1", icon: <AreaChartOutlined />, label: "Hoá đơn", href:"/dashboard/invoices"},
             { key: "2", icon: <ScheduleOutlined />, label: "Bảng lương", href:"/dashboard/payroll"},
-            { key: "1", icon: <AreaChartOutlined />, label: "Báo cáo", href:"/dashboard/report"},
+            { key: "3", icon: <AreaChartOutlined />, label: "Báo cáo", href:"/dashboard/report"},
+            { key: "4", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
         ],
     };
 

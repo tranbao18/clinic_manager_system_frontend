@@ -31,10 +31,11 @@ export async function POST(req: Request) {
     // Lưu user vào session
     const session = await getIronSession<SessionData>(req, res, sessionOptions);
     session.user = {
-      id: data.user._id || data.user.id,
+      _id: data.user._id || data.user.id,
       username: data.user.username,
       role: data.user.role,
       token: data.token,
+      employee_id: data.user.employee_id || undefined,
     };
     await session.save();
 

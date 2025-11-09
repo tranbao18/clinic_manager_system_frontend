@@ -1,6 +1,9 @@
 import { getIronSession } from "iron-session";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { NextResponse } from "next/server";
+import { getAuthHeaderServer } from "@/lib/authHeaderServer";
+
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
 export async function GET(req: Request) {
   const res = new NextResponse();
@@ -10,6 +13,42 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 });
   }
 
+  // Nếu session đã có employee_id, trả về luôn
+  if (session.user.employee_id) {
+    return NextResponse.json(session.user, {
+      headers: { "Cache-Control": "no-store" },
+    });
+  }
+
+  // Nếu chưa có employee_id, fetch từ backend
+  if (session.user._id) {
+    try {
+      const headers = await getAuthHeaderServer();
+      const backendRes = await fetch(
+        `${API_URL}/api/users/${session.user._id}`,
+        {
+          cache: "no-store",
+          headers,
+        }
+      );
+
+      if (backendRes.ok) {
+        const userData = await backendRes.json();
+        // Update session với employee_id
+        if (userData.employee_id) {
+          session.user.employee_id = userData.employee_id;
+          await session.save();
+        }
+        return NextResponse.json(session.user, {
+          headers: { "Cache-Control": "no-store" },
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching user employee_id:", error);
+    }
+  }
+
+  // Fallback: trả về session user hiện tại
   return NextResponse.json(session.user, {
     headers: { "Cache-Control": "no-store" },
   });

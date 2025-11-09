@@ -21,14 +21,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
-
   updateAppointment,
   deleteAppointment,
   createAppointment,
   type UpdateAppointmentData,
   type CreateAppointmentData,
 } from "@/lib/services/appointmentsService";
-import { getPatients, type Patient } from "@/lib/services/patientsService";
 
 type Appointment = {
   id: string;
@@ -56,9 +54,11 @@ type Patient = {
 
 type CalendarLayoutProps = {
 
-  appointments: Appointment[];
+  appointments?: Appointment[];
   doctors?: Array<{ _id: string; fullname: string }>;
   patients?: Array<{ _id: string; fullname: string }>;
+  onRefresh?: () => Promise<void>;
+  canManage?: boolean;
 };
 
 const weekdays = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
@@ -89,14 +89,45 @@ function generateCalendar(year: number, month: number) {
 
 export default function CalendarLayout({
 
-  appointments,
+  appointments = [],
   doctors = [],
   patients = [],
+  onRefresh,
+  canManage = false,
 }: CalendarLayoutProps) {
   const router = useRouter();
-  const today = new Date();
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
+  // Sử dụng lazy initialization để tránh hydration mismatch
+  const [currentMonth, setCurrentMonth] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      return new Date().getMonth();
+    }
+    return 0; // Default value for SSR
+  });
+  const [currentYear, setCurrentYear] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      return new Date().getFullYear();
+    }
+    return 2024; // Default value for SSR
+  });
+  
+  // Sync với client sau khi mount
+  const [today, setToday] = useState<Date>(() => {
+    if (typeof window !== 'undefined') {
+      return new Date();
+    }
+    return new Date(2024, 0, 1); // Default value for SSR
+  });
+  
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+    const now = new Date();
+    setToday(now);
+    setCurrentMonth(now.getMonth());
+    setCurrentYear(now.getFullYear());
+  }, []);
+  
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedAppointments, setSelectedAppointments] = useState<
     Appointment[]
@@ -111,6 +142,7 @@ export default function CalendarLayout({
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [showOldAppointments, setShowOldAppointments] = useState(false);
   const [formData, setFormData] = useState<UpdateAppointmentData>({
     patient_id: "",
     doctor_id: "",
@@ -123,12 +155,28 @@ export default function CalendarLayout({
 
 
   const getAppointmentByDate = (date: Date) => {
+    if (!appointments || !Array.isArray(appointments)) return [];
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    return appointments.filter((a) => {
+    
+    // Lọc appointments theo ngày
+    let filteredAppointments = appointments.filter((a) => {
       if (!a.appointmentDate) return false;
       const apptDate = getLocalDateOnlyString(a.appointmentDate);
       return apptDate === dateStr;
     });
+
+    // Nếu không hiển thị lịch hẹn cũ, lọc bỏ các lịch hẹn đã qua ngày
+    if (!showOldAppointments) {
+      const todayStr = getLocalDateOnlyString(today.toISOString());
+      filteredAppointments = filteredAppointments.filter((a) => {
+        if (!a.appointmentDate) return false;
+        const apptDate = getLocalDateOnlyString(a.appointmentDate);
+        // Chỉ hiển thị lịch hẹn từ hôm nay trở đi
+        return apptDate >= todayStr;
+      });
+    }
+
+    return filteredAppointments;
   };
 
   const handleClickDate = (date: Date) => {
@@ -245,23 +293,21 @@ export default function CalendarLayout({
       // Dùng chuỗi local không timezone để tránh lệch múi giờ
       const localDateTime = toLocalDateTimeSeconds(formData.appointment_date);
 
-      // Map UI status -> API status
-      const mapUiToApiStatus = (s: string) => {
-        if (s === "Scheduled") return "warning";
-        if (s === "Completed") return "success";
-        if (s === "Cancelled") return "error";
-        return s;
-      };
-
+      // Backend chỉ chấp nhận: 'Scheduled', 'Completed', 'Cancelled'
+      // Không cần map, giữ nguyên giá trị từ UI
       const updateData: UpdateAppointmentData = {
         ...formData,
         appointment_date: localDateTime,
-        status: formData.status ? formData.status : undefined,
+        status: formData.status || undefined,
       };
 
       await updateAppointment(editingAppointment.id, updateData);
       // Refresh để cập nhật dữ liệu mới nhất
-      router.refresh();
+      if (onRefresh) {
+        await onRefresh();
+      } else {
+        router.refresh();
+      }
       setIsEditing(false);
       setEditingAppointment(null);
       setOpen(false);
@@ -293,7 +339,11 @@ export default function CalendarLayout({
       setIsDeleting(true);
       await deleteAppointment(deleteAppointmentId);
       // Refresh để cập nhật danh sách
-      router.refresh();
+      if (onRefresh) {
+        await onRefresh();
+      } else {
+        router.refresh();
+      }
       // Đóng modal sau khi xóa thành công
       setOpen(false);
       setOpenDeleteConfirm(false);
@@ -352,17 +402,23 @@ export default function CalendarLayout({
       // Dùng chuỗi local không timezone để tránh lệch múi giờ
       const localDateTime = toLocalDateTimeSeconds(formData.appointment_date);
 
+      // Backend chỉ chấp nhận: 'Scheduled', 'Completed', 'Cancelled'
+      // Không cần map, giữ nguyên giá trị từ UI
       const createData: CreateAppointmentData = {
         patient_id: formData.patient_id,
         doctor_id: formData.doctor_id,
         appointment_date: localDateTime,
-        status: formData.status as string,
+        status: formData.status || "Scheduled", // Default là "Scheduled"
         reason: formData.reason || "",
       };
 
       await createAppointment(createData);
       // Refresh để cập nhật dữ liệu mới nhất
-      router.refresh();
+      if (onRefresh) {
+        await onRefresh();
+      } else {
+        router.refresh();
+      }
       setIsCreating(false);
       setOpenCreate(false);
       // Reset form data
@@ -460,45 +516,63 @@ export default function CalendarLayout({
           </div>
 
           <div className="flex items-center gap-3">
-            <Button
-              onClick={handleCreateNew}
-              className="bg-primary hover:bg-primary/90"
-            >
-              ➕ Tạo lịch hẹn mới
-            </Button>
-            <div className="flex gap-2">
-              <Select
-                value={currentMonth.toString()}
-                onValueChange={(v) => setCurrentMonth(parseInt(v))}
+            {canManage && (
+              <Button
+                onClick={handleCreateNew}
+                className="bg-primary hover:bg-primary/90"
               >
-                <SelectTrigger className="w-[120px]">
-                  <SelectValue placeholder="Chọn tháng" />
-                </SelectTrigger>
-                <SelectContent>
-                  {monthNames.map((m, i) => (
-                    <SelectItem key={i} value={i.toString()}>
-                      {m}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                ➕ Tạo lịch hẹn mới
+              </Button>
+            )}
+            
+            {/* Toggle hiển thị lịch hẹn cũ */}
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={showOldAppointments}
+                onChange={(e) => setShowOldAppointments(e.target.checked)}
+                className="w-4 h-4 text-primary border-gray-300 rounded focus:ring-primary"
+              />
+              <span className="text-sm text-muted-foreground">
+                Hiển thị lịch hẹn cũ
+              </span>
+            </label>
 
-              <Select
-                value={currentYear.toString()}
-                onValueChange={(v) => setCurrentYear(parseInt(v))}
-              >
-                <SelectTrigger className="w-[100px]">
-                  <SelectValue placeholder="Chọn năm" />
-                </SelectTrigger>
-                <SelectContent>
-                  {yearRange.map((y) => (
-                    <SelectItem key={y} value={y.toString()}>
-                      {y}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {mounted && (
+              <div className="flex gap-2">
+                <Select
+                  value={currentMonth.toString()}
+                  onValueChange={(v) => setCurrentMonth(parseInt(v))}
+                >
+                  <SelectTrigger className="w-[120px]">
+                    <SelectValue placeholder="Chọn tháng" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {monthNames.map((m, i) => (
+                      <SelectItem key={i} value={i.toString()}>
+                        {m}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={currentYear.toString()}
+                  onValueChange={(v) => setCurrentYear(parseInt(v))}
+                >
+                  <SelectTrigger className="w-[100px]">
+                    <SelectValue placeholder="Chọn năm" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {yearRange.map((y) => (
+                      <SelectItem key={y} value={y.toString()}>
+                        {y}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         </CardHeader>
 
@@ -522,14 +596,23 @@ export default function CalendarLayout({
 
                 const dayAppointments = getAppointmentByDate(date);
 
+                // Kiểm tra xem ngày có phải là quá khứ không (khi không hiển thị lịch hẹn cũ)
+                const isPastDate = !showOldAppointments && 
+                  getLocalDateOnlyString(date.toISOString()) < getLocalDateOnlyString(today.toISOString());
+                const hasAppointments = dayAppointments.length > 0;
+                const isClickable = hasAppointments && (!isPastDate || showOldAppointments);
+
                 return (
                   <div
                     key={wi + "-" + di}
-                    onClick={() => handleClickDate(date)}
+                    onClick={() => isClickable && handleClickDate(date)}
                     className={cn(
-                      "p-2 border rounded text-sm min-h-[80px] text-left cursor-pointer hover:bg-blue-50 transition",
+                      "p-2 border rounded text-sm min-h-[80px] text-left transition",
                       date.toDateString() === today.toDateString() &&
-                        "bg-blue-100 font-bold"
+                        "bg-blue-100 font-bold",
+                      isClickable && "cursor-pointer hover:bg-blue-50",
+                      !isClickable && "cursor-default opacity-50",
+                      isPastDate && !showOldAppointments && "bg-gray-50"
                     )}
                   >
                     <div className="font-medium">{date.getDate()}</div>
@@ -803,25 +886,27 @@ export default function CalendarLayout({
                         </div>
                       </div>
 
-                      <div className="flex flex-col gap-2">
-                        <Button
-                          variant="default"
-                          size="sm"
-                          onClick={() => handleEdit(a)}
-                          className="min-w-[120px] bg-yellow-500 "
-                        >
-                          ✏️ Chỉnh sửa
-                        </Button>
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleDelete(a.id)}
-                          disabled={isDeleting}
-                          className="min-w-[120px] bg-red-500 "
-                        >
-                          {isDeleting ? "⏳ Đang xóa..." : "🗑️ Xóa"}
-                        </Button>
-                      </div>
+                      {canManage && (
+                        <div className="flex flex-col gap-2">
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={() => handleEdit(a)}
+                            className="min-w-[120px] bg-yellow-500 "
+                          >
+                            ✏️ Chỉnh sửa
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDelete(a.id)}
+                            disabled={isDeleting}
+                            className="min-w-[120px] bg-red-500 "
+                          >
+                            {isDeleting ? "⏳ Đang xóa..." : "🗑️ Xóa"}
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   </Card>
                 );

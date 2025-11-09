@@ -2,12 +2,18 @@
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
-const API_URL = "http://localhost:5050/api/schedules";
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL 
+    ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/schedules`
+    : "http://127.0.0.1:5050/api/schedules";
 
 // GET /api/schedules - Lấy danh sách lịch trực
 export async function GET(req: Request) {
     try {
-        const headers = await getAuthHeaderServer();
+        const authHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {};
+        if (authHeaders?.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+        }
         const { searchParams } = new URL(req.url);
         const employee_id = searchParams.get("employee_id");
 
@@ -30,6 +36,13 @@ export async function GET(req: Request) {
         return NextResponse.json(data);
     } catch (err: any) {
         console.error("GET /api/schedules exception:", err);
+        // Kiểm tra nếu là lỗi kết nối
+        if (err.code === 'ECONNREFUSED' || err.message?.includes('fetch failed')) {
+            return NextResponse.json(
+                { error: "Không thể kết nối đến server backend. Vui lòng kiểm tra xem backend đã chạy chưa." },
+                { status: 503 }
+            );
+        }
         return NextResponse.json(
             { error: err.message || "Lỗi hệ thống" },
             { status: 500 }
@@ -40,15 +53,18 @@ export async function GET(req: Request) {
 // POST /api/schedules - Tạo/cập nhật lịch trực (chỉ Admin)
 export async function POST(req: Request) {
     try {
-        const headers = await getAuthHeaderServer();
+        const authHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+        };
+        if (authHeaders?.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+        }
         const body = await req.json();
 
         const res = await fetch(API_URL, {
             method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                ...headers,
-            },
+            headers,
             body: JSON.stringify(body),
             cache: "no-store",
         });
@@ -66,6 +82,13 @@ export async function POST(req: Request) {
         return NextResponse.json(data);
     } catch (err: any) {
         console.error("POST /api/schedules exception:", err);
+        // Kiểm tra nếu là lỗi kết nối
+        if (err.code === 'ECONNREFUSED' || err.message?.includes('fetch failed')) {
+            return NextResponse.json(
+                { error: "Không thể kết nối đến server backend. Vui lòng kiểm tra xem backend đã chạy chưa." },
+                { status: 503 }
+            );
+        }
         return NextResponse.json(
             { error: err.message || "Lỗi hệ thống" },
             { status: 500 }

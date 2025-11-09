@@ -7,6 +7,7 @@ export interface SessionData {
     username: string;
     role: string;
     token?: string;
+    employee_id?: string;
   };
 }
 
