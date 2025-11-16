@@ -21,10 +21,94 @@ const data = [
     { name: "60k", uv: 48 },
 ];
 
-// Fallback quote in case API fails
-const fallbackQuote = {
-    text: "Mỗi ngày là cơ hội mới để làm cho cuộc sống tốt đẹp hơn.",
-    author: "Khuyết danh",
+// Fallback quotes array in case API fails
+const fallbackQuotes = [
+    {
+        text: "Mỗi ngày là cơ hội mới để làm cho cuộc sống tốt đẹp hơn.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Sức khỏe là tài sản quý giá nhất của con người.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Hãy sống như thể ngày mai là ngày cuối cùng của bạn.",
+        author: "Steve Jobs",
+    },
+    {
+        text: "Thành công không phải là đích đến, mà là hành trình.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Hãy làm những gì bạn yêu thích và yêu thích những gì bạn làm.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Đừng sợ thất bại, hãy sợ việc không dám thử.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Mỗi bác sĩ tốt đều biết rằng lòng nhân ái là liều thuốc tốt nhất.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Sự kiên nhẫn và chăm chỉ sẽ luôn được đền đáp xứng đáng.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Hãy luôn mỉm cười, vì nụ cười là liều thuốc tốt nhất cho tâm hồn.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Thành công bắt đầu từ việc quyết định thử.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Hãy sống tích cực và lan tỏa năng lượng tích cực đến mọi người.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Mỗi bệnh nhân là một cơ hội để chúng ta thể hiện sự chăm sóc và tình yêu thương.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Đừng bao giờ từ bỏ ước mơ của bạn, hãy kiên trì và nỗ lực hết mình.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Sự tử tế không tốn kém gì nhưng lại có giá trị vô cùng lớn.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Hãy luôn học hỏi và cải thiện bản thân mỗi ngày.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Thời gian là tài sản quý giá nhất, hãy sử dụng nó một cách khôn ngoan.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Mỗi ngày mới là một cơ hội để bắt đầu lại và làm tốt hơn.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Hãy tin vào bản thân và khả năng của chính mình.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Sự chăm sóc và quan tâm đến người khác là dấu hiệu của một tâm hồn đẹp.",
+        author: "Khuyết danh",
+    },
+    {
+        text: "Hãy sống với đam mê và làm việc với tất cả tâm huyết.",
+        author: "Khuyết danh",
+    },
+];
+
+// Function to get a random quote from fallback array
+const getRandomFallbackQuote = () => {
+    const randomIndex = Math.floor(Math.random() * fallbackQuotes.length);
+    return fallbackQuotes[randomIndex];
 };
 
 // Role names in Vietnamese
@@ -46,7 +130,7 @@ export default function Dashboard() {
     const [employeeName, setEmployeeName] = useState<string>("");
     const [loading, setLoading] = useState(true);
     const [currentTime, setCurrentTime] = useState(new Date());
-    const [currentQuote, setCurrentQuote] = useState<Quote>(fallbackQuote);
+    const [currentQuote, setCurrentQuote] = useState<Quote>(getRandomFallbackQuote());
 
     // Fetch user role and employee name
     useEffect(() => {
@@ -100,32 +184,49 @@ export default function Dashboard() {
         fetchUserData();
     }, []);
 
-    // Fetch quote from API
+    // Fetch quote from API - ưu tiên sử dụng API, chỉ fallback khi API thực sự lỗi
     const fetchQuote = async () => {
         try {
-            // Using quotable.io API - free, no auth required
-            const response = await fetch("https://api.quotable.io/random", {
+            // Gọi API route proxy để tránh CORS issue
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+            
+            const response = await fetch("/api/quotes/random", {
                 cache: "no-store",
+                signal: controller.signal,
             });
             
+            clearTimeout(timeoutId);
             console.log("Quote API response status:", response.status);
             
             if (response.ok) {
                 const data = await response.json();
-                console.log("Quote data received:", data);
-                setCurrentQuote({
-                    text: data.content || data.quote || fallbackQuote.text,
-                    author: data.author || data.authorName || "Unknown",
-                });
+                console.log("Quote data received from API:", data);
+                
+                // Kiểm tra xem response có chứa error không
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+                
+                // Đảm bảo có text và author
+                if (data.text && data.author) {
+                    setCurrentQuote({
+                        text: data.text,
+                        author: data.author,
+                    });
+                    return; // Thành công, không cần fallback
+                } else {
+                    throw new Error("Invalid API response format");
+                }
             } else {
-                const errorText = await response.text();
-                console.error("Quote API error response:", errorText);
-                throw new Error("Failed to fetch quote");
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.error || `API returned status ${response.status}`);
             }
         } catch (error) {
             console.error("Error fetching quote from API:", error);
-            // Use fallback quote if API fails
-            setCurrentQuote(fallbackQuote);
+            // Chỉ sử dụng fallback quote khi API thực sự lỗi
+            console.log("Using fallback quote from local array");
+            setCurrentQuote(getRandomFallbackQuote());
         }
     };
 

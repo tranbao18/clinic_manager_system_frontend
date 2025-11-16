@@ -87,14 +87,28 @@ export default function MedicineImportsPage() {
 
     // Xử lý import file
     const handleImport = async () => {
+        console.log("🚀 handleImport được gọi", { fileListLength: fileList.length });
+        
         if (fileList.length === 0) {
+            console.warn("⚠️ Không có file được chọn");
             message.warning("Vui lòng chọn file để import");
             return;
         }
 
-        const file = fileList[0].originFileObj;
-        if (!file) {
-            message.warning("File không hợp lệ");
+        // Lấy file từ fileList - thử originFileObj trước, nếu không có thì lấy file trực tiếp
+        const fileItem = fileList[0];
+        const file = fileItem?.originFileObj || fileItem;
+        
+        console.log("📄 File info:", { 
+            fileItem,
+            file: file ? { name: file.name, size: file.size, type: file.type } : null,
+            fileList: fileList,
+            hasOriginFileObj: !!fileItem?.originFileObj
+        });
+        
+        if (!file || !(file instanceof File)) {
+            console.error("❌ File không hợp lệ hoặc không phải File object", { file, fileItem });
+            message.warning("File không hợp lệ. Vui lòng chọn lại file.");
             return;
         }
 
@@ -105,16 +119,38 @@ export default function MedicineImportsPage() {
             const formData = new FormData();
             formData.append("file", file);
 
+            console.log("Đang gửi file import...", file.name, file.size);
+
             const res = await fetch("/api/medicine-imports/import", {
                 method: "POST",
                 body: formData,
             });
 
-            const data = await res.json();
+            console.log("Response status:", res.status, res.statusText);
+
+            let data;
+            try {
+                const text = await res.text();
+                console.log("Response text:", text);
+                data = text ? JSON.parse(text) : {};
+            } catch (parseError) {
+                console.error("Parse JSON error:", parseError);
+                throw new Error("Không thể đọc phản hồi từ server");
+            }
 
             if (!res.ok) {
-                throw new Error(data.error || "Không thể import file");
+                const errorMsg = data.error || data.message || "Không thể import file";
+                console.error("Import failed:", errorMsg, data);
+                setImportResult({
+                    success: data.success || 0,
+                    failed: data.failed || 0,
+                    errors: data.errors || [],
+                });
+                message.error(errorMsg);
+                return;
             }
+
+            console.log("Import success data:", data);
 
             setImportResult({
                 success: data.success || 0,
@@ -127,6 +163,8 @@ export default function MedicineImportsPage() {
                     `Import thành công ${data.success} nhập thuốc${data.failed > 0 ? `, ${data.failed} thất bại` : ""}`
                 );
                 fetchImports(); // Refresh danh sách
+            } else if (data.failed > 0) {
+                message.warning(`Import thất bại: ${data.failed} nhập thuốc không thể import`);
             } else {
                 message.warning("Không có nhập thuốc nào được import thành công");
             }
@@ -134,6 +172,11 @@ export default function MedicineImportsPage() {
             const errorMessage = error instanceof Error ? error.message : "Lỗi khi import file";
             console.error("Import error:", error);
             message.error(errorMessage);
+            setImportResult({
+                success: 0,
+                failed: 0,
+                errors: [{ row: 0, medicine: "", error: errorMessage }],
+            });
         } finally {
             setImporting(false);
         }
@@ -317,11 +360,15 @@ export default function MedicineImportsPage() {
                 title="📥 Import nhập thuốc từ file Excel/CSV"
                 open={importModalVisible}
                 onCancel={handleImportModalClose}
-                onOk={handleImport}
+                onOk={async () => {
+                    console.log("🔘 Modal OK button clicked");
+                    await handleImport();
+                }}
                 okText="Import"
                 cancelText="Hủy"
                 confirmLoading={importing}
                 width={600}
+                okButtonProps={{ disabled: importing }}
             >
                 <div className="space-y-4">
                     <Alert
@@ -353,10 +400,10 @@ export default function MedicineImportsPage() {
                                         <Text code>Giá nhập</Text> (bắt buộc, phải lớn hơn 0)
                                     </li>
                                     <li>
-                                        <Text code>Hạn sử dụng</Text> (bắt buộc, định dạng: YYYY-MM-DD)
+                                        <Text code>Hạn sử dụng</Text> (bắt buộc, định dạng: d/m/Y hoặc YYYY-MM-DD)
                                     </li>
                                     <li>
-                                        <Text code>Ngày nhập</Text> (bắt buộc, định dạng: YYYY-MM-DD)
+                                        <Text code>Ngày nhập</Text> (bắt buộc, định dạng: d/m/Y hoặc YYYY-MM-DD)
                                     </li>
                                     <li>
                                         <Text code>Người nhập</Text> (bắt buộc, tên nhân viên phải tồn tại)
@@ -372,14 +419,36 @@ export default function MedicineImportsPage() {
                     <Upload
                         fileList={fileList}
                         beforeUpload={(file) => {
-                            const isValidType =
-                                file.type ===
-                                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
+                            console.log("📤 File được chọn:", {
+                                name: file.name,
+                                type: file.type,
+                                size: file.size
+                            });
+
+                            // Kiểm tra extension
+                            const fileName = file.name.toLowerCase();
+                            const hasValidExtension = 
+                                fileName.endsWith(".xlsx") ||
+                                fileName.endsWith(".xls") ||
+                                fileName.endsWith(".csv");
+
+                            // Kiểm tra MIME type
+                            const isValidMimeType =
+                                file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
                                 file.type === "application/vnd.ms-excel" ||
                                 file.type === "text/csv" ||
-                                file.name.endsWith(".csv");
+                                file.type === "application/octet-stream"; // Một số trình duyệt trả về type này cho .xlsx
+
+                            const isValidType = hasValidExtension || isValidMimeType;
+
+                            console.log("✅ Validation:", {
+                                hasValidExtension,
+                                isValidMimeType,
+                                isValidType
+                            });
 
                             if (!isValidType) {
+                                console.error("❌ File type không hợp lệ");
                                 message.error(
                                     "Chỉ chấp nhận file Excel (.xlsx, .xls) hoặc CSV (.csv)"
                                 );
@@ -387,14 +456,28 @@ export default function MedicineImportsPage() {
                             }
 
                             if (file.size > 10 * 1024 * 1024) {
+                                console.error("❌ File quá lớn");
                                 message.error("File quá lớn. Kích thước tối đa là 10MB");
                                 return false;
                             }
 
+                            console.log("✅ File hợp lệ, thêm vào fileList");
                             setFileList([file]);
-                            return false;
+                            return false; // Ngăn tự động upload
+                        }}
+                        onChange={(info) => {
+                            console.log("📝 Upload onChange:", {
+                                fileList: info.fileList,
+                                file: info.file,
+                                fileListLength: info.fileList.length
+                            });
+                            // Chỉ cập nhật nếu có file
+                            if (info.fileList.length > 0) {
+                                setFileList(info.fileList);
+                            }
                         }}
                         onRemove={() => {
+                            console.log("🗑️ File bị xóa");
                             setFileList([]);
                             return true;
                         }}

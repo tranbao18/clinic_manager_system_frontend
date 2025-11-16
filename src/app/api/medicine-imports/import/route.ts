@@ -24,10 +24,16 @@ export async function POST(req: Request) {
             "application/vnd.ms-excel", // .xls
             "text/csv", // .csv
         ];
+        const allowedExtensions = [".xlsx", ".xls", ".csv"];
+        const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf("."));
+        
         const isValidType =
-            allowedTypes.includes(file.type) || file.name.endsWith(".csv");
+            allowedTypes.includes(file.type) ||
+            file.name.endsWith(".csv") ||
+            allowedExtensions.includes(fileExtension);
 
         if (!isValidType) {
+            console.error("Invalid file type:", file.type, "File name:", file.name);
             return NextResponse.json(
                 {
                     error:
@@ -55,11 +61,14 @@ export async function POST(req: Request) {
             headers.Authorization = authHeaders.Authorization;
         }
 
+        console.log("Forwarding import request to backend:", MEDICINE_IMPORTS_IMPORT_URL);
         const res = await fetch(MEDICINE_IMPORTS_IMPORT_URL, {
             method: "POST",
             headers,
             body: uploadFormData,
         });
+
+        console.log("Backend response status:", res.status, res.statusText);
 
         if (!res.ok) {
             const text = await res.text();
@@ -67,16 +76,28 @@ export async function POST(req: Request) {
             try {
                 errorData = JSON.parse(text);
             } catch {
-                errorData = { error: text };
+                errorData = { error: text || `HTTP ${res.status}: ${res.statusText}` };
             }
             console.error("External API (POST import medicine-imports) error:", res.status, errorData);
             return NextResponse.json(
-                { error: errorData.error || "Không thể import file", detail: errorData },
+                { error: errorData.error || errorData.message || "Không thể import file", detail: errorData },
                 { status: res.status }
             );
         }
 
-        const data = await res.json();
+        let data;
+        try {
+            const text = await res.text();
+            data = text ? JSON.parse(text) : {};
+            console.log("Backend response data:", data);
+        } catch (parseError) {
+            console.error("Failed to parse backend response:", parseError);
+            return NextResponse.json(
+                { error: "Không thể đọc phản hồi từ server" },
+                { status: 500 }
+            );
+        }
+        
         return NextResponse.json(data);
     } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : "Lỗi hệ thống";

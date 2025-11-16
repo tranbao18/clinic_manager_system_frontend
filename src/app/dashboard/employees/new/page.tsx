@@ -88,13 +88,49 @@ export default function NewEmployeePage() {
         throw new Error("Không nhận được ID người dùng sau khi tạo tài khoản");
       }
 
-      message.success(
-        <>
-          🎉 Nhân viên & tài khoản đã được tạo! <br />
-          <strong>Tài khoản:</strong> {accountRes.user.username} <br />
-          <strong>Mật khẩu:</strong> {accountRes.user.generated_password}
-        </>
-      );
+      // Kiểm tra xem nhân viên có email không
+      const employeeEmail = values.email;
+      const hasEmail = employeeEmail && employeeEmail.trim() !== "";
+
+      if (hasEmail) {
+        message.success({
+          content: (
+            <>
+              <div style={{ marginBottom: "8px" }}>
+                🎉 Nhân viên & tài khoản đã được tạo thành công!
+              </div>
+              <div style={{ marginBottom: "8px", color: "#52c41a", fontWeight: "bold" }}>
+                📧 Email chứa thông tin tài khoản đã được gửi đến: <strong>{employeeEmail}</strong>
+              </div>
+              <div style={{ marginTop: "8px", fontSize: "12px", color: "#666" }}>
+                <strong>Thông tin tài khoản (dự phòng):</strong> <br />
+                Username: <strong>{accountRes.user.username}</strong> <br />
+                Password: <strong>{accountRes.user.generated_password}</strong>
+              </div>
+            </>
+          ),
+          duration: 10, // Hiển thị trong 10 giây
+        });
+      } else {
+        message.success({
+          content: (
+            <>
+              <div style={{ marginBottom: "8px" }}>
+                🎉 Nhân viên & tài khoản đã được tạo thành công!
+              </div>
+              <div style={{ marginTop: "8px" }}>
+                <strong>Thông tin tài khoản:</strong> <br />
+                Username: <strong>{accountRes.user.username}</strong> <br />
+                Password: <strong>{accountRes.user.generated_password}</strong>
+              </div>
+              <div style={{ marginTop: "8px", fontSize: "12px", color: "#faad14" }}>
+                ⚠️ Lưu ý: Nhân viên không có email, vui lòng cung cấp thông tin tài khoản trực tiếp.
+              </div>
+            </>
+          ),
+          duration: 10,
+        });
+      }
 
       router.push("/dashboard/employees");
     } catch (error: any) {
@@ -162,6 +198,7 @@ export default function NewEmployeePage() {
                 { required: true, message: "Vui lòng nhập email" },
                 { type: "email", message: "Email không hợp lệ" },
               ]}
+              help="📧 Email này sẽ nhận thông tin tài khoản (username và password) sau khi tạo nhân viên"
             >
               <Input placeholder="VD: name@clinic.com" />
             </Form.Item>
