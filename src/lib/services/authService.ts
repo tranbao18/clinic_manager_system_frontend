@@ -128,6 +128,74 @@ const AuthService = {
       throw err;
     }
   },
+
+  async changePassword(
+    userId: string,
+    payload: { oldPassword: string; newPassword: string }
+  ) {
+    const authHeaders = getAuthHeaderClient();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (authHeaders.Authorization) {
+      headers.Authorization = authHeaders.Authorization;
+    }
+
+    const res = await fetch(`/api/users/changepass/${userId}`, {
+      method: "PATCH",
+      headers,
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(data.error || data.message || "Đổi mật khẩu thất bại");
+    }
+    return data;
+  },
+
+  async resetPassword(userId: string) {
+    try {
+      const authHeaders = getAuthHeaderClient();
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (authHeaders.Authorization) {
+        headers.Authorization = authHeaders.Authorization;
+      }
+
+      console.log("Calling reset password API for userId:", userId);
+      const res = await fetch(`/api/auth/resetpass/${userId}`, {
+        method: "PATCH",
+        headers,
+      });
+
+      let data: any;
+      try {
+        data = await res.json();
+      } catch {
+        const text = await res.text();
+        data = { error: text || "Lỗi không xác định" };
+      }
+
+      console.log("Reset password API response:", { status: res.status, data });
+
+      if (!res.ok) {
+        const errorMsg = data.error || data.message || `Reset mật khẩu thất bại (${res.status})`;
+        console.error("Reset password API error:", errorMsg, data);
+        throw new Error(errorMsg);
+      }
+
+      return data;
+    } catch (error: any) {
+      console.error("Reset password service error:", error);
+      // Nếu error đã có message, throw lại; nếu không, tạo error mới
+      if (error.message) {
+        throw error;
+      }
+      throw new Error(error.toString() || "Lỗi không xác định khi reset mật khẩu");
+    }
+  },
 };
 
 export default AuthService;

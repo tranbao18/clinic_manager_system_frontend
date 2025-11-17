@@ -9,6 +9,10 @@ import {
   message,
   Row,
   Col,
+  Button,
+  Form,
+  Input,
+  Modal,
 } from "antd";
 import {
   UserOutlined,
@@ -20,13 +24,16 @@ import {
 } from "@ant-design/icons";
 import { useRouter } from "next/navigation";
 import UsersService from "@/lib/services/usersService";
-import EmployeesPage from "../employees/page";
+import AuthService from "@/lib/services/authService";
 
 const { Title, Text } = Typography;
 
 export default function ProfilePage() {
   const [data, setData] = useState<{ user?: any; employee?: any } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [form] = Form.useForm();
   const router = useRouter();
 
   useEffect(() => {
@@ -72,6 +79,35 @@ export default function ProfilePage() {
     );
 
   const { user, employee } = data;
+  const userId = user?._id || user?.id;
+  const isAdmin = (user?.role || "").toLowerCase() === "admin";
+  const canSelfChangePassword = !!userId && !isAdmin;
+
+  const handleSubmitChangePassword = async (values: {
+    oldPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+  }) => {
+    if (!userId) return;
+    if (values.newPassword !== values.confirmPassword) {
+      message.error("Mật khẩu mới và xác nhận không khớp");
+      return;
+    }
+    try {
+      setChangingPassword(true);
+      await AuthService.changePassword(userId, {
+        oldPassword: values.oldPassword,
+        newPassword: values.newPassword,
+      });
+      message.success("Đổi mật khẩu thành công");
+      form.resetFields();
+      setIsModalOpen(false);
+    } catch (error: any) {
+      message.error(error.message || "Không thể đổi mật khẩu");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
 
   return (
     <div className="p-6 flex justify-center bg-gray-50 min-h-screen">
@@ -143,6 +179,80 @@ export default function ProfilePage() {
             </Card>
           </Col>
         </Row>
+
+        {canSelfChangePassword && (
+          <>
+            <Divider className="border-gray-200 mt-6" />
+            <div className="text-center">
+              <Text className="block mb-3 text-gray-600">
+                Đổi mật khẩu đăng nhập của bạn
+              </Text>
+              <Button type="primary" onClick={() => setIsModalOpen(true)}>
+                Đổi mật khẩu
+              </Button>
+            </div>
+            <Modal
+              title="Đổi mật khẩu"
+              open={isModalOpen}
+              footer={null}
+              destroyOnHidden
+              onCancel={() => {
+                setIsModalOpen(false);
+                form.resetFields();
+              }}
+            >
+              <Form
+                layout="vertical"
+                form={form}
+                onFinish={handleSubmitChangePassword}
+              >
+                <Form.Item
+                  label="Mật khẩu hiện tại"
+                  name="oldPassword"
+                  rules={[{ required: true, message: "Nhập mật khẩu hiện tại" }]}
+                >
+                  <Input.Password placeholder="Nhập mật khẩu hiện tại" />
+                </Form.Item>
+                <Form.Item
+                  label="Mật khẩu mới"
+                  name="newPassword"
+                  rules={[
+                    { required: true, message: "Nhập mật khẩu mới" },
+                    { min: 6, message: "Mật khẩu cần ít nhất 6 ký tự" },
+                  ]}
+                >
+                  <Input.Password placeholder="Nhập mật khẩu mới" />
+                </Form.Item>
+                <Form.Item
+                  label="Xác nhận mật khẩu mới"
+                  name="confirmPassword"
+                  dependencies={["newPassword"]}
+                  rules={[{ required: true, message: "Xác nhận mật khẩu mới" }]}
+                >
+                  <Input.Password placeholder="Nhập lại mật khẩu mới" />
+                </Form.Item>
+                <div className="text-right">
+                  <Button
+                    className="mr-2"
+                    onClick={() => {
+                      setIsModalOpen(false);
+                      form.resetFields();
+                    }}
+                  >
+                    Hủy
+                  </Button>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={changingPassword}
+                  >
+                    Xác nhận
+                  </Button>
+                </div>
+              </Form>
+            </Modal>
+          </>
+        )}
 
         {/* Footer */}
         <Divider className="border-gray-200 mt-6" />

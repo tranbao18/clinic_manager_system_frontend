@@ -13,6 +13,7 @@ import {
   Input,
   Select,
   DatePicker,
+  Modal,
 } from "antd";
 import EmployeesService from "@/lib/services/employeesService";
 import AuthService from "@/lib/services/authService";
@@ -35,11 +36,18 @@ interface Employee {
 }
 
 interface UserAccount {
-  _id: string;
+  _id?: string;
+  id?: string;
   username: string;
   password_hash: string;
   created_at: string;
   role?: string;
+}
+
+interface ChangePasswordFormValues {
+  oldPassword: string;
+  newPassword: string;
+  confirmPassword: string;
 }
 
 export default function EmployeeDetailPage() {
@@ -51,6 +59,13 @@ export default function EmployeeDetailPage() {
   const [saving, setSaving] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [form] = Form.useForm();
+  const [passwordForm] = Form.useForm();
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [resettingPassword, setResettingPassword] = useState(false);
+  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
+    useState(false);
+  const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
 
   const formattedDate = (dateString?: string) => {
     if (!dateString) return "-";
@@ -59,6 +74,22 @@ export default function EmployeeDetailPage() {
       .toString()
       .padStart(2, "0")}/${d.getFullYear()}`;
   };
+
+  useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const res = await fetch("/api/users/me", { cache: "no-store" });
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentUser(data);
+        }
+      } catch (error) {
+        console.error("Không thể tải user hiện tại:", error);
+      }
+    };
+
+    fetchCurrentUser();
+  }, []);
 
   const mapGenderDisplay = (gender?: string) => {
     if (!gender) return "-";
@@ -79,6 +110,8 @@ export default function EmployeeDetailPage() {
 
         // 2️⃣ Lấy thông tin tài khoản (có thể null)
         const data = await AuthService.getEmployeeById(id as string);
+        console.log("📦 Account data from API:", data);
+        console.log("📦 User object:", data?.user);
         setAccount(data?.user || null);
 
         // 3️⃣ Gán giá trị cho form
@@ -101,6 +134,22 @@ export default function EmployeeDetailPage() {
 
     if (id) fetchData();
   }, [id, form]);
+
+  const isAdmin = (currentUser?.role || "").toLowerCase() === "admin";
+  const canChangePassword = !!account && isAdmin;
+  const canResetPassword = !!account && isAdmin;
+  
+  // Debug log
+  useEffect(() => {
+    const accountId = account?._id || account?.id;
+    console.log("🔍 Debug reset password conditions:", {
+      account,
+      accountId,
+      currentUser,
+      isAdmin,
+      canResetPassword,
+    });
+  }, [account, currentUser, isAdmin, canResetPassword]);
 
   // 🔹 Lưu cập nhật
   const handleSave = async (values: {
@@ -132,6 +181,75 @@ export default function EmployeeDetailPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleChangePasswordSubmit = async (
+    values: ChangePasswordFormValues
+  ) => {
+    if (!accountId) return;
+    if (values.newPassword !== values.confirmPassword) {
+      message.error("Mật khẩu mới và xác nhận không khớp");
+      return;
+    }
+    try {
+      setChangingPassword(true);
+      await AuthService.changePassword(accountId, {
+        oldPassword: values.oldPassword,
+        newPassword: values.newPassword,
+      });
+      message.success("Đổi mật khẩu thành công");
+      passwordForm.resetFields();
+      setIsChangePasswordModalOpen(false);
+    } catch (error: any) {
+      message.error(error.message || "Không thể đổi mật khẩu");
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
+  const accountId = account?._id || account?.id;
+
+  const handleResetPassword = async () => {
+    console.log("🟢 Reset password handler called");
+    if (!accountId) {
+      console.error("❌ No accountId found");
+      message.error("Không tìm thấy tài khoản để reset");
+      return;
+    }
+
+    try {
+      setResettingPassword(true);
+      console.log("🟢 Resetting password for user ID:", accountId);
+      const result = await AuthService.resetPassword(accountId);
+      console.log("🟢 Reset password result:", result);
+      message.success(
+        result.message || "Reset mật khẩu thành công. Mật khẩu mới đã được gửi qua email."
+      );
+      setIsResetPasswordModalOpen(false);
+    } catch (error: any) {
+      console.error("🔴 Reset password error:", error);
+      const errorMessage = error.message || "Không thể reset mật khẩu";
+      message.error(errorMessage);
+    } finally {
+      setResettingPassword(false);
+    }
+  };
+
+  const confirmResetPassword = () => {
+    console.log("🔵 confirmResetPassword called");
+    console.log("🔵 account:", account);
+    console.log("🔵 accountId:", accountId);
+    console.log("🔵 isAdmin:", isAdmin);
+    console.log("🔵 canResetPassword:", canResetPassword);
+    
+    if (!accountId) {
+      console.error("❌ No accountId found");
+      message.error("Không tìm thấy tài khoản để reset");
+      return;
+    }
+
+    console.log("🔵 Opening reset password modal");
+    setIsResetPasswordModalOpen(true);
   };
 
   if (!employee && !loading)
@@ -297,6 +415,121 @@ export default function EmployeeDetailPage() {
               </div>
             )}
           </Card>
+
+          {(canChangePassword || canResetPassword) && (
+            <Card title="Quản lý mật khẩu" className="mt-6">
+              {canChangePassword && (
+                <>
+                  <p className="text-gray-600 mb-3">
+                    Chỉ chủ tài khoản hoặc Admin mới có thể đổi mật khẩu tại đây.
+                  </p>
+                  <Button type="primary" onClick={() => setIsChangePasswordModalOpen(true)}>
+                    Đổi mật khẩu
+                  </Button>
+                  <Modal
+                    title="Đổi mật khẩu"
+                    open={isChangePasswordModalOpen}
+                    onCancel={() => {
+                      setIsChangePasswordModalOpen(false);
+                      passwordForm.resetFields();
+                    }}
+                    footer={null}
+                    destroyOnHidden
+                  >
+                    <Form
+                      form={passwordForm}
+                      layout="vertical"
+                      onFinish={handleChangePasswordSubmit}
+                    >
+                      <Form.Item
+                        label="Mật khẩu hiện tại"
+                        name="oldPassword"
+                        rules={[
+                          { required: true, message: "Nhập mật khẩu hiện tại" },
+                        ]}
+                      >
+                        <Input.Password placeholder="Nhập mật khẩu hiện tại" />
+                      </Form.Item>
+                      <Form.Item
+                        label="Mật khẩu mới"
+                        name="newPassword"
+                        rules={[
+                          { required: true, message: "Nhập mật khẩu mới" },
+                          { min: 6, message: "Mật khẩu cần ít nhất 6 ký tự" },
+                        ]}
+                      >
+                        <Input.Password placeholder="Nhập mật khẩu mới" />
+                      </Form.Item>
+                      <Form.Item
+                        label="Xác nhận mật khẩu mới"
+                        name="confirmPassword"
+                        dependencies={["newPassword"]}
+                        rules={[
+                          { required: true, message: "Xác nhận mật khẩu mới" },
+                        ]}
+                      >
+                        <Input.Password placeholder="Nhập lại mật khẩu mới" />
+                      </Form.Item>
+                      <div className="text-right">
+                        <Button
+                          onClick={() => {
+                            setIsChangePasswordModalOpen(false);
+                            passwordForm.resetFields();
+                          }}
+                          className="mr-2"
+                        >
+                          Hủy
+                        </Button>
+                        <Button
+                          type="primary"
+                          htmlType="submit"
+                          loading={changingPassword}
+                        >
+                          Xác nhận
+                        </Button>
+                      </div>
+                    </Form>
+                  </Modal>
+                </>
+              )}
+
+              {canResetPassword && (
+                <div className={canChangePassword ? "mt-6" : ""}>
+                  <p className="text-gray-600 mb-3">
+                    Chỉ dùng khi nhân viên quên mật khẩu và không thể đăng nhập.
+                    Mật khẩu mới sẽ được gửi qua email của nhân viên.
+                  </p>
+                  <Button
+                    danger
+                    onClick={() => {
+                      console.log("🟣 Reset password button clicked");
+                      confirmResetPassword();
+                    }}
+                    loading={resettingPassword}
+                  >
+                    Reset mật khẩu
+                  </Button>
+                  <Modal
+                    title="Reset mật khẩu nhân viên?"
+                    open={isResetPasswordModalOpen}
+                    onOk={handleResetPassword}
+                    onCancel={() => {
+                      console.log("🟡 Reset password modal cancelled");
+                      setIsResetPasswordModalOpen(false);
+                    }}
+                    okText="Reset mật khẩu"
+                    cancelText="Hủy"
+                    okButtonProps={{ danger: true }}
+                    confirmLoading={resettingPassword}
+                  >
+                    <p>
+                      Hệ thống sẽ tạo mật khẩu mới và gửi email đến nhân viên. Tiếp tục?
+                    </p>
+                  </Modal>
+                </div>
+              )}
+            </Card>
+          )}
         </div>
       </Content>
     </Layout>
