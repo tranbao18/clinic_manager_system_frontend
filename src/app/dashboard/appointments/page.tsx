@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Button } from "antd";
 import CalendarLayout from "@/components/layout/CalendarLayout";
 import { getPatients } from "@/lib/services/patientsService";
 
@@ -44,6 +46,7 @@ export default function AppointmentsClient({
     const [userRole, setUserRole] = useState<string>("");
     const [userEmployeeId, setUserEmployeeId] = useState<string | null>(null);
     const [canManage, setCanManage] = useState<boolean>(false);
+    const router = useRouter();
 
     // Fetch user info và set permissions
     useEffect(() => {
@@ -383,13 +386,25 @@ export default function AppointmentsClient({
     };
 
     return (
-        <CalendarLayout
-            appointments={appointments}
-            doctors={doctors}
-            patients={patients}
-            onRefresh={handleRefresh}
-            canManage={canManage}
-        />
+        <div>
+            <div className="p-6 pb-0 flex justify-between items-center">
+                <h1 className="text-2xl font-bold">Lịch hẹn</h1>
+                {canManage && (
+                    <Button
+                        onClick={() => router.push("/dashboard/appointments/disabled")}
+                    >
+                        Thùng rác
+                    </Button>
+                )}
+            </div>
+            <CalendarLayout
+                appointments={appointments}
+                doctors={doctors}
+                patients={patients}
+                onRefresh={handleRefresh}
+                canManage={canManage}
+            />
+        </div>
     );
 }
 

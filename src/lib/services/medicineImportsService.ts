@@ -91,12 +91,36 @@ export async function updateMedicineImport(
     return res.json();
 }
 
-// ❌ Xóa nhập thuốc
+// ❌ Xóa nhập thuốc (soft delete - set disabled: true)
 export async function deleteMedicineImport(id: string): Promise<void> {
     const res = await fetch(`/api/medicine-imports/${id}`, { method: "DELETE" });
     if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Không thể xóa nhập thuốc" }));
         throw new Error(error.error || "Không thể xóa nhập thuốc");
     }
+}
+
+// 📦 Lấy danh sách nhập thuốc đã xóa (disabled: true)
+export async function getDisabledMedicineImports(): Promise<MedicineImport[]> {
+    const res = await fetch("/api/medicine-imports?disabled=true", { cache: "no-store" });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Không thể lấy danh sách nhập thuốc đã xóa" }));
+        throw new Error(error.error || "Không thể lấy danh sách nhập thuốc đã xóa");
+    }
+    return res.json();
+}
+
+// ♻️ Khôi phục nhập thuốc (set disabled: false)
+export async function restoreMedicineImport(id: string): Promise<MedicineImport> {
+    const res = await fetch(`/api/medicine-imports/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ disabled: false }),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Không thể khôi phục nhập thuốc" }));
+        throw new Error(error.error || "Không thể khôi phục nhập thuốc");
+    }
+    return res.json();
 }
 

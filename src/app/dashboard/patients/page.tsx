@@ -210,6 +210,13 @@ export default function PatientsPage() {
                         + Thêm bệnh nhân
                     </Button>
                 )}
+                {canDelete && (
+                    <Button
+                        onClick={() => router.push("/dashboard/patients/disabled")}
+                    >
+                        Thùng rác
+                    </Button>
+                )}
             </Space>
 
             {loading ? (

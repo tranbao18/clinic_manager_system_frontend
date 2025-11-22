@@ -95,6 +95,41 @@ const EmployeesService = {
       throw error;
     }
   },
+
+  // 📦 Lấy danh sách nhân viên đã xóa (disabled: true)
+  async getDisabledEmployees() {
+    try {
+      const res = await fetch(`${BASE_URL}?disabled=true`, {
+        cache: "no-store",
+        headers: getAuthHeaderClient(),
+      });
+      if (!res.ok) throw new Error("Lỗi khi tải danh sách nhân viên đã xóa");
+      return await res.json();
+    } catch (error: any) {
+      console.error("getDisabledEmployees error:", error.message);
+      throw error;
+    }
+  },
+
+  // ♻️ Khôi phục nhân viên (set disabled: false)
+  async restoreEmployee(id: string) {
+    try {
+      const res = await fetch(`${BASE_URL}/${id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          ...getAuthHeaderClient(),
+        },
+        body: JSON.stringify({ disabled: false }),
+      });
+      const text = await res.text();
+      if (!res.ok) throw new Error(`Lỗi khi khôi phục nhân viên: ${text}`);
+      return JSON.parse(text);
+    } catch (error: any) {
+      console.error("restoreEmployee error:", error.message);
+      throw error;
+    }
+  },
 };
 
 export default EmployeesService;

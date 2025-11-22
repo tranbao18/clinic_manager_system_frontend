@@ -14,10 +14,20 @@ async function safeJsonParse(res: Response) {
   }
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
+    const { searchParams } = new URL(req.url);
+    const disabled = searchParams.get("disabled");
+    
     const headers = await getAuthHeaderServer();
-    const res = await fetch(API_URL, {
+    
+    // Tạo URL với query params nếu có
+    let url = API_URL;
+    if (disabled === "true") {
+      url += `?disabled=true`;
+    }
+    
+    const res = await fetch(url, {
       headers: { ...headers, "Content-Type": "application/json" },
       cache: "no-store",
     });
@@ -29,7 +39,16 @@ export async function GET() {
     }
 
     const data = await safeJsonParse(res);
-    return NextResponse.json(data, { status: 200 });
+    let list = Array.isArray(data) ? data : [];
+    
+    // Filter disabled items ở frontend nếu backend không hỗ trợ query params
+    if (disabled === "true") {
+      list = list.filter((item: any) => item.disabled === true);
+    } else if (disabled === "false") {
+      list = list.filter((item: any) => item.disabled !== true);
+    }
+    
+    return NextResponse.json(list, { status: 200 });
   } catch (error: any) {
     console.error("GET /api/employees error:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });

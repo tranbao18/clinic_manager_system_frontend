@@ -184,12 +184,21 @@ export default function EmployeesPage() {
         <Content className="m-4 p-4 bg-white rounded shadow">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-3xl font-bold">Danh sách Nhân viên</h2>
-            <Button
-              type="primary"
-              onClick={() => router.push("/dashboard/employees/new")}
-            >
-              Tạo nhân viên
-            </Button>
+            <div className="flex gap-2">
+              {canDelete && (
+                <Button
+                  onClick={() => router.push("/dashboard/employees/disabled")}
+                >
+                  Thùng rác
+                </Button>
+              )}
+              <Button
+                type="primary"
+                onClick={() => router.push("/dashboard/employees/new")}
+              >
+                Tạo nhân viên
+              </Button>
+            </div>
           </div>
 
           {/* Tìm kiếm & Lọc */}

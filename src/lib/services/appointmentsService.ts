@@ -84,11 +84,35 @@ export async function updateAppointment(
     return res.json();
 }
 
-// ❌ Xóa lịch hẹn
+// ❌ Xóa lịch hẹn (soft delete - set disabled: true)
 export async function deleteAppointment(id: string): Promise<void> {
     const res = await fetch(`/api/appointments/${id}`, { method: "DELETE" });
     if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Không thể xóa lịch hẹn" }));
         throw new Error(error.error || "Không thể xóa lịch hẹn");
     }
+}
+
+// 📦 Lấy danh sách lịch hẹn đã xóa (disabled: true)
+export async function getDisabledAppointments(): Promise<Appointment[]> {
+    const res = await fetch("/api/appointments?disabled=true", { cache: "no-store" });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Không thể lấy danh sách lịch hẹn đã xóa" }));
+        throw new Error(error.error || "Không thể lấy danh sách lịch hẹn đã xóa");
+    }
+    return res.json();
+}
+
+// ♻️ Khôi phục lịch hẹn (set disabled: false)
+export async function restoreAppointment(id: string): Promise<Appointment> {
+    const res = await fetch(`/api/appointments/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ disabled: false }),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Không thể khôi phục lịch hẹn" }));
+        throw new Error(error.error || "Không thể khôi phục lịch hẹn");
+    }
+    return res.json();
 }

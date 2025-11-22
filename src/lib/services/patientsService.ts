@@ -55,8 +55,26 @@ export async function updatePatient(
     return res.json();
 }
 
-// ❌ Xóa bệnh nhân
+// ❌ Xóa bệnh nhân (soft delete - set disabled: true)
 export async function deletePatient(id: string): Promise<void> {
     const res = await fetch(`/api/patients/${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error("Không thể xóa bệnh nhân");
+}
+
+// 📦 Lấy danh sách bệnh nhân đã xóa (disabled: true)
+export async function getDisabledPatients(): Promise<Patient[]> {
+    const res = await fetch("/api/patients?disabled=true", { cache: "no-store" });
+    if (!res.ok) throw new Error("Không thể lấy danh sách bệnh nhân đã xóa");
+    return res.json();
+}
+
+// ♻️ Khôi phục bệnh nhân (set disabled: false)
+export async function restorePatient(id: string): Promise<Patient> {
+    const res = await fetch(`/api/patients/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ disabled: false }),
+    });
+    if (!res.ok) throw new Error("Không thể khôi phục bệnh nhân");
+    return res.json();
 }

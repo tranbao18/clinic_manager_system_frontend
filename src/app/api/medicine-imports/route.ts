@@ -6,10 +6,20 @@ const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 const MEDICINE_IMPORTS_URL = `${API_URL}/api/medicine-imports`;
 
 // 📦 GET - Lấy danh sách nhập thuốc
-export async function GET() {
+export async function GET(req: Request) {
     try {
+        const { searchParams } = new URL(req.url);
+        const disabled = searchParams.get("disabled");
+        
         const headers = await getAuthHeaderServer();
-        const res = await fetch(MEDICINE_IMPORTS_URL, {
+        
+        // Tạo URL với query params nếu có
+        let url = MEDICINE_IMPORTS_URL;
+        if (disabled === "true") {
+            url += `?disabled=true`;
+        }
+        
+        const res = await fetch(url, {
             cache: "no-store",
             headers,
         });
@@ -24,7 +34,15 @@ export async function GET() {
         }
 
         const data = await res.json();
-        const list = Array.isArray(data) ? data : data.medicineImports || [];
+        let list = Array.isArray(data) ? data : data.medicineImports || [];
+        
+        // Filter disabled items ở frontend nếu backend không hỗ trợ query params
+        if (disabled === "true") {
+            list = list.filter((item: any) => item.disabled === true);
+        } else if (disabled === "false") {
+            list = list.filter((item: any) => item.disabled !== true);
+        }
+        
         return NextResponse.json(list);
     } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : "Lỗi hệ thống";

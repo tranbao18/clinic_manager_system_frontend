@@ -96,12 +96,36 @@ export async function updateMedicine(
     return res.json();
 }
 
-// ❌ Xóa thuốc
+// ❌ Xóa thuốc (soft delete - set disabled: true)
 export async function deleteMedicine(id: string): Promise<void> {
     const res = await fetch(`/api/medicines/${id}`, { method: "DELETE" });
     if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Không thể xóa thuốc" }));
         throw new Error(error.error || "Không thể xóa thuốc");
     }
+}
+
+// 📦 Lấy danh sách thuốc đã xóa (disabled: true)
+export async function getDisabledMedicines(): Promise<Medicine[]> {
+    const res = await fetch("/api/medicines?disabled=true", { cache: "no-store" });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Không thể lấy danh sách thuốc đã xóa" }));
+        throw new Error(error.error || "Không thể lấy danh sách thuốc đã xóa");
+    }
+    return res.json();
+}
+
+// ♻️ Khôi phục thuốc (set disabled: false)
+export async function restoreMedicine(id: string): Promise<Medicine> {
+    const res = await fetch(`/api/medicines/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ disabled: false }),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Không thể khôi phục thuốc" }));
+        throw new Error(error.error || "Không thể khôi phục thuốc");
+    }
+    return res.json();
 }
 

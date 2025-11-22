@@ -65,9 +65,27 @@ export async function updateMedicalRecord(
     return res.json();
 }
 
-// ❌ Xóa hồ sơ y tế
+// ❌ Xóa hồ sơ y tế (soft delete - set disabled: true)
 export async function deleteMedicalRecord(id: string): Promise<void> {
     const res = await fetch(`/api/medical-records/${id}`, { method: "DELETE" });
     if (!res.ok) throw new Error("Không thể xóa hồ sơ y tế");
+}
+
+// 📦 Lấy danh sách hồ sơ y tế đã xóa (disabled: true)
+export async function getDisabledMedicalRecords(): Promise<MedicalRecord[]> {
+    const res = await fetch("/api/medical-records?disabled=true", { cache: "no-store" });
+    if (!res.ok) throw new Error("Không thể lấy danh sách hồ sơ y tế đã xóa");
+    return res.json();
+}
+
+// ♻️ Khôi phục hồ sơ y tế (set disabled: false)
+export async function restoreMedicalRecord(id: string): Promise<MedicalRecord> {
+    const res = await fetch(`/api/medical-records/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ disabled: false }),
+    });
+    if (!res.ok) throw new Error("Không thể khôi phục hồ sơ y tế");
+    return res.json();
 }
 

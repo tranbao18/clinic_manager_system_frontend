@@ -369,6 +369,13 @@ export default function MedicinesPage() {
                         )}
                     </>
                 )}
+                {canDelete && (
+                    <Button
+                        onClick={() => router.push("/dashboard/medicines/disabled")}
+                    >
+                        Thùng rác
+                    </Button>
+                )}
             </Space>
 
             {loading ? (

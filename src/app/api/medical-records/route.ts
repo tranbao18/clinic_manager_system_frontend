@@ -6,10 +6,20 @@ const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 const MEDICAL_RECORDS_URL = `${API_URL}/api/medical-records`;
 
 // 📦 GET - Lấy danh sách hồ sơ y tế
-export async function GET() {
+export async function GET(req: Request) {
     try {
+        const { searchParams } = new URL(req.url);
+        const disabled = searchParams.get("disabled");
+        
         const headers = await getAuthHeaderServer();
-        const res = await fetch(MEDICAL_RECORDS_URL, {
+        
+        // Tạo URL với query params nếu có
+        let url = MEDICAL_RECORDS_URL;
+        if (disabled === "true") {
+            url += `?disabled=true`;
+        }
+        
+        const res = await fetch(url, {
             cache: "no-store",
             headers,
         });
@@ -24,7 +34,15 @@ export async function GET() {
         }
 
         const data = await res.json();
-        const list = Array.isArray(data) ? data : data.medicalRecords || [];
+        let list = Array.isArray(data) ? data : data.medicalRecords || [];
+        
+        // Filter disabled items ở frontend nếu backend không hỗ trợ query params
+        if (disabled === "true") {
+            list = list.filter((item: any) => item.disabled === true);
+        } else if (disabled === "false") {
+            list = list.filter((item: any) => item.disabled !== true);
+        }
+        
         return NextResponse.json(list);
     } catch (err: any) {
         console.error("GET /api/medical-records exception:", err);
