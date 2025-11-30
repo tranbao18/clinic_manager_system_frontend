@@ -19,7 +19,7 @@ import {
     Modal,
     InputNumber,
 } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined, DeleteOutlined, DollarOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import {
     getPatientById,
@@ -34,6 +34,12 @@ import {
     MedicalRecord,
 } from "@/lib/services/medicalRecordService";
 import { getMedicines, Medicine } from "@/lib/services/medicinesService";
+import {
+    createInvoiceFromMedicalRecord,
+    getInvoicesByPatientId,
+    Invoice,
+} from "@/lib/services/invoiceService";
+import { getAppointments, Appointment } from "@/lib/services/appointmentsService";
 
 // 🔹 Hàm chuyển đổi giới tính theo backend
 const mapGenderToApiValue = (gender: string) => {
@@ -67,6 +73,13 @@ export default function PatientDetailPage() {
     const [isMedicalRecordModalVisible, setIsMedicalRecordModalVisible] = useState(false);
     const [editingRecord, setEditingRecord] = useState<MedicalRecord | null>(null);
     const [savingRecord, setSavingRecord] = useState(false);
+    
+    // Appointments state
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
+    
+    // Invoices state
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [creatingInvoice, setCreatingInvoice] = useState<string | null>(null);
 
     // 📦 Lấy dữ liệu bệnh nhân
     useEffect(() => {
@@ -120,6 +133,45 @@ export default function PatientDetailPage() {
         };
 
         fetchMedicalRecords();
+    }, [patientId]);
+
+    // 📦 Lấy danh sách appointments của patient
+    useEffect(() => {
+        if (!patientId) return;
+
+        const fetchAppointments = async () => {
+            try {
+                const allAppointments = await getAppointments();
+                // Filter appointments của patient này
+                const patientAppointments = allAppointments.filter(
+                    (apt: Appointment) => apt.patient_id === patientId
+                );
+                setAppointments(patientAppointments);
+            } catch (err) {
+                console.error("Error fetching appointments:", err);
+                setAppointments([]);
+            }
+        };
+
+        fetchAppointments();
+    }, [patientId]);
+
+    // 📦 Lấy danh sách hóa đơn
+    useEffect(() => {
+        if (!patientId) return;
+
+        const fetchInvoices = async () => {
+            try {
+                const invoiceList = await getInvoicesByPatientId(patientId);
+                setInvoices(invoiceList || []);
+            } catch (err) {
+                console.error("Error fetching invoices:", err);
+                // Không hiển thị error message vì getInvoicesByPatientId đã return [] khi có lỗi
+                setInvoices([]);
+            }
+        };
+
+        fetchInvoices();
     }, [patientId]);
 
     // 📦 Lấy danh sách thuốc
@@ -242,6 +294,72 @@ export default function PatientDetailPage() {
             if (values.treatment) payload.treatment = values.treatment;
             if (values.notes) payload.notes = values.notes;
             if (validPrescriptions.length > 0) payload.prescriptions = validPrescriptions;
+            
+            // Tự động link với appointment gần nhất nếu không có appointment_id
+            if (!editingRecord && !values.appointment_id) {
+                // Tìm appointment gần nhất của patient này (ưu tiên Completed, sau đó là Scheduled/Confirmed)
+                const validStatuses = ['Completed', 'Scheduled', 'Confirmed', 'In Progress'];
+                const availableAppointments = appointments
+                    .filter((apt: Appointment) => {
+                        // Lọc các appointment có status hợp lệ và chưa có medical record
+                        if (!validStatuses.includes(apt.status)) return false;
+                        const hasMedicalRecord = medicalRecords.some(
+                            (mr: MedicalRecord) => {
+                                const mrAppointmentId = typeof mr.appointment_id === 'object' 
+                                    ? mr.appointment_id._id 
+                                    : mr.appointment_id;
+                                return mrAppointmentId === apt._id;
+                            }
+                        );
+                        return !hasMedicalRecord;
+                    })
+                    .sort((a: Appointment, b: Appointment) => {
+                        // Ưu tiên Completed, sau đó sắp xếp theo ngày (mới nhất trước)
+                        if (a.status === 'Completed' && b.status !== 'Completed') return -1;
+                        if (a.status !== 'Completed' && b.status === 'Completed') return 1;
+                        return new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime();
+                    });
+                
+                console.log('🔍 Tìm appointment để link:', {
+                    totalAppointments: appointments.length,
+                    availableAppointments: availableAppointments.length,
+                    appointmentsList: availableAppointments.map(a => ({ 
+                        _id: a._id, 
+                        status: a.status,
+                        date: a.appointment_date 
+                    }))
+                });
+                
+                if (availableAppointments.length > 0) {
+                    const latestAppointment = availableAppointments[0];
+                    payload.appointment_id = latestAppointment._id;
+                    console.log('✅ Tự động link với appointment:', {
+                        _id: latestAppointment._id,
+                        status: latestAppointment.status,
+                        date: latestAppointment.appointment_date
+                    });
+                } else {
+                    console.log('⚠️ Không tìm thấy appointment hợp lệ để link. Có thể cần tạo appointment hoặc cập nhật status.');
+                }
+            } else if (values.appointment_id) {
+                // Nếu có chọn appointment trong form
+                payload.appointment_id = values.appointment_id;
+                console.log('✅ Sử dụng appointment được chọn:', values.appointment_id);
+            } else if (editingRecord && editingRecord.appointment_id) {
+                // Giữ nguyên appointment_id khi edit
+                payload.appointment_id = typeof editingRecord.appointment_id === 'object'
+                    ? editingRecord.appointment_id._id
+                    : editingRecord.appointment_id;
+                console.log('✅ Giữ nguyên appointment_id khi edit:', payload.appointment_id);
+            }
+            
+            // Debug: Log payload trước khi gửi
+            console.log('📤 Payload tạo/cập nhật medical record:', {
+                hasAppointmentId: !!payload.appointment_id,
+                appointment_id: payload.appointment_id,
+                hasPrescriptions: !!(payload.prescriptions && payload.prescriptions.length > 0),
+                prescriptionsCount: payload.prescriptions?.length || 0
+            });
 
             if (editingRecord) {
                 await updateMedicalRecord(editingRecord._id, payload);
@@ -254,6 +372,28 @@ export default function PatientDetailPage() {
             // Reload danh sách
             const records = await getMedicalRecordsByPatientId(patientId);
             setMedicalRecords(records);
+            
+            // Debug: Log medical records sau khi reload
+            console.log('📋 Medical Records sau khi tạo/cập nhật:', records.map(r => ({
+                _id: r._id,
+                appointment_id: r.appointment_id,
+                hasPrescriptions: !!(r.prescriptions && r.prescriptions.length > 0),
+                prescriptionsCount: r.prescriptions?.length || 0
+            })));
+            
+            // Reload appointments để cập nhật danh sách
+            const allAppointments = await getAppointments();
+            const patientAppointments = allAppointments.filter(
+                (apt: Appointment) => apt.patient_id === patientId
+            );
+            setAppointments(patientAppointments);
+            
+            // Debug: Log appointments
+            console.log('📅 Appointments của patient:', patientAppointments.map(a => ({
+                _id: a._id,
+                status: a.status,
+                appointment_date: a.appointment_date
+            })));
             
             setIsMedicalRecordModalVisible(false);
             setEditingRecord(null);
@@ -292,6 +432,52 @@ export default function PatientDetailPage() {
                 : [{}],
         });
         setIsMedicalRecordModalVisible(true);
+    };
+
+    // 🧩 Tạo hóa đơn từ hồ sơ y tế
+    const handleCreateInvoice = async (medicalRecordId: string) => {
+        try {
+            setCreatingInvoice(medicalRecordId);
+            const invoice = await createInvoiceFromMedicalRecord({ medicalRecordId });
+            message.success("Tạo hóa đơn thành công!");
+            // Reload invoices
+            const invoiceList = await getInvoicesByPatientId(patientId!);
+            setInvoices(invoiceList);
+            // Navigate to invoice detail
+            router.push(`/dashboard/invoices/${invoice._id}`);
+        } catch (error: any) {
+            console.error(error);
+            if (error.message?.includes("already exists")) {
+                message.warning("Hóa đơn đã tồn tại cho lịch hẹn này");
+                // Tìm invoice đã có và chuyển đến trang chi tiết
+                const existingInvoice = invoices.find(
+                    inv => typeof inv.appointment_id === 'object' 
+                        ? inv.appointment_id._id === (medicalRecords.find(mr => mr._id === medicalRecordId)?.appointment_id as any)?._id
+                        : false
+                );
+                if (existingInvoice) {
+                    router.push(`/dashboard/invoices/${existingInvoice._id}`);
+                }
+            } else {
+                message.error(error.message || "Không thể tạo hóa đơn");
+            }
+        } finally {
+            setCreatingInvoice(null);
+        }
+    };
+
+    // 🧩 Kiểm tra xem đã có invoice cho medical record chưa
+    const getInvoiceForMedicalRecord = (record: MedicalRecord): Invoice | undefined => {
+        if (!record.appointment_id) return undefined;
+        const appointmentId = typeof record.appointment_id === 'object' 
+            ? record.appointment_id._id 
+            : record.appointment_id;
+        return invoices.find(inv => {
+            const invAppointmentId = typeof inv.appointment_id === 'object'
+                ? inv.appointment_id._id
+                : inv.appointment_id;
+            return invAppointmentId === appointmentId;
+        });
     };
 
     // 🧩 Xóa hồ sơ y tế
@@ -413,33 +599,90 @@ export default function PatientDetailPage() {
                             </div>
                         ) : medicalRecords.length > 0 ? (
                             <div className="space-y-4">
-                                {medicalRecords.map((record) => (
+                                {medicalRecords.map((record) => {
+                                    const existingInvoice = getInvoiceForMedicalRecord(record);
+                                    const hasPrescriptions = record.prescriptions && record.prescriptions.length > 0;
+                                    // Kiểm tra appointment_id - có thể là string hoặc object
+                                    const appointmentIdValue = typeof record.appointment_id === 'object' 
+                                        ? record.appointment_id?._id 
+                                        : record.appointment_id;
+                                    const hasAppointment = !!appointmentIdValue && appointmentIdValue !== '';
+                                    const canCreateInvoice = hasPrescriptions && hasAppointment;
+                                    
+                                    // Debug log để kiểm tra
+                                    console.log('🔍 Kiểm tra record:', {
+                                        recordId: record._id,
+                                        hasPrescriptions,
+                                        prescriptionsCount: record.prescriptions?.length || 0,
+                                        hasAppointment,
+                                        appointment_id: record.appointment_id,
+                                        appointmentIdValue,
+                                        canCreateInvoice
+                                    });
+                                    
+                                    if (hasPrescriptions && !hasAppointment) {
+                                        console.warn('⚠️ Record có prescriptions nhưng không có appointment:', {
+                                            recordId: record._id,
+                                            appointment_id: record.appointment_id,
+                                            appointmentIdValue,
+                                            hasPrescriptions,
+                                            prescriptionsCount: record.prescriptions?.length || 0
+                                        });
+                                    }
+                                    
+                                    return (
                                     <Card
                                         key={record._id}
                                         type="inner"
                                         className="border-l-4 border-green-500"
                                         actions={
-                                            canManageMedicalRecords
-                                                ? [
-                                                      <Button
-                                                          key="edit"
-                                                          type="link"
-                                                          icon={<EditOutlined />}
-                                                          onClick={() => handleEditMedicalRecord(record)}
-                                                      >
-                                                          Sửa
-                                                      </Button>,
-                                                      <Button
-                                                          key="delete"
-                                                          type="link"
-                                                          danger
-                                                          icon={<DeleteOutlined />}
-                                                          onClick={() => handleDeleteMedicalRecord(record._id)}
-                                                      >
-                                                          Xóa
-                                                      </Button>,
-                                                  ]
-                                                : undefined
+                                            [
+                                                ...(canManageMedicalRecords
+                                                    ? [
+                                                          <Button
+                                                              key="edit"
+                                                              type="link"
+                                                              icon={<EditOutlined />}
+                                                              onClick={() => handleEditMedicalRecord(record)}
+                                                          >
+                                                              Sửa
+                                                          </Button>,
+                                                          <Button
+                                                              key="delete"
+                                                              type="link"
+                                                              danger
+                                                              icon={<DeleteOutlined />}
+                                                              onClick={() => handleDeleteMedicalRecord(record._id)}
+                                                          >
+                                                              Xóa
+                                                          </Button>,
+                                                      ]
+                                                    : []),
+                                                ...(canCreateInvoice
+                                                    ? existingInvoice
+                                                        ? [
+                                                              <Button
+                                                                  key="invoice"
+                                                                  type="link"
+                                                                  icon={<DollarOutlined />}
+                                                                  onClick={() => router.push(`/dashboard/invoices/${existingInvoice._id}`)}
+                                                              >
+                                                                  Xem Hóa đơn
+                                                              </Button>,
+                                                          ]
+                                                        : [
+                                                              <Button
+                                                                  key="invoice"
+                                                                  type="link"
+                                                                  icon={<DollarOutlined />}
+                                                                  loading={creatingInvoice === record._id}
+                                                                  onClick={() => handleCreateInvoice(record._id)}
+                                                              >
+                                                                  Tạo Hóa đơn
+                                                              </Button>,
+                                                          ]
+                                                    : []),
+                                            ]
                                         }
                                     >
                                         <Descriptions column={2} size="small">
@@ -493,7 +736,8 @@ export default function PatientDetailPage() {
                                             </div>
                                         )}
                                     </Card>
-                                ))}
+                                    );
+                                })}
                             </div>
                         ) : (
                             <Empty description="Chưa có hồ sơ y tế" />
@@ -602,6 +846,29 @@ export default function PatientDetailPage() {
                     layout="vertical"
                     onFinish={handleMedicalRecordSubmit}
                 >
+                    {!editingRecord && appointments.length > 0 && (
+                        <Form.Item
+                            label="Lịch hẹn (tự động chọn lịch hẹn gần nhất nếu để trống)"
+                            name="appointment_id"
+                        >
+                            <Select 
+                                placeholder="Chọn lịch hẹn (hoặc để trống để tự động chọn lịch hẹn Completed gần nhất)"
+                                allowClear
+                            >
+                                {appointments
+                                    .filter((apt: Appointment) => apt.status === 'Completed')
+                                    .sort((a: Appointment, b: Appointment) => 
+                                        new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime()
+                                    )
+                                    .map((apt: Appointment) => (
+                                        <Select.Option key={apt._id} value={apt._id}>
+                                            {dayjs(apt.appointment_date).format("DD/MM/YYYY HH:mm")} - {apt.status}
+                                        </Select.Option>
+                                    ))}
+                            </Select>
+                        </Form.Item>
+                    )}
+                    
                     <Form.Item
                         label="Chẩn đoán"
                         name="diagnosis"

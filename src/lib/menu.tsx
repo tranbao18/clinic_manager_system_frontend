@@ -8,7 +8,8 @@ import {
     AreaChartOutlined,
     UserOutlined,
     IdcardOutlined,
-    MedicineBoxOutlined
+    MedicineBoxOutlined,
+    DollarOutlined
 } from "@ant-design/icons";
 
 export const getMenuByRole = (role: string) => {
@@ -22,12 +23,14 @@ export const getMenuByRole = (role: string) => {
             { key: "7", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
             { key: "8", icon: <MedicineBoxOutlined />, label: "DS Thuốc", href: "/dashboard/medicines" },
             { key: "9", icon: <MedicineBoxOutlined />, label: "DS Nhập thuốc", href: "/dashboard/medicine-imports" },
+            { key: "10", icon: <DollarOutlined />, label: "Hoá đơn", href: "/dashboard/invoices" },
         ],
         doctor: [
             { key: "1", icon: <IdcardOutlined />, label: "Dashboard", href: "/dashboard" },
             { key: "2", icon: <TeamOutlined />, label: "Bệnh nhân", href: "/dashboard/patients" },
             { key: "3", icon: <ScheduleOutlined />, label: "Lịch hẹn", href: "/dashboard/appointments" },
             { key: "4", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
+            { key: "10", icon: <DollarOutlined />, label: "Hoá đơn", href: "/dashboard/invoices" },
         ],
         nurse: [
             { key: "1", icon: <IdcardOutlined />, label: "Dashboard", href: "/dashboard" },
