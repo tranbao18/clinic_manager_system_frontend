@@ -24,13 +24,13 @@ export const getMenuByRole = (role: string) => {
             { key: "8", icon: <MedicineBoxOutlined />, label: "DS Thuốc", href: "/dashboard/medicines" },
             { key: "9", icon: <MedicineBoxOutlined />, label: "DS Nhập thuốc", href: "/dashboard/medicine-imports" },
             { key: "10", icon: <DollarOutlined />, label: "Hoá đơn", href: "/dashboard/invoices" },
+            { key: "11", icon: <ScheduleOutlined />, label: "Bảng lương", href: "/dashboard/payroll" },
         ],
         doctor: [
             { key: "1", icon: <IdcardOutlined />, label: "Dashboard", href: "/dashboard" },
             { key: "2", icon: <TeamOutlined />, label: "Bệnh nhân", href: "/dashboard/patients" },
             { key: "3", icon: <ScheduleOutlined />, label: "Lịch hẹn", href: "/dashboard/appointments" },
             { key: "4", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
-            { key: "10", icon: <DollarOutlined />, label: "Hoá đơn", href: "/dashboard/invoices" },
         ],
         nurse: [
             { key: "1", icon: <IdcardOutlined />, label: "Dashboard", href: "/dashboard" },
@@ -45,10 +45,11 @@ export const getMenuByRole = (role: string) => {
         ],
         accountant: [
             { key: "1", icon: <IdcardOutlined />, label: "Dashboard", href: "/dashboard" },
-            { key: "2", icon: <AreaChartOutlined />, label: "Hoá đơn", href:"/dashboard/invoices"},
-            { key: "3", icon: <ScheduleOutlined />, label: "Bảng lương", href:"/dashboard/payroll"},
-            { key: "4", icon: <AreaChartOutlined />, label: "Báo cáo", href:"/dashboard/report"},
+            { key: "2", icon: <AreaChartOutlined />, label: "Hoá đơn", href: "/dashboard/invoices" },
+            { key: "3", icon: <ScheduleOutlined />, label: "Bảng lương", href: "/dashboard/payroll" },
+            { key: "4", icon: <AreaChartOutlined />, label: "Báo cáo", href: "/dashboard/report" },
             { key: "5", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
+            { key: "6", icon: <ScheduleOutlined />, label: "Bảng lương", href: "/dashboard/payroll" },
         ],
     };
 

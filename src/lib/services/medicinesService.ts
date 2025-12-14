@@ -5,6 +5,7 @@ export interface Medicine {
     category: string[]; // Array of categories
     unit: string;
     price: number;
+    total_remaining?: number; // Tổng số lượng còn lại từ medicine-imports
     created_at: string;
     updated_at: string;
 }

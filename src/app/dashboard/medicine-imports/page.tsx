@@ -17,7 +17,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import type { UploadFile } from "antd";
 import { useRouter } from "next/navigation";
-import { UploadOutlined, FileExcelOutlined } from "@ant-design/icons";
+import { UploadOutlined, FileExcelOutlined, DeleteOutlined } from "@ant-design/icons";
 import {
     getMedicineImports,
     deleteMedicineImport,
@@ -39,6 +39,8 @@ export default function MedicineImportsPage() {
         errors: Array<{ row: number; medicine: string; error: string }>;
     } | null>(null);
     const [fileList, setFileList] = useState<UploadFile[]>([]);
+    const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+    const [deleting, setDeleting] = useState(false);
     const router = useRouter();
 
     const fetchImports = async () => {
@@ -81,6 +83,42 @@ export default function MedicineImportsPage() {
         }
     };
 
+    const handleBatchDelete = async () => {
+        if (selectedRowKeys.length === 0) {
+            message.warning("Vui lòng chọn ít nhất một bản ghi để xóa");
+            return;
+        }
+
+        try {
+            setDeleting(true);
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const id of selectedRowKeys) {
+                try {
+                    await deleteMedicineImport(String(id));
+                    successCount++;
+                } catch (error) {
+                    failCount++;
+                    console.error(`Failed to delete ${id}:`, error);
+                }
+            }
+
+            if (successCount > 0) {
+                message.success(`Đã xóa thành công ${successCount} nhập thuốc${failCount > 0 ? `, ${failCount} thất bại` : ""}`);
+            } else {
+                message.error("Xóa thất bại");
+            }
+
+            setSelectedRowKeys([]);
+            fetchImports();
+        } catch (error) {
+            message.error("Có lỗi xảy ra khi xóa");
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     const canDelete = role === "admin";
     const canCreate = role === "admin" || role === "accountant";
     const canImport = role === "admin" || role === "accountant";
@@ -88,7 +126,7 @@ export default function MedicineImportsPage() {
     // Xử lý import file
     const handleImport = async () => {
         console.log("🚀 handleImport được gọi", { fileListLength: fileList.length });
-        
+
         if (fileList.length === 0) {
             console.warn("⚠️ Không có file được chọn");
             message.warning("Vui lòng chọn file để import");
@@ -98,14 +136,14 @@ export default function MedicineImportsPage() {
         // Lấy file từ fileList - thử originFileObj trước, nếu không có thì lấy file trực tiếp
         const fileItem = fileList[0];
         const file = fileItem?.originFileObj || fileItem;
-        
-        console.log("📄 File info:", { 
+
+        console.log("📄 File info:", {
             fileItem,
             file: file ? { name: file.name, size: file.size, type: file.type } : null,
             fileList: fileList,
             hasOriginFileObj: !!fileItem?.originFileObj
         });
-        
+
         if (!file || !(file instanceof File)) {
             console.error("❌ File không hợp lệ hoặc không phải File object", { file, fileItem });
             message.warning("File không hợp lệ. Vui lòng chọn lại file.");
@@ -245,9 +283,13 @@ export default function MedicineImportsPage() {
                 let color = "green";
                 if (percentage < 20) color = "red";
                 else if (percentage < 50) color = "orange";
+                // Hiển thị ít nhất 1 chữ số thập phân nếu phần trăm < 1%, hoặc làm tròn nếu >= 1%
+                const percentageDisplay = percentage < 1 && percentage > 0
+                    ? percentage.toFixed(1)
+                    : percentage.toFixed(0);
                 return (
                     <Tag color={color}>
-                        {remainingValue.toLocaleString()} ({percentage.toFixed(0)}%)
+                        {remainingValue.toLocaleString()} ({percentageDisplay}%)
                     </Tag>
                 );
             },
@@ -339,6 +381,23 @@ export default function MedicineImportsPage() {
                         )}
                     </>
                 )}
+                {canDelete && selectedRowKeys.length > 0 && (
+                    <Popconfirm
+                        title={`Bạn có chắc chắn muốn xóa ${selectedRowKeys.length} nhập thuốc đã chọn?`}
+                        onConfirm={handleBatchDelete}
+                        okText="Xóa"
+                        cancelText="Hủy"
+                        okButtonProps={{ danger: true, loading: deleting }}
+                    >
+                        <Button
+                            danger
+                            icon={<DeleteOutlined />}
+                            loading={deleting}
+                        >
+                            Xóa đã chọn ({selectedRowKeys.length})
+                        </Button>
+                    </Popconfirm>
+                )}
             </Space>
 
             {loading ? (
@@ -352,6 +411,19 @@ export default function MedicineImportsPage() {
                     dataSource={imports}
                     pagination={{ pageSize: 10 }}
                     bordered
+                    rowSelection={
+                        canDelete
+                            ? {
+                                selectedRowKeys,
+                                onChange: (newSelectedRowKeys) => {
+                                    setSelectedRowKeys(newSelectedRowKeys);
+                                },
+                                getCheckboxProps: (record) => ({
+                                    name: record._id,
+                                }),
+                            }
+                            : undefined
+                    }
                 />
             )}
 
@@ -385,7 +457,16 @@ export default function MedicineImportsPage() {
                                 </Text>
                                 <ul className="list-disc list-inside mt-1 space-y-1">
                                     <li>
-                                        <Text code>Tên thuốc</Text> (bắt buộc, phải tồn tại trong hệ thống)
+                                        <Text code>Tên thuốc</Text> (bắt buộc, nếu chưa có sẽ tự động tạo mới)
+                                    </li>
+                                    <li>
+                                        <Text code>Danh mục</Text> (tùy chọn, phân cách bằng dấu phẩy - chỉ cần khi tạo thuốc mới)
+                                    </li>
+                                    <li>
+                                        <Text code>Đơn vị</Text> (bắt buộc khi tạo thuốc mới, ví dụ: viên, hộp, chai)
+                                    </li>
+                                    <li>
+                                        <Text code>Giá bán</Text> (bắt buộc khi tạo thuốc mới, giá bán cho bệnh nhân)
                                     </li>
                                     <li>
                                         <Text code>Nhà cung cấp</Text> (bắt buộc)
@@ -397,7 +478,7 @@ export default function MedicineImportsPage() {
                                         <Text code>Số lượng</Text> (bắt buộc, phải lớn hơn 0)
                                     </li>
                                     <li>
-                                        <Text code>Giá nhập</Text> (bắt buộc, phải lớn hơn 0)
+                                        <Text code>Giá nhập</Text> (bắt buộc, phải lớn hơn 0, giá nhập từ nhà cung cấp)
                                     </li>
                                     <li>
                                         <Text code>Hạn sử dụng</Text> (bắt buộc, định dạng: d/m/Y hoặc YYYY-MM-DD)
@@ -409,6 +490,13 @@ export default function MedicineImportsPage() {
                                         <Text code>Người nhập</Text> (bắt buộc, tên nhân viên phải tồn tại)
                                     </li>
                                 </ul>
+                                <Alert
+                                    message="Lưu ý"
+                                    description="Nếu thuốc chưa tồn tại trong hệ thống, hệ thống sẽ tự động tạo mới dựa trên thông tin Tên thuốc, Danh mục, Đơn vị và Giá bán trong file."
+                                    type="info"
+                                    showIcon
+                                    className="mt-2"
+                                />
                             </div>
                         }
                         type="info"
@@ -427,7 +515,7 @@ export default function MedicineImportsPage() {
 
                             // Kiểm tra extension
                             const fileName = file.name.toLowerCase();
-                            const hasValidExtension = 
+                            const hasValidExtension =
                                 fileName.endsWith(".xlsx") ||
                                 fileName.endsWith(".xls") ||
                                 fileName.endsWith(".csv");

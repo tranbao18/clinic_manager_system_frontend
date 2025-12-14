@@ -18,8 +18,10 @@ import {
     Space,
     Modal,
     InputNumber,
+    Popconfirm,
+    Alert,
 } from "antd";
-import { PlusOutlined, EditOutlined, DeleteOutlined, DollarOutlined } from "@ant-design/icons";
+import { PlusOutlined, EditOutlined, DeleteOutlined, DollarOutlined, PrinterOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import {
     getPatientById,
@@ -33,6 +35,7 @@ import {
     deleteMedicalRecord,
     MedicalRecord,
 } from "@/lib/services/medicalRecordService";
+import { printPrescription } from "@/components/PrintPrescription";
 import { getMedicines, Medicine } from "@/lib/services/medicinesService";
 import {
     createInvoiceFromMedicalRecord,
@@ -57,14 +60,14 @@ const mapGenderFromApiValue = (gender: string) => {
 
 export default function PatientDetailPage() {
     const { patientId } = useParams<{ patientId: string }>();
-    const router = useRouter(); 
+    const router = useRouter();
     const [form] = Form.useForm();
     const [medicalRecordForm] = Form.useForm();
     const [patient, setPatient] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
-    
+
     // Medical Records state
     const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
     const [loadingRecords, setLoadingRecords] = useState(false);
@@ -73,13 +76,16 @@ export default function PatientDetailPage() {
     const [isMedicalRecordModalVisible, setIsMedicalRecordModalVisible] = useState(false);
     const [editingRecord, setEditingRecord] = useState<MedicalRecord | null>(null);
     const [savingRecord, setSavingRecord] = useState(false);
-    
+    const [deletingRecordId, setDeletingRecordId] = useState<string | null>(null);
+
     // Appointments state
     const [appointments, setAppointments] = useState<Appointment[]>([]);
-    
+
     // Invoices state
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [creatingInvoice, setCreatingInvoice] = useState<string | null>(null);
+    const [invoiceSuccessModalVisible, setInvoiceSuccessModalVisible] = useState(false);
+    const [createdInvoice, setCreatedInvoice] = useState<Invoice | null>(null);
 
     // 📦 Lấy dữ liệu bệnh nhân
     useEffect(() => {
@@ -103,7 +109,6 @@ export default function PatientDetailPage() {
                 };
 
                 setPatient(mappedData);
-                form.setFieldsValue(mappedData);
             } catch (err) {
                 console.error(err);
                 message.error("Không thể tải thông tin bệnh nhân");
@@ -113,7 +118,14 @@ export default function PatientDetailPage() {
         };
 
         fetchPatient();
-    }, [patientId, form]);
+    }, [patientId]);
+
+    // Set form values khi vào chế độ edit
+    useEffect(() => {
+        if (isEditing && patient) {
+            form.setFieldsValue(patient);
+        }
+    }, [isEditing, patient, form]);
 
     // 📦 Lấy danh sách hồ sơ y tế
     useEffect(() => {
@@ -142,11 +154,25 @@ export default function PatientDetailPage() {
         const fetchAppointments = async () => {
             try {
                 const allAppointments = await getAppointments();
-                // Filter appointments của patient này
+                // Filter appointments của patient này (xử lý cả trường hợp patient_id là object)
                 const patientAppointments = allAppointments.filter(
-                    (apt: Appointment) => apt.patient_id === patientId
+                    (apt: Appointment) => {
+                        const aptPatientId = typeof (apt.patient_id as any) === 'object' && (apt.patient_id as any)?._id
+                            ? (apt.patient_id as any)._id
+                            : apt.patient_id;
+                        return aptPatientId === patientId;
+                    }
                 );
                 setAppointments(patientAppointments);
+                console.log('📅 Appointments loaded:', {
+                    total: allAppointments.length,
+                    patientAppointments: patientAppointments.length,
+                    appointments: patientAppointments.map((a: Appointment) => ({
+                        _id: a._id,
+                        status: a.status,
+                        date: a.appointment_date
+                    }))
+                });
             } catch (err) {
                 console.error("Error fetching appointments:", err);
                 setAppointments([]);
@@ -270,31 +296,31 @@ export default function PatientDetailPage() {
     const handleMedicalRecordSubmit = async (values: any) => {
         try {
             setSavingRecord(true);
-            
+
             // Kiểm tra doctor_id
             const doctorId = currentUser?.employee_id || currentUser?._id;
             if (!doctorId) {
                 message.error("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
                 return;
             }
-            
+
             // Lọc prescriptions hợp lệ (có đầy đủ thông tin)
             const validPrescriptions = (values.prescriptions || []).filter(
                 (p: any) => p.medicine_id && p.quantity && p.dosage
             );
-            
+
             // Tạo payload, chỉ bao gồm các trường có giá trị
             const payload: any = {
                 patient_id: patientId,
                 doctor_id: doctorId,
                 diagnosis: values.diagnosis,
             };
-            
+
             // Chỉ thêm các trường optional nếu có giá trị
             if (values.treatment) payload.treatment = values.treatment;
             if (values.notes) payload.notes = values.notes;
             if (validPrescriptions.length > 0) payload.prescriptions = validPrescriptions;
-            
+
             // Tự động link với appointment gần nhất nếu không có appointment_id
             if (!editingRecord && !values.appointment_id) {
                 // Tìm appointment gần nhất của patient này (ưu tiên Completed, sau đó là Scheduled/Confirmed)
@@ -305,8 +331,8 @@ export default function PatientDetailPage() {
                         if (!validStatuses.includes(apt.status)) return false;
                         const hasMedicalRecord = medicalRecords.some(
                             (mr: MedicalRecord) => {
-                                const mrAppointmentId = typeof mr.appointment_id === 'object' 
-                                    ? mr.appointment_id._id 
+                                const mrAppointmentId = typeof mr.appointment_id === 'object'
+                                    ? mr.appointment_id._id
                                     : mr.appointment_id;
                                 return mrAppointmentId === apt._id;
                             }
@@ -319,17 +345,17 @@ export default function PatientDetailPage() {
                         if (a.status !== 'Completed' && b.status === 'Completed') return 1;
                         return new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime();
                     });
-                
+
                 console.log('🔍 Tìm appointment để link:', {
                     totalAppointments: appointments.length,
                     availableAppointments: availableAppointments.length,
-                    appointmentsList: availableAppointments.map(a => ({ 
-                        _id: a._id, 
+                    appointmentsList: availableAppointments.map(a => ({
+                        _id: a._id,
                         status: a.status,
-                        date: a.appointment_date 
+                        date: a.appointment_date
                     }))
                 });
-                
+
                 if (availableAppointments.length > 0) {
                     const latestAppointment = availableAppointments[0];
                     payload.appointment_id = latestAppointment._id;
@@ -352,7 +378,7 @@ export default function PatientDetailPage() {
                     : editingRecord.appointment_id;
                 console.log('✅ Giữ nguyên appointment_id khi edit:', payload.appointment_id);
             }
-            
+
             // Debug: Log payload trước khi gửi
             console.log('📤 Payload tạo/cập nhật medical record:', {
                 hasAppointmentId: !!payload.appointment_id,
@@ -372,7 +398,7 @@ export default function PatientDetailPage() {
             // Reload danh sách
             const records = await getMedicalRecordsByPatientId(patientId);
             setMedicalRecords(records);
-            
+
             // Debug: Log medical records sau khi reload
             console.log('📋 Medical Records sau khi tạo/cập nhật:', records.map(r => ({
                 _id: r._id,
@@ -380,21 +406,21 @@ export default function PatientDetailPage() {
                 hasPrescriptions: !!(r.prescriptions && r.prescriptions.length > 0),
                 prescriptionsCount: r.prescriptions?.length || 0
             })));
-            
+
             // Reload appointments để cập nhật danh sách
             const allAppointments = await getAppointments();
             const patientAppointments = allAppointments.filter(
                 (apt: Appointment) => apt.patient_id === patientId
             );
             setAppointments(patientAppointments);
-            
+
             // Debug: Log appointments
             console.log('📅 Appointments của patient:', patientAppointments.map(a => ({
                 _id: a._id,
                 status: a.status,
                 appointment_date: a.appointment_date
             })));
-            
+
             setIsMedicalRecordModalVisible(false);
             setEditingRecord(null);
             medicalRecordForm.resetFields();
@@ -423,7 +449,7 @@ export default function PatientDetailPage() {
             diagnosis: record.diagnosis,
             treatment: record.treatment,
             notes: record.notes,
-            prescriptions: record.prescriptions.length > 0 
+            prescriptions: record.prescriptions.length > 0
                 ? record.prescriptions.map((p: any) => ({
                     medicine_id: typeof p.medicine_id === 'object' ? p.medicine_id._id : p.medicine_id,
                     quantity: p.quantity,
@@ -439,25 +465,22 @@ export default function PatientDetailPage() {
         try {
             setCreatingInvoice(medicalRecordId);
             const invoice = await createInvoiceFromMedicalRecord({ medicalRecordId });
-            message.success("Tạo hóa đơn thành công!");
+
             // Reload invoices
             const invoiceList = await getInvoicesByPatientId(patientId!);
             setInvoices(invoiceList);
-            // Navigate to invoice detail
-            router.push(`/dashboard/invoices/${invoice._id}`);
+
+            // Hiển thị modal thông báo thay vì redirect
+            setCreatedInvoice(invoice);
+            setInvoiceSuccessModalVisible(true);
         } catch (error: any) {
             console.error(error);
-            if (error.message?.includes("already exists")) {
+            // Kiểm tra nếu backend trả về invoice_id khi invoice đã tồn tại
+            if (error.message?.includes("đã tồn tại") || error.message?.includes("already exists")) {
                 message.warning("Hóa đơn đã tồn tại cho lịch hẹn này");
-                // Tìm invoice đã có và chuyển đến trang chi tiết
-                const existingInvoice = invoices.find(
-                    inv => typeof inv.appointment_id === 'object' 
-                        ? inv.appointment_id._id === (medicalRecords.find(mr => mr._id === medicalRecordId)?.appointment_id as any)?._id
-                        : false
-                );
-                if (existingInvoice) {
-                    router.push(`/dashboard/invoices/${existingInvoice._id}`);
-                }
+                // Reload invoices để cập nhật danh sách
+                const invoiceList = await getInvoicesByPatientId(patientId!);
+                setInvoices(invoiceList);
             } else {
                 message.error(error.message || "Không thể tạo hóa đơn");
             }
@@ -469,8 +492,8 @@ export default function PatientDetailPage() {
     // 🧩 Kiểm tra xem đã có invoice cho medical record chưa
     const getInvoiceForMedicalRecord = (record: MedicalRecord): Invoice | undefined => {
         if (!record.appointment_id) return undefined;
-        const appointmentId = typeof record.appointment_id === 'object' 
-            ? record.appointment_id._id 
+        const appointmentId = typeof record.appointment_id === 'object'
+            ? record.appointment_id._id
             : record.appointment_id;
         return invoices.find(inv => {
             const invAppointmentId = typeof inv.appointment_id === 'object'
@@ -482,20 +505,28 @@ export default function PatientDetailPage() {
 
     // 🧩 Xóa hồ sơ y tế
     const handleDeleteMedicalRecord = async (id: string) => {
-        Modal.confirm({
-            title: "Xác nhận xóa",
-            content: "Bạn có chắc chắn muốn xóa hồ sơ y tế này?",
-            onOk: async () => {
-                try {
-                    await deleteMedicalRecord(id);
-                    message.success("Xóa hồ sơ y tế thành công!");
-                    const records = await getMedicalRecordsByPatientId(patientId);
-                    setMedicalRecords(records);
-                } catch (error: any) {
-                    message.error(error.message || "Xóa thất bại");
-                }
-            },
-        });
+        try {
+            setDeletingRecordId(id);
+            await deleteMedicalRecord(id);
+            message.success("Xóa hồ sơ y tế thành công!");
+            const records = await getMedicalRecordsByPatientId(patientId);
+            setMedicalRecords(records);
+        } catch (error: any) {
+            console.error("Error deleting medical record:", error);
+            const errorMessage = error.message || "Xóa thất bại";
+            message.error(errorMessage);
+        } finally {
+            setDeletingRecordId(null);
+        }
+    };
+
+    // 🧩 In toa thuốc
+    const handlePrintPrescription = (record: MedicalRecord) => {
+        try {
+            printPrescription(record, patient, formatDateTime);
+        } catch (error: any) {
+            message.error(error.message || "Không thể mở cửa sổ in. Vui lòng kiểm tra cài đặt trình duyệt.");
+        }
     };
 
     return (
@@ -581,16 +612,23 @@ export default function PatientDetailPage() {
                         variant="borderless"
                         className="shadow-md rounded-2xl"
                         extra={
-                            canManageMedicalRecords && (
+                            <Space>
+                                {canManageMedicalRecords && (
+                                    <Button
+                                        type="primary"
+                                        icon={<PlusOutlined />}
+                                        onClick={handleAddMedicalRecord}
+                                        className="bg-green-600"
+                                    >
+                                        Thêm hồ sơ y tế
+                                    </Button>
+                                )}
                                 <Button
-                                    type="primary"
-                                    icon={<PlusOutlined />}
-                                    onClick={handleAddMedicalRecord}
-                                    className="bg-green-600"
+                                    onClick={() => router.push("/dashboard/medical-records/disabled")}
                                 >
-                                    Thêm hồ sơ y tế
+                                    Thùng rác
                                 </Button>
-                            )
+                            </Space>
                         }
                     >
                         {loadingRecords ? (
@@ -603,139 +641,185 @@ export default function PatientDetailPage() {
                                     const existingInvoice = getInvoiceForMedicalRecord(record);
                                     const hasPrescriptions = record.prescriptions && record.prescriptions.length > 0;
                                     // Kiểm tra appointment_id - có thể là string hoặc object
-                                    const appointmentIdValue = typeof record.appointment_id === 'object' 
-                                        ? record.appointment_id?._id 
+                                    const appointmentIdValue = typeof record.appointment_id === 'object'
+                                        ? record.appointment_id?._id
                                         : record.appointment_id;
                                     const hasAppointment = !!appointmentIdValue && appointmentIdValue !== '';
                                     const canCreateInvoice = hasPrescriptions && hasAppointment;
-                                    
-                                    // Debug log để kiểm tra
-                                    console.log('🔍 Kiểm tra record:', {
-                                        recordId: record._id,
-                                        hasPrescriptions,
-                                        prescriptionsCount: record.prescriptions?.length || 0,
-                                        hasAppointment,
-                                        appointment_id: record.appointment_id,
-                                        appointmentIdValue,
-                                        canCreateInvoice
-                                    });
-                                    
-                                    if (hasPrescriptions && !hasAppointment) {
-                                        console.warn('⚠️ Record có prescriptions nhưng không có appointment:', {
-                                            recordId: record._id,
-                                            appointment_id: record.appointment_id,
-                                            appointmentIdValue,
-                                            hasPrescriptions,
-                                            prescriptionsCount: record.prescriptions?.length || 0
-                                        });
-                                    }
-                                    
+
                                     return (
-                                    <Card
-                                        key={record._id}
-                                        type="inner"
-                                        className="border-l-4 border-green-500"
-                                        actions={
-                                            [
-                                                ...(canManageMedicalRecords
-                                                    ? [
-                                                          <Button
-                                                              key="edit"
-                                                              type="link"
-                                                              icon={<EditOutlined />}
-                                                              onClick={() => handleEditMedicalRecord(record)}
-                                                          >
-                                                              Sửa
-                                                          </Button>,
-                                                          <Button
-                                                              key="delete"
-                                                              type="link"
-                                                              danger
-                                                              icon={<DeleteOutlined />}
-                                                              onClick={() => handleDeleteMedicalRecord(record._id)}
-                                                          >
-                                                              Xóa
-                                                          </Button>,
-                                                      ]
-                                                    : []),
-                                                ...(canCreateInvoice
-                                                    ? existingInvoice
-                                                        ? [
-                                                              <Button
-                                                                  key="invoice"
-                                                                  type="link"
-                                                                  icon={<DollarOutlined />}
-                                                                  onClick={() => router.push(`/dashboard/invoices/${existingInvoice._id}`)}
-                                                              >
-                                                                  Xem Hóa đơn
-                                                              </Button>,
-                                                          ]
-                                                        : [
-                                                              <Button
-                                                                  key="invoice"
-                                                                  type="link"
-                                                                  icon={<DollarOutlined />}
-                                                                  loading={creatingInvoice === record._id}
-                                                                  onClick={() => handleCreateInvoice(record._id)}
-                                                              >
-                                                                  Tạo Hóa đơn
-                                                              </Button>,
-                                                          ]
-                                                    : []),
-                                            ]
-                                        }
-                                    >
-                                        <Descriptions column={2} size="small">
-                                            <Descriptions.Item label="Ngày tạo">
-                                                {formatDateTime(record.created_at)}
-                                            </Descriptions.Item>
-                                            <Descriptions.Item label="Bác sĩ">
-                                                {typeof record.doctor_id === 'object' 
-                                                    ? record.doctor_id.fullname 
-                                                    : '—'}
-                                            </Descriptions.Item>
-                                            <Descriptions.Item label="Chẩn đoán" span={2}>
-                                                {record.diagnosis}
-                                            </Descriptions.Item>
-                                            {record.treatment && (
-                                                <Descriptions.Item label="Điều trị" span={2}>
-                                                    {record.treatment}
-                                                </Descriptions.Item>
-                                            )}
-                                            {record.notes && (
-                                                <Descriptions.Item label="Ghi chú" span={2}>
-                                                    {record.notes}
-                                                </Descriptions.Item>
-                                            )}
-                                        </Descriptions>
-                                        
-                                        {record.prescriptions && record.prescriptions.length > 0 && (
-                                            <div className="mt-4">
-                                                <h4 className="font-semibold mb-2">Toa thuốc:</h4>
-                                                <Table
-                                                    dataSource={record.prescriptions.map((p: any, idx: number) => ({
-                                                        key: idx,
-                                                        medicine: typeof p.medicine_id === 'object' 
-                                                            ? p.medicine_id.name 
-                                                            : '—',
-                                                        unit: typeof p.medicine_id === 'object' 
-                                                            ? p.medicine_id.unit 
-                                                            : '—',
-                                                        quantity: p.quantity,
-                                                        dosage: p.dosage,
-                                                    }))}
-                                                    columns={[
-                                                        { title: "Thuốc", dataIndex: "medicine", key: "medicine" },
-                                                        { title: "Số lượng", dataIndex: "quantity", key: "quantity" },
-                                                        { title: "Đơn vị", dataIndex: "unit", key: "unit" },
-                                                        { title: "Liều dùng", dataIndex: "dosage", key: "dosage" },
-                                                    ]}
-                                                    pagination={false}
-                                                    size="small"
-                                                />
+                                        <Card
+                                            key={record._id}
+                                            type="inner"
+                                            className="border-l-4 border-green-500"
+                                        >
+                                            <div className="mb-4 flex justify-end gap-2">
+                                                {record.prescriptions && record.prescriptions.length > 0 && (
+                                                    <Button
+                                                        type="link"
+                                                        icon={<PrinterOutlined />}
+                                                        onClick={() => handlePrintPrescription(record)}
+                                                    >
+                                                        In toa thuốc
+                                                    </Button>
+                                                )}
+                                                {canManageMedicalRecords && (
+                                                    <>
+                                                        <Button
+                                                            type="link"
+                                                            icon={<EditOutlined />}
+                                                            onClick={() => handleEditMedicalRecord(record)}
+                                                        >
+                                                            Sửa
+                                                        </Button>
+                                                        <Popconfirm
+                                                            title="Xác nhận xóa"
+                                                            description="Bạn có chắc chắn muốn xóa hồ sơ y tế này?"
+                                                            okText="Xóa"
+                                                            cancelText="Hủy"
+                                                            okButtonProps={{ danger: true }}
+                                                            onConfirm={() => handleDeleteMedicalRecord(record._id)}
+                                                        >
+                                                            <Button
+                                                                type="link"
+                                                                danger
+                                                                icon={<DeleteOutlined />}
+                                                                loading={deletingRecordId === record._id}
+                                                            >
+                                                                Xóa
+                                                            </Button>
+                                                        </Popconfirm>
+                                                    </>
+                                                )}
+                                                <Button
+                                                    type="link"
+                                                    icon={<DollarOutlined />}
+                                                    loading={creatingInvoice === record._id}
+                                                    disabled={!canCreateInvoice || !!existingInvoice}
+                                                    onClick={() => canCreateInvoice && !existingInvoice && handleCreateInvoice(record._id)}
+                                                    title={
+                                                        existingInvoice
+                                                            ? "Hóa đơn đã được tạo"
+                                                            : !canCreateInvoice
+                                                                ? (!hasPrescriptions
+                                                                    ? "Cần có toa thuốc để tạo hóa đơn"
+                                                                    : !hasAppointment
+                                                                        ? "Cần có lịch hẹn để tạo hóa đơn"
+                                                                        : "Không thể tạo hóa đơn")
+                                                                : "Tạo hóa đơn từ hồ sơ y tế"
+                                                    }
+                                                >
+                                                    {existingInvoice ? "Đã tạo hóa đơn" : "Tạo Hóa đơn"}
+                                                </Button>
                                             </div>
-                                        )}
-                                    </Card>
+                                            <Descriptions column={2} size="small">
+                                                <Descriptions.Item label="Ngày tạo">
+                                                    {formatDateTime(record.created_at)}
+                                                </Descriptions.Item>
+                                                <Descriptions.Item label="Bác sĩ">
+                                                    {typeof record.doctor_id === 'object'
+                                                        ? record.doctor_id.fullname
+                                                        : '—'}
+                                                </Descriptions.Item>
+                                                <Descriptions.Item label="Chẩn đoán" span={2}>
+                                                    {record.diagnosis}
+                                                </Descriptions.Item>
+                                                {record.treatment && (
+                                                    <Descriptions.Item label="Điều trị" span={2}>
+                                                        {record.treatment}
+                                                    </Descriptions.Item>
+                                                )}
+                                                {record.notes && (
+                                                    <Descriptions.Item label="Ghi chú" span={2}>
+                                                        {record.notes}
+                                                    </Descriptions.Item>
+                                                )}
+                                            </Descriptions>
+
+                                            {record.prescriptions && record.prescriptions.length > 0 && (
+                                                <div className="mt-4">
+                                                    <h4 className="font-semibold mb-2">Toa thuốc:</h4>
+                                                    {(() => {
+                                                        const prescriptionData = record.prescriptions.map((p: any, idx: number) => {
+                                                            const medicine = typeof p.medicine_id === 'object' ? p.medicine_id : null;
+                                                            const price = medicine?.price || 0;
+                                                            const quantity = p.quantity || 0;
+                                                            const totalPrice = price * quantity;
+
+                                                            return {
+                                                                key: idx,
+                                                                medicine: medicine?.name || '—',
+                                                                unit: medicine?.unit || '—',
+                                                                quantity: quantity,
+                                                                price: price,
+                                                                totalPrice: totalPrice,
+                                                                dosage: p.dosage || '—',
+                                                            };
+                                                        });
+
+                                                        const totalAmount = prescriptionData.reduce((sum: number, item: any) => sum + item.totalPrice, 0);
+
+                                                        return (
+                                                            <>
+                                                                <Table
+                                                                    dataSource={prescriptionData}
+                                                                    columns={[
+                                                                        {
+                                                                            title: "Thuốc",
+                                                                            dataIndex: "medicine",
+                                                                            key: "medicine",
+                                                                            width: '25%'
+                                                                        },
+                                                                        {
+                                                                            title: "Số lượng",
+                                                                            dataIndex: "quantity",
+                                                                            key: "quantity",
+                                                                            width: '10%',
+                                                                            align: 'center'
+                                                                        },
+                                                                        {
+                                                                            title: "Đơn vị",
+                                                                            dataIndex: "unit",
+                                                                            key: "unit",
+                                                                            width: '10%',
+                                                                            align: 'center'
+                                                                        },
+                                                                        {
+                                                                            title: "Đơn giá",
+                                                                            dataIndex: "price",
+                                                                            key: "price",
+                                                                            width: '15%',
+                                                                            align: 'right',
+                                                                            render: (price: number) => price > 0
+                                                                                ? `${price.toLocaleString('vi-VN')} đ`
+                                                                                : '—'
+                                                                        },
+                                                                        {
+                                                                            title: "Liều dùng",
+                                                                            dataIndex: "dosage",
+                                                                            key: "dosage",
+                                                                            width: '25%'
+                                                                        },
+                                                                    ]}
+                                                                    pagination={false}
+                                                                    size="small"
+                                                                />
+                                                                {totalAmount > 0 && (
+                                                                    <div className="mt-3 pt-3 border-t border-gray-200">
+                                                                        <div className="flex justify-end items-center gap-4">
+                                                                            <span className="text-base font-semibold text-gray-700">Tổng tiền toa thuốc:</span>
+                                                                            <span className="text-xl font-bold text-blue-600">
+                                                                                {totalAmount.toLocaleString('vi-VN')} đ
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        );
+                                                    })()}
+                                                </div>
+                                            )}
+                                        </Card>
                                     );
                                 })}
                             </div>
@@ -846,20 +930,31 @@ export default function PatientDetailPage() {
                     layout="vertical"
                     onFinish={handleMedicalRecordSubmit}
                 >
-                    {!editingRecord && appointments.length > 0 && (
+                    {!editingRecord && (
                         <Form.Item
                             label="Lịch hẹn (tự động chọn lịch hẹn gần nhất nếu để trống)"
                             name="appointment_id"
+                            help={appointments.length === 0 ? "Chưa có lịch hẹn nào cho bệnh nhân này" : undefined}
                         >
-                            <Select 
-                                placeholder="Chọn lịch hẹn (hoặc để trống để tự động chọn lịch hẹn Completed gần nhất)"
+                            <Select
+                                placeholder={appointments.length > 0
+                                    ? "Chọn lịch hẹn (hoặc để trống để tự động chọn lịch hẹn gần nhất)"
+                                    : "Chưa có lịch hẹn"}
                                 allowClear
+                                disabled={appointments.length === 0}
                             >
                                 {appointments
-                                    .filter((apt: Appointment) => apt.status === 'Completed')
-                                    .sort((a: Appointment, b: Appointment) => 
-                                        new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime()
-                                    )
+                                    // Hiển thị tất cả appointments, ưu tiên Completed, Scheduled, Confirmed, In Progress
+                                    .filter((apt: Appointment) => {
+                                        const validStatuses = ['Completed', 'Scheduled', 'Confirmed', 'In Progress'];
+                                        return validStatuses.includes(apt.status);
+                                    })
+                                    .sort((a: Appointment, b: Appointment) => {
+                                        // Ưu tiên Completed, sau đó sắp xếp theo ngày (mới nhất trước)
+                                        if (a.status === 'Completed' && b.status !== 'Completed') return -1;
+                                        if (a.status !== 'Completed' && b.status === 'Completed') return 1;
+                                        return new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime();
+                                    })
                                     .map((apt: Appointment) => (
                                         <Select.Option key={apt._id} value={apt._id}>
                                             {dayjs(apt.appointment_date).format("DD/MM/YYYY HH:mm")} - {apt.status}
@@ -868,7 +963,7 @@ export default function PatientDetailPage() {
                             </Select>
                         </Form.Item>
                     )}
-                    
+
                     <Form.Item
                         label="Chẩn đoán"
                         name="diagnosis"
@@ -891,71 +986,175 @@ export default function PatientDetailPage() {
                         <Input.TextArea rows={2} placeholder="Nhập ghi chú (nếu có)" />
                     </Form.Item>
 
-                    <Form.Item label="Toa thuốc">
-                        <Form.List name="prescriptions">
-                            {(fields, { add, remove }) => (
-                                <>
-                                    {fields.map(({ key, name, ...restField }) => (
-                                        <Row key={key} gutter={16} className="mb-2">
-                                            <Col span={8}>
-                                                <Form.Item
-                                                    {...restField}
-                                                    name={[name, "medicine_id"]}
-                                                    rules={[{ required: true, message: "Chọn thuốc" }]}
-                                                >
-                                                    <Select placeholder="Chọn thuốc" showSearch>
-                                                        {medicines.map((med) => (
-                                                            <Select.Option key={med._id} value={med._id}>
-                                                                {med.name} ({med.unit})
-                                                            </Select.Option>
-                                                        ))}
-                                                    </Select>
-                                                </Form.Item>
-                                            </Col>
-                                            <Col span={5}>
-                                                <Form.Item
-                                                    {...restField}
-                                                    name={[name, "quantity"]}
-                                                    rules={[{ required: true, message: "Nhập số lượng" }]}
-                                                >
-                                                    <InputNumber
-                                                        placeholder="Số lượng"
-                                                        min={1}
-                                                        style={{ width: "100%" }}
+                    <Form.Item>
+                        <Form.Item noStyle shouldUpdate={(prevValues, curValues) => {
+                            const prevPrescriptions = prevValues.prescriptions || [];
+                            const curPrescriptions = curValues.prescriptions || [];
+                            if (prevPrescriptions.length !== curPrescriptions.length) return true;
+                            // Kiểm tra xem có thay đổi nào trong prescriptions không
+                            return JSON.stringify(prevPrescriptions) !== JSON.stringify(curPrescriptions);
+                        }}>
+                            {() => {
+                                const formValues = medicalRecordForm.getFieldsValue();
+                                const allPrescriptions = formValues.prescriptions || [];
+
+                                // Tính tổng tiền tất cả thuốc
+                                const totalAmount = allPrescriptions.reduce((sum: number, p: any) => {
+                                    if (!p?.medicine_id || !p?.quantity) return sum;
+                                    const med = medicines.find(m => m._id === p.medicine_id);
+                                    if (!med || !med.price) return sum;
+                                    return sum + (p.quantity * med.price);
+                                }, 0);
+
+                                return (
+                                    <Form.List name="prescriptions">
+                                        {(fields, { add, remove }) => (
+                                            <>
+                                                <div className="mb-3">
+                                                    <Row gutter={16} className="mb-2 font-semibold text-sm text-gray-700 border-b pb-2">
+                                                        <Col span={7}>Thuốc</Col>
+                                                        <Col span={3} className="text-center">Đơn vị</Col>
+                                                        <Col span={3} className="text-center">Số lượng</Col>
+                                                        <Col span={4} className="text-right">Đơn giá</Col>
+                                                        <Col span={5}>Liều dùng</Col>
+                                                        <Col span={2} className="text-center">Thao tác</Col>
+                                                    </Row>
+                                                </div>
+                                                {fields.map((field) => {
+                                                    const currentPrescription = allPrescriptions[field.name];
+                                                    const medicineId = currentPrescription?.medicine_id;
+                                                    const quantity = currentPrescription?.quantity;
+
+                                                    const selectedMedicine = medicines.find(m => m._id === medicineId);
+                                                    const unit = selectedMedicine?.unit || "—";
+                                                    const price = selectedMedicine?.price || 0;
+                                                    const totalPrice = (quantity && price) ? quantity * price : 0;
+
+                                                    return (
+                                                        <Form.Item key={field.key} noStyle shouldUpdate={(prevValues, curValues) => {
+                                                            const prevPrescriptions = prevValues.prescriptions || [];
+                                                            const curPrescriptions = curValues.prescriptions || [];
+                                                            if (prevPrescriptions.length !== curPrescriptions.length) return true;
+                                                            const prevPrescription = prevPrescriptions[field.name];
+                                                            const curPrescription = curPrescriptions[field.name];
+                                                            return prevPrescription?.medicine_id !== curPrescription?.medicine_id ||
+                                                                prevPrescription?.quantity !== curPrescription?.quantity;
+                                                        }}>
+                                                            {() => {
+                                                                const formValues = medicalRecordForm.getFieldsValue();
+                                                                const currentPrescription = formValues.prescriptions?.[field.name];
+                                                                const medicineId = currentPrescription?.medicine_id;
+                                                                const quantity = currentPrescription?.quantity;
+
+                                                                const selectedMedicine = medicines.find(m => m._id === medicineId);
+                                                                const unit = selectedMedicine?.unit || "—";
+                                                                const price = selectedMedicine?.price || 0;
+
+                                                                return (
+                                                                    <Row gutter={16} className="mb-3" align="middle">
+                                                                        <Col span={7}>
+                                                                            <Form.Item
+                                                                                {...field}
+                                                                                name={[field.name, "medicine_id"]}
+                                                                                rules={[{ required: true, message: "Chọn thuốc" }]}
+                                                                                className="mb-0"
+                                                                            >
+                                                                                <Select
+                                                                                    placeholder="Chọn thuốc"
+                                                                                    showSearch
+                                                                                    filterOption={(input, option) =>
+                                                                                        (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                                                                                    }
+                                                                                    options={medicines.map((med) => ({
+                                                                                        value: med._id,
+                                                                                        label: `${med.name} (${med.unit})`,
+                                                                                    }))}
+                                                                                />
+                                                                            </Form.Item>
+                                                                        </Col>
+                                                                        <Col span={3}>
+                                                                            <div className="text-center py-2 px-2 bg-gray-50 rounded-md border border-gray-200">
+                                                                                <span className="text-sm font-medium text-gray-700">{unit}</span>
+                                                                            </div>
+                                                                        </Col>
+                                                                        <Col span={3}>
+                                                                            <Form.Item
+                                                                                {...field}
+                                                                                name={[field.name, "quantity"]}
+                                                                                rules={[{ required: true, message: "Nhập số lượng" }]}
+                                                                                className="mb-0"
+                                                                            >
+                                                                                <InputNumber
+                                                                                    placeholder="Số lượng"
+                                                                                    min={1}
+                                                                                    style={{ width: "100%" }}
+                                                                                />
+                                                                            </Form.Item>
+                                                                        </Col>
+                                                                        <Col span={4}>
+                                                                            <div className="text-right py-2 px-3 bg-gray-50 rounded-md border border-gray-200">
+                                                                                <span className="text-sm font-medium text-gray-700">
+                                                                                    {price > 0 ? `${price.toLocaleString('vi-VN')} đ` : "—"}
+                                                                                </span>
+                                                                            </div>
+                                                                        </Col>
+                                                                        <Col span={5}>
+                                                                            <Form.Item
+                                                                                {...field}
+                                                                                name={[field.name, "dosage"]}
+                                                                                rules={[{ required: true, message: "Nhập liều dùng" }]}
+                                                                                className="mb-0"
+                                                                            >
+                                                                                <Input placeholder="Ví dụ: Sáng 1 viên, tối 1 viên" />
+                                                                            </Form.Item>
+                                                                        </Col>
+                                                                        <Col span={2} className="text-center">
+                                                                            <Button
+                                                                                type="text"
+                                                                                danger
+                                                                                onClick={() => remove(field.name)}
+                                                                                icon={<DeleteOutlined />}
+                                                                                className="text-red-500 hover:text-red-700"
+                                                                            />
+                                                                        </Col>
+                                                                    </Row>
+                                                                );
+                                                            }}
+                                                        </Form.Item>
+                                                    );
+                                                })}
+                                                <div className="mt-4 mb-3">
+                                                    <Button
+                                                        type="dashed"
+                                                        onClick={() => add()}
+                                                        block
+                                                        icon={<PlusOutlined />}
+                                                        className="h-10"
+                                                    >
+                                                        Thêm thuốc
+                                                    </Button>
+                                                </div>
+                                                {allPrescriptions.length > 0 && (
+                                                    <Alert
+                                                        message={
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="font-semibold text-base">Tổng tiền toa thuốc:</span>
+                                                                <span className="text-xl font-bold text-blue-600">
+                                                                    {totalAmount.toLocaleString('vi-VN')} đ
+                                                                </span>
+                                                            </div>
+                                                        }
+                                                        type="info"
+                                                        showIcon
+                                                        className="mt-3"
                                                     />
-                                                </Form.Item>
-                                            </Col>
-                                            <Col span={9}>
-                                                <Form.Item
-                                                    {...restField}
-                                                    name={[name, "dosage"]}
-                                                    rules={[{ required: true, message: "Nhập liều dùng" }]}
-                                                >
-                                                    <Input placeholder="Liều dùng (ví dụ: 2 lần/ngày)" />
-                                                </Form.Item>
-                                            </Col>
-                                            <Col span={2}>
-                                                <Button
-                                                    type="link"
-                                                    danger
-                                                    onClick={() => remove(name)}
-                                                >
-                                                    Xóa
-                                                </Button>
-                                            </Col>
-                                        </Row>
-                                    ))}
-                                    <Button
-                                        type="dashed"
-                                        onClick={() => add()}
-                                        block
-                                        icon={<PlusOutlined />}
-                                    >
-                                        Thêm thuốc
-                                    </Button>
-                                </>
-                            )}
-                        </Form.List>
+                                                )}
+                                            </>
+                                        )}
+                                    </Form.List>
+                                );
+                            }}
+                        </Form.Item>
                     </Form.Item>
 
                     <div className="flex justify-end gap-3 mt-6">
@@ -978,6 +1177,55 @@ export default function PatientDetailPage() {
                         </Button>
                     </div>
                 </Form>
+            </Modal>
+
+            {/* Modal thông báo tạo hóa đơn thành công */}
+            <Modal
+                title="✅ Tạo hóa đơn thành công"
+                open={invoiceSuccessModalVisible}
+                onCancel={() => {
+                    setInvoiceSuccessModalVisible(false);
+                    setCreatedInvoice(null);
+                }}
+                footer={[
+                    <Button
+                        key="close"
+                        type="primary"
+                        onClick={() => {
+                            setInvoiceSuccessModalVisible(false);
+                            setCreatedInvoice(null);
+                        }}
+                    >
+                        Đóng
+                    </Button>
+                ]}
+                width={500}
+            >
+                <div className="space-y-4">
+                    <Alert
+                        message="Đã gửi hóa đơn đến quầy thanh toán"
+                        description={
+                            createdInvoice ? (
+                                <div className="mt-2">
+                                    <p>Hóa đơn đã được tạo thành công và đã được gửi đến quầy thanh toán.</p>
+                                    {createdInvoice.total_amount && (
+                                        <p className="mt-2">
+                                            <strong>Tổng tiền:</strong>{" "}
+                                            {new Intl.NumberFormat("vi-VN", {
+                                                style: "currency",
+                                                currency: "VND",
+                                            }).format(createdInvoice.total_amount)}
+                                        </p>
+                                    )}
+                                </div>
+                            ) : (
+                                <p>Hóa đơn đã được tạo thành công và đã được gửi đến quầy thanh toán.</p>
+                            )
+                        }
+                        type="success"
+                        showIcon
+                    />
+                </div>
             </Modal>
         </div>
     );

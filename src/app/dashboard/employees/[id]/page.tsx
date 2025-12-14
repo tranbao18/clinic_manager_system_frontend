@@ -14,9 +14,11 @@ import {
   Select,
   DatePicker,
   Modal,
+  InputNumber,
 } from "antd";
 import EmployeesService from "@/lib/services/employeesService";
 import AuthService from "@/lib/services/authService";
+import PayrollService, { Payroll } from "@/lib/services/payrollService";
 import dayjs, { Dayjs } from "dayjs";
 
 const { Content } = Layout;
@@ -32,6 +34,7 @@ interface Employee {
   specialization?: string;
   address?: string;
   dob?: string;
+  basic_salary?: number;
   created_at: string;
 }
 
@@ -66,6 +69,8 @@ export default function EmployeeDetailPage() {
   const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] =
     useState(false);
   const [isResetPasswordModalOpen, setIsResetPasswordModalOpen] = useState(false);
+  const [payrollHistory, setPayrollHistory] = useState<Payroll[]>([]);
+  const [loadingPayroll, setLoadingPayroll] = useState(false);
 
   const formattedDate = (dateString?: string) => {
     if (!dateString) return "-";
@@ -124,7 +129,23 @@ export default function EmployeeDetailPage() {
           phone: empData.phone,
           email: empData.email,
           address: empData.address,
+          basic_salary: empData.basic_salary,
         });
+
+        // 4️⃣ Lấy lịch sử lương
+        try {
+          setLoadingPayroll(true);
+          const payrolls = await PayrollService.getByEmployeeId(id as string);
+          // Sắp xếp theo ngày thanh toán giảm dần (mới nhất trước)
+          payrolls.sort((a: Payroll, b: Payroll) =>
+            new Date(b.paydate).getTime() - new Date(a.paydate).getTime()
+          );
+          setPayrollHistory(payrolls);
+        } catch (err) {
+          console.error("Lỗi khi tải lịch sử lương:", err);
+        } finally {
+          setLoadingPayroll(false);
+        }
       } catch {
         message.error("Không thể tải dữ liệu nhân viên hoặc tài khoản");
       } finally {
@@ -138,7 +159,7 @@ export default function EmployeeDetailPage() {
   const isAdmin = (currentUser?.role || "").toLowerCase() === "admin";
   const canChangePassword = !!account && isAdmin;
   const canResetPassword = !!account && isAdmin;
-  
+
   // Debug log
   useEffect(() => {
     const accountId = account?._id || account?.id;
@@ -161,6 +182,7 @@ export default function EmployeeDetailPage() {
     dob?: Dayjs | null;
     position?: string;
     specialization?: string;
+    basic_salary?: number;
   }) => {
     try {
       setSaving(true);
@@ -241,7 +263,7 @@ export default function EmployeeDetailPage() {
     console.log("🔵 accountId:", accountId);
     console.log("🔵 isAdmin:", isAdmin);
     console.log("🔵 canResetPassword:", canResetPassword);
-    
+
     if (!accountId) {
       console.error("❌ No accountId found");
       message.error("Không tìm thấy tài khoản để reset");
@@ -269,9 +291,8 @@ export default function EmployeeDetailPage() {
         )}
 
         <div
-          className={`transition-opacity duration-300 ${
-            loading ? "opacity-50" : "opacity-100"
-          }`}
+          className={`transition-opacity duration-300 ${loading ? "opacity-50" : "opacity-100"
+            }`}
         >
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-3xl font-bold">Chi tiết Nhân viên</h2>
@@ -315,7 +336,9 @@ export default function EmployeeDetailPage() {
                 <Descriptions.Item label="Ngày sinh">
                   {employee?.dob ? formattedDate(employee.dob) : "-"}
                 </Descriptions.Item>
-
+                <Descriptions.Item label="Lương cơ bản">
+                  {employee?.basic_salary ? employee.basic_salary.toLocaleString("vi-VN") + " đ" : "-"}
+                </Descriptions.Item>
                 <Descriptions.Item label="Địa chỉ">
                   {employee?.address || "-"}
                 </Descriptions.Item>
@@ -384,6 +407,23 @@ export default function EmployeeDetailPage() {
                   name="address"
                 >
                   <Input.TextArea />
+                </Form.Item>
+                <Form.Item
+                  label="Lương cơ bản"
+                  name="basic_salary"
+                  rules={[
+                    { type: "number", min: 0, message: "Lương cơ bản phải >= 0" },
+                  ]}
+                >
+                  <InputNumber
+                    style={{ width: "100%" }}
+                    formatter={(value) =>
+                      `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                    }
+                    parser={(value) => value!.replace(/\$\s?|(,*)/g, "") as any}
+                    placeholder="Nhập lương cơ bản"
+                    min={0}
+                  />
                 </Form.Item>
               </div>
 
@@ -530,6 +570,63 @@ export default function EmployeeDetailPage() {
               )}
             </Card>
           )}
+
+          {/* 🔹 Lịch sử lương */}
+          <Card title="Lịch sử lương" className="mt-6">
+            <Spin spinning={loadingPayroll}>
+              {payrollHistory.length === 0 ? (
+                <div className="text-gray-500 text-center py-4">
+                  Nhân viên này chưa có lịch sử lương.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {payrollHistory.map((payroll) => (
+                    <Card
+                      key={payroll._id}
+                      size="small"
+                      className="mb-2"
+                      extra={
+                        <Button
+                          type="link"
+                          onClick={() => router.push(`/dashboard/payroll/${payroll._id}`)}
+                        >
+                          Xem chi tiết
+                        </Button>
+                      }
+                    >
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <div className="text-gray-500 text-sm">Ngày thanh toán</div>
+                          <div className="font-semibold">
+                            {formattedDate(payroll.paydate)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-gray-500 text-sm">Lương cơ bản</div>
+                          <div className="font-semibold">
+                            {payroll.basic_salary?.toLocaleString("vi-VN")} đ
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-gray-500 text-sm">Thưởng / Khấu trừ</div>
+                          <div className="font-semibold">
+                            {payroll.bonus?.toLocaleString("vi-VN") || 0} đ /{" "}
+                            {payroll.deductions?.toLocaleString("vi-VN") || 0} đ
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-gray-500 text-sm">Thực nhận</div>
+                          <div className="font-bold text-blue-600 text-lg">
+                            {payroll.net_salary?.toLocaleString("vi-VN")} đ
+                          </div>
+                        </div>
+                      </div>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </Spin>
+          </Card>
         </div>
       </Content>
     </Layout>

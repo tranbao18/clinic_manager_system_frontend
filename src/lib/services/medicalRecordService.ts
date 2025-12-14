@@ -68,7 +68,10 @@ export async function updateMedicalRecord(
 // ❌ Xóa hồ sơ y tế (soft delete - set disabled: true)
 export async function deleteMedicalRecord(id: string): Promise<void> {
     const res = await fetch(`/api/medical-records/${id}`, { method: "DELETE" });
-    if (!res.ok) throw new Error("Không thể xóa hồ sơ y tế");
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Không thể xóa hồ sơ y tế" }));
+        throw new Error(error.error || error.message || "Không thể xóa hồ sơ y tế");
+    }
 }
 
 // 📦 Lấy danh sách hồ sơ y tế đã xóa (disabled: true)
@@ -76,6 +79,23 @@ export async function getDisabledMedicalRecords(): Promise<MedicalRecord[]> {
     const res = await fetch("/api/medical-records?disabled=true", { cache: "no-store" });
     if (!res.ok) throw new Error("Không thể lấy danh sách hồ sơ y tế đã xóa");
     return res.json();
+}
+
+// 📦 Lấy danh sách hồ sơ y tế đã xóa theo patient_id
+export async function getDisabledMedicalRecordsByPatientId(patientId: string): Promise<MedicalRecord[]> {
+    try {
+        const allDisabled = await getDisabledMedicalRecords();
+        // Filter theo patient_id (xử lý cả trường hợp patient_id là object hoặc string)
+        return allDisabled.filter((record) => {
+            const recordPatientId = typeof record.patient_id === 'object' && record.patient_id
+                ? (record.patient_id as any)._id
+                : record.patient_id;
+            return recordPatientId === patientId;
+        });
+    } catch (error: any) {
+        console.error("getDisabledMedicalRecordsByPatientId error:", error);
+        return [];
+    }
 }
 
 // ♻️ Khôi phục hồ sơ y tế (set disabled: false)

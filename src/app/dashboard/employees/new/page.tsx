@@ -10,6 +10,7 @@ import {
   message,
   Layout,
   Card,
+  InputNumber,
 } from "antd";
 import dayjs from "dayjs";
 import { useRouter } from "next/navigation";
@@ -75,6 +76,7 @@ export default function NewEmployeePage() {
           email: values.email,
           position: values.position,
           specialization: values.specialization || "",
+          basic_salary: values.basic_salary || 0,
         },
       };
 
@@ -233,6 +235,25 @@ export default function NewEmployeePage() {
                 />
               </Form.Item>
             )}
+
+            <Form.Item
+              label="Lương cơ bản"
+              name="basic_salary"
+              rules={[
+                { required: true, message: "Vui lòng nhập lương cơ bản" },
+                { type: "number", min: 0, message: "Lương cơ bản phải >= 0" },
+              ]}
+            >
+              <InputNumber
+                style={{ width: "100%" }}
+                formatter={(value) =>
+                  `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
+                }
+                parser={(value) => value!.replace(/\$\s?|(,*)/g, "") as any}
+                placeholder="Nhập lương cơ bản"
+                min={0}
+              />
+            </Form.Item>
 
             <Form.Item>
               <div className="flex justify-end gap-4">

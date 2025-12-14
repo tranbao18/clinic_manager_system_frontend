@@ -19,7 +19,7 @@ import {
 import type { ColumnsType } from "antd/es/table";
 import type { UploadFile } from "antd";
 import { useRouter } from "next/navigation";
-import { UploadOutlined, FileExcelOutlined } from "@ant-design/icons";
+import { UploadOutlined, FileExcelOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getMedicines, deleteMedicine, Medicine } from "@/lib/services/medicinesService";
 
 const { Search } = Input;
@@ -41,6 +41,8 @@ export default function MedicinesPage() {
         errors: Array<{ row: number; name: string; error: string }>;
     } | null>(null);
     const [fileList, setFileList] = useState<UploadFile[]>([]);
+    const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
+    const [deleting, setDeleting] = useState(false);
     const router = useRouter();
 
     const fetchMedicines = async () => {
@@ -127,6 +129,42 @@ export default function MedicinesPage() {
         }
     };
 
+    const handleBatchDelete = async () => {
+        if (selectedRowKeys.length === 0) {
+            message.warning("Vui lòng chọn ít nhất một bản ghi để xóa");
+            return;
+        }
+
+        try {
+            setDeleting(true);
+            let successCount = 0;
+            let failCount = 0;
+
+            for (const id of selectedRowKeys) {
+                try {
+                    await deleteMedicine(String(id));
+                    successCount++;
+                } catch (error) {
+                    failCount++;
+                    console.error(`Failed to delete ${id}:`, error);
+                }
+            }
+
+            if (successCount > 0) {
+                message.success(`Đã xóa thành công ${successCount} thuốc${failCount > 0 ? `, ${failCount} thất bại` : ""}`);
+            } else {
+                message.error("Xóa thất bại");
+            }
+
+            setSelectedRowKeys([]);
+            fetchMedicines();
+        } catch (error) {
+            message.error("Có lỗi xảy ra khi xóa");
+        } finally {
+            setDeleting(false);
+        }
+    };
+
     const canDelete = role === "admin";
     const canCreate = role === "admin" || role === "accountant";
     const canUpdate = role === "admin" || role === "accountant";
@@ -135,7 +173,7 @@ export default function MedicinesPage() {
     // Xử lý import file
     const handleImport = async () => {
         console.log("🚀 handleImport được gọi", { fileListLength: fileList.length });
-        
+
         if (fileList.length === 0) {
             console.warn("⚠️ Không có file được chọn");
             message.warning("Vui lòng chọn file để import");
@@ -145,14 +183,14 @@ export default function MedicinesPage() {
         // Lấy file từ fileList - thử originFileObj trước, nếu không có thì lấy file trực tiếp
         const fileItem = fileList[0];
         const file = fileItem?.originFileObj || fileItem;
-        
-        console.log("📄 File info:", { 
+
+        console.log("📄 File info:", {
             fileItem,
             file: file ? { name: file.name, size: file.size, type: file.type } : null,
             fileList: fileList,
             hasOriginFileObj: !!fileItem?.originFileObj
         });
-        
+
         if (!file || !(file instanceof File)) {
             console.error("❌ File không hợp lệ hoặc không phải File object", { file, fileItem });
             message.warning("File không hợp lệ. Vui lòng chọn lại file.");
@@ -297,6 +335,23 @@ export default function MedicinesPage() {
             },
         },
         {
+            title: "Số lượng còn lại",
+            dataIndex: "total_remaining",
+            key: "total_remaining",
+            width: 150,
+            render: (totalRemaining: number | undefined, record: Medicine) => {
+                const remaining = totalRemaining ?? 0;
+                let color = "green";
+                if (remaining === 0) color = "red";
+                else if (remaining < 10) color = "orange";
+                return (
+                    <Tag color={color}>
+                        {remaining.toLocaleString()} {record.unit || ""}
+                    </Tag>
+                );
+            },
+        },
+        {
             title: "Hành động",
             key: "action",
             width: 200,
@@ -370,11 +425,30 @@ export default function MedicinesPage() {
                     </>
                 )}
                 {canDelete && (
-                    <Button
-                        onClick={() => router.push("/dashboard/medicines/disabled")}
-                    >
-                        Thùng rác
-                    </Button>
+                    <>
+                        <Button
+                            onClick={() => router.push("/dashboard/medicines/disabled")}
+                        >
+                            Thùng rác
+                        </Button>
+                        {selectedRowKeys.length > 0 && (
+                            <Popconfirm
+                                title={`Bạn có chắc chắn muốn xóa ${selectedRowKeys.length} thuốc đã chọn?`}
+                                onConfirm={handleBatchDelete}
+                                okText="Xóa"
+                                cancelText="Hủy"
+                                okButtonProps={{ danger: true, loading: deleting }}
+                            >
+                                <Button
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                    loading={deleting}
+                                >
+                                    Xóa đã chọn ({selectedRowKeys.length})
+                                </Button>
+                            </Popconfirm>
+                        )}
+                    </>
                 )}
             </Space>
 
@@ -389,6 +463,19 @@ export default function MedicinesPage() {
                     dataSource={filteredMedicines}
                     pagination={{ pageSize: 10 }}
                     bordered
+                    rowSelection={
+                        canDelete
+                            ? {
+                                selectedRowKeys,
+                                onChange: (newSelectedRowKeys) => {
+                                    setSelectedRowKeys(newSelectedRowKeys);
+                                },
+                                getCheckboxProps: (record) => ({
+                                    name: record._id,
+                                }),
+                            }
+                            : undefined
+                    }
                 />
             )}
 
@@ -452,7 +539,7 @@ export default function MedicinesPage() {
 
                             // Kiểm tra extension
                             const fileName = file.name.toLowerCase();
-                            const hasValidExtension = 
+                            const hasValidExtension =
                                 fileName.endsWith(".xlsx") ||
                                 fileName.endsWith(".xls") ||
                                 fileName.endsWith(".csv");

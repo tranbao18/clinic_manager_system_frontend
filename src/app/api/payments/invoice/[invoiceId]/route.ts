@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 // 🔍 GET - Lấy thanh toán theo invoice_id
 export async function GET(
@@ -13,7 +13,7 @@ export async function GET(
         const { invoiceId } = await params;
         const headers = await getAuthHeaderServer();
         const url = `${API_URL}/api/payments/invoice/${invoiceId}`;
-        
+
         const res = await fetch(url, {
             cache: "no-store",
             headers,

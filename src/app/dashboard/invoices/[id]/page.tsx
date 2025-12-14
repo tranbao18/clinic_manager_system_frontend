@@ -20,6 +20,7 @@ import {
     Tag,
     Typography,
     Divider,
+    Empty,
 } from "antd";
 import { PlusOutlined, DeleteOutlined, DollarOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -32,6 +33,7 @@ import {
     getPaymentsByInvoiceId,
     createPayment,
     deletePayment,
+    createVNPayUrl,
     Payment,
 } from "@/lib/services/paymentService";
 
@@ -74,6 +76,7 @@ export default function InvoiceDetailPage() {
     const [loadingPayments, setLoadingPayments] = useState(false);
     const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
     const [creatingPayment, setCreatingPayment] = useState(false);
+    const [processingVNPay, setProcessingVNPay] = useState(false);
 
     const fetchInvoice = async () => {
         if (!id) return;
@@ -106,10 +109,57 @@ export default function InvoiceDetailPage() {
     useEffect(() => {
         fetchInvoice();
         fetchPayments();
+
+        // Kiểm tra nếu có payment result từ VNPay return
+        const urlParams = new URLSearchParams(window.location.search);
+        const paymentResult = urlParams.get('payment');
+
+        // Kiểm tra nếu có VNPay params trực tiếp (trường hợp VNPay redirect về frontend)
+        const hasVNPayParams = urlParams.has('vnp_ResponseCode') || urlParams.has('vnp_TxnRef');
+
+        if (hasVNPayParams && !paymentResult) {
+            // Nếu có VNPay params nhưng chưa được xử lý, forward đến backend
+            const vnpParams = new URLSearchParams();
+            urlParams.forEach((value, key) => {
+                if (key.startsWith('vnp_')) {
+                    vnpParams.append(key, value);
+                }
+            });
+
+            const invoiceId = urlParams.get('vnp_TxnRef') || id;
+            if (invoiceId) {
+                // Forward đến backend return handler
+                window.location.href = `/api/payments/vnpay/return?${vnpParams.toString()}`;
+                return;
+            }
+        }
+
+        if (paymentResult === 'success') {
+            message.success('Thanh toán VNPay thành công!');
+            fetchInvoice();
+            fetchPayments();
+            // Xóa query param
+            window.history.replaceState({}, '', window.location.pathname);
+        } else if (paymentResult === 'failed') {
+            const errorMsg = urlParams.get('message') || 'Thanh toán thất bại';
+            message.error(errorMsg);
+            // Xóa query param
+            window.history.replaceState({}, '', window.location.pathname);
+        }
     }, [id]);
 
     const handleCreatePayment = async (values: any) => {
         if (!id) return;
+
+        // Nếu chọn VNPay, xử lý riêng
+        if (values.method === 'VNPay') {
+            setIsPaymentModalVisible(false);
+            paymentForm.resetFields();
+            await handleVNPayPayment();
+            return;
+        }
+
+        // Nếu chọn tiền mặt, tạo payment như bình thường
         try {
             setCreatingPayment(true);
             await createPayment({
@@ -149,6 +199,26 @@ export default function InvoiceDetailPage() {
             await fetchInvoice();
         } catch (error: any) {
             message.error(error.message || "Không thể cập nhật trạng thái");
+        }
+    };
+
+    const handleVNPayPayment = async () => {
+        if (!id) return;
+        try {
+            setProcessingVNPay(true);
+            console.log('🔄 Đang tạo VNPay URL cho invoice:', id);
+            const result = await createVNPayUrl({ invoice_id: id });
+            console.log('✅ VNPay URL đã được tạo:', result.paymentUrl);
+            // Redirect đến VNPay
+            if (result.paymentUrl) {
+                window.location.href = result.paymentUrl;
+            } else {
+                throw new Error('Không nhận được payment URL từ server');
+            }
+        } catch (error: any) {
+            console.error('❌ Lỗi khi tạo VNPay URL:', error);
+            message.error(error.message || "Không thể tạo URL thanh toán VNPay");
+            setProcessingVNPay(false);
         }
     };
 
@@ -209,8 +279,26 @@ export default function InvoiceDetailPage() {
         );
     }
 
-    const patient = typeof invoice.patient_id === 'object' ? invoice.patient_id : null;
-    const appointment = typeof invoice.appointment_id === 'object' ? invoice.appointment_id : null;
+    // Xử lý patient_id - có thể là object (populated) hoặc string
+    const patient = typeof invoice.patient_id === 'object' && invoice.patient_id !== null
+        ? invoice.patient_id
+        : null;
+
+    // Xử lý appointment_id - có thể là object (populated) hoặc string
+    const appointment = typeof invoice.appointment_id === 'object' && invoice.appointment_id !== null
+        ? invoice.appointment_id
+        : null;
+
+    // Debug log để kiểm tra (có thể xóa sau khi test xong)
+    // console.log('📋 Invoice data:', {
+    //     invoice_id: invoice._id,
+    //     patient_id_type: typeof invoice.patient_id,
+    //     patient_id: invoice.patient_id,
+    //     patient: patient,
+    //     appointment_id_type: typeof invoice.appointment_id,
+    //     appointment_id: invoice.appointment_id,
+    //     appointment: appointment,
+    // });
 
     return (
         <div style={{ padding: "24px" }}>
@@ -272,7 +360,7 @@ export default function InvoiceDetailPage() {
                                 onClick={() => setIsPaymentModalVisible(true)}
                                 disabled={remaining <= 0}
                             >
-                                Thêm thanh toán
+                                Thanh toán
                             </Button>
                         }
                     >
@@ -345,52 +433,77 @@ export default function InvoiceDetailPage() {
                         label="Phương thức thanh toán"
                         rules={[{ required: true, message: "Vui lòng chọn phương thức" }]}
                     >
-                        <Select placeholder="Chọn phương thức">
+                        <Select
+                            placeholder="Chọn phương thức"
+                            onChange={(value) => {
+                                // Nếu chọn VNPay, ẩn các field khác
+                                if (value === 'VNPay') {
+                                    paymentForm.setFieldsValue({ amount: remaining, date: dayjs() });
+                                }
+                            }}
+                        >
+                            <Option value="VNPay">VNPay</Option>
                             <Option value="Cash">Tiền mặt</Option>
-                            <Option value="Bank Transfer">Chuyển khoản</Option>
-                            <Option value="Credit Card">Thẻ tín dụng</Option>
-                            <Option value="Other">Khác</Option>
                         </Select>
                     </Form.Item>
 
                     <Form.Item
-                        name="amount"
-                        label="Số tiền"
-                        rules={[
-                            { required: true, message: "Vui lòng nhập số tiền" },
-                            {
-                                type: "number",
-                                min: 1,
-                                message: "Số tiền phải lớn hơn 0",
-                            },
-                            {
-                                validator: (_, value) => {
-                                    if (value && value > remaining) {
-                                        return Promise.reject(
-                                            new Error(`Số tiền không được vượt quá ${remaining.toLocaleString("vi-VN")} đ`)
-                                        );
-                                    }
-                                    return Promise.resolve();
-                                },
-                            },
-                        ]}
+                        noStyle
+                        shouldUpdate={(prevValues, currentValues) => prevValues.method !== currentValues.method}
                     >
-                        <InputNumber
-                            style={{ width: "100%" }}
-                            formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                            parser={(value) => value!.replace(/\$\s?|(,*)/g, '')}
-                            placeholder="Nhập số tiền"
-                            max={remaining}
-                        />
-                    </Form.Item>
+                        {({ getFieldValue }) => {
+                            const method = getFieldValue('method');
+                            // Chỉ hiển thị form nhập tiền và ngày nếu chọn tiền mặt
+                            if (method !== 'Cash') {
+                                return null;
+                            }
+                            return (
+                                <>
+                                    <Form.Item
+                                        name="amount"
+                                        label="Số tiền"
+                                        rules={[
+                                            { required: true, message: "Vui lòng nhập số tiền" },
+                                            {
+                                                type: "number",
+                                                min: 1,
+                                                message: "Số tiền phải lớn hơn 0",
+                                            },
+                                            {
+                                                validator: (_, value) => {
+                                                    if (value && value > remaining) {
+                                                        return Promise.reject(
+                                                            new Error(`Số tiền không được vượt quá ${remaining.toLocaleString("vi-VN")} đ`)
+                                                        );
+                                                    }
+                                                    return Promise.resolve();
+                                                },
+                                            },
+                                        ]}
+                                    >
+                                        <InputNumber
+                                            style={{ width: "100%" }}
+                                            formatter={(value) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                                            parser={(value) => {
+                                                const parsed = value!.replace(/\$\s?|(,*)/g, '');
+                                                return parsed ? Number(parsed) : 0;
+                                            }}
+                                            placeholder="Nhập số tiền"
+                                            max={remaining}
+                                        />
+                                    </Form.Item>
 
-                    <Form.Item
-                        name="date"
-                        label="Ngày thanh toán"
-                        rules={[{ required: true, message: "Vui lòng chọn ngày" }]}
-                        initialValue={dayjs()}
-                    >
-                        <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                                    <Form.Item
+                                        name="date"
+                                        label="Ngày thanh toán"
+                                        rules={[{ required: true, message: "Vui lòng chọn ngày" }]}
+                                        initialValue={dayjs()}
+                                    >
+                                        <DatePicker style={{ width: "100%" }} format="DD/MM/YYYY" />
+                                    </Form.Item>
+                                </>
+                            );
+                        }}
                     </Form.Item>
 
                     <Form.Item>

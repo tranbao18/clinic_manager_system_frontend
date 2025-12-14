@@ -74,14 +74,15 @@ export default function EmployeesPage() {
   // 🔹 Xóa nhân viên
   const handleDelete = async (id: string) => {
     try {
-      const res = await fetch(`/api/employees/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error("Xóa thất bại");
+      await EmployeesService.deleteEmployee(id);
       message.success("Xóa nhân viên thành công");
+
+      // Cập nhật state ngay lập tức để UI phản hồi ngay
       setAllEmployees((prev) => prev.filter((e) => e._id !== id));
       setEmployees((prev) => prev.filter((e) => e._id !== id));
-    } catch (err) {
-      console.error(err);
-      message.error("Lỗi khi xóa nhân viên");
+    } catch (err: any) {
+      console.error("Delete error:", err);
+      message.error(err.message || "Lỗi khi xóa nhân viên");
     }
   };
 
