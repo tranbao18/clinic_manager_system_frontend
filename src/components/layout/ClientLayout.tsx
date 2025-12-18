@@ -38,7 +38,11 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
                     { prefix: "/dashboard/patients", roles: ["doctor", "nurse", "receptionist", "admin"] },
                     { prefix: "/dashboard/appointments", roles: ["doctor", "receptionist", "admin"] },
                     { prefix: "/dashboard/report", roles: ["admin", "accountant"] },
-                    { prefix: "/dashboard/schedules", roles: ["doctor", "nurse", "admin"] },
+                    { prefix: "/dashboard/schedules", roles: ["doctor", "nurse", "receptionist", "admin", "accountant"] },
+                    { prefix: "/dashboard/medicines", roles: ["admin", "accountant"] },
+                    { prefix: "/dashboard/medicine-imports", roles: ["admin", "accountant"] },
+                    { prefix: "/dashboard/invoices", roles: ["admin", "accountant"] },
+                    { prefix: "/dashboard/payroll", roles: ["admin", "accountant"] },
                 ];
 
                 const matched = rules.find(r => pathname.startsWith(r.prefix));

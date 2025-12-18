@@ -3,16 +3,16 @@
 export interface Invoice {
   _id: string;
   patient_id:
-    | string
-    | { _id: string; fullname?: string; phone?: string; email?: string };
+  | string
+  | { _id: string; fullname?: string; phone?: string; email?: string };
   appointment_id:
-    | string
-    | {
-        _id: string;
-        appointment_date?: string;
-        status?: string;
-        reason?: string;
-      };
+  | string
+  | {
+    _id: string;
+    appointment_date?: string;
+    status?: string;
+    reason?: string;
+  };
   total_amount: number;
   status: "Unpaid" | "Paid" | "Partial";
   created_at: string;
@@ -120,7 +120,7 @@ export async function getInvoiceById(id: string): Promise<Invoice> {
       let detail = "";
       try {
         detail = (await res.json()).error;
-      } catch {}
+      } catch { }
       throw new Error(detail || "Không thể lấy thông tin hóa đơn");
     }
 
@@ -136,8 +136,17 @@ export async function getInvoicesByPatientId(
   patientId: string
 ): Promise<Invoice[]> {
   try {
-    // Sử dụng GET /api/invoices với query param patient_id
-    return await getInvoices({ patient_id: patientId });
+    // Sử dụng endpoint riêng cho patient_id (hỗ trợ Doctor role)
+    const res = await fetch(`/api/invoices/patient/${patientId}`, { cache: "no-store" });
+
+    if (!res.ok) {
+      // Nếu lỗi, trả về mảng rỗng thay vì throw error
+      console.warn("getInvoicesByPatientId: Không thể lấy hóa đơn, trả về mảng rỗng");
+      return [];
+    }
+
+    const data = await res.json();
+    return Array.isArray(data) ? data : (data ? [data] : []);
   } catch (error: any) {
     console.error("getInvoicesByPatientId error:", error);
     return [];

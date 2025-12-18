@@ -2,9 +2,12 @@
 
 import { Card, CardContent } from "@/components/ui/card";
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Clock, Calendar, Heart, Sparkles } from "lucide-react";
 import UsersService from "@/lib/services/usersService";
+import { LineChart, PieChart, pieArcLabelClasses } from "@mui/x-charts";
+import { Box } from "@mui/material";
+import { Spin, message } from "antd";
 
 const data = [
     { name: "5k", uv: 30 },
@@ -125,12 +128,40 @@ interface Quote {
     author: string;
 }
 
+interface InventoryItem {
+    medicine_id: string;
+    name: string;
+    unit: string;
+    total_remaining: number;
+    total_value: number;
+}
+
+interface ProfitLossMonthlyResponse {
+    success: boolean;
+    type: string;
+    data: Record<
+        string,
+        {
+            income: number;
+            medicineCost: number;
+            payrollCost: number;
+            profit: number;
+        }
+    >;
+}
+
 export default function Dashboard() {
     const [role, setRole] = useState<string>("");
     const [employeeName, setEmployeeName] = useState<string>("");
     const [loading, setLoading] = useState(true);
     const [currentTime, setCurrentTime] = useState(new Date());
     const [currentQuote, setCurrentQuote] = useState<Quote>(getRandomFallbackQuote());
+    const [reportLoading, setReportLoading] = useState(false);
+    const [inventory, setInventory] = useState<InventoryItem[]>([]);
+    const [totalQuantity, setTotalQuantity] = useState<number>(0);
+    const [totalValue, setTotalValue] = useState<number>(0);
+    const [monthlyProfitLoss, setMonthlyProfitLoss] =
+        useState<ProfitLossMonthlyResponse | null>(null);
 
     // Fetch user role and employee name
     useEffect(() => {
@@ -141,11 +172,11 @@ export default function Dashboard() {
                     credentials: "include",
                     cache: "no-store",
                 });
-                
+
                 if (!meRes.ok) {
                     throw new Error("Chưa đăng nhập");
                 }
-                
+
                 const me = await meRes.json();
                 const userRole = (me?.role || "").toLowerCase();
                 setRole(userRole);
@@ -157,7 +188,7 @@ export default function Dashboard() {
                         console.log("Fetching employee data for userId:", userId);
                         const userData = await UsersService.getByUserId(userId);
                         console.log("User data received:", userData);
-                        
+
                         if (userData?.employee?.fullname) {
                             setEmployeeName(userData.employee.fullname);
                             console.log("Employee name set to:", userData.employee.fullname);
@@ -190,24 +221,24 @@ export default function Dashboard() {
             // Gọi API route proxy để tránh CORS issue
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
-            
+
             const response = await fetch("/api/quotes/random", {
                 cache: "no-store",
                 signal: controller.signal,
             });
-            
+
             clearTimeout(timeoutId);
             console.log("Quote API response status:", response.status);
-            
+
             if (response.ok) {
                 const data = await response.json();
                 console.log("Quote data received from API:", data);
-                
+
                 // Kiểm tra xem response có chứa error không
                 if (data.error) {
                     throw new Error(data.error);
                 }
-                
+
                 // Đảm bảo có text và author
                 if (data.text && data.author) {
                     setCurrentQuote({
@@ -250,6 +281,55 @@ export default function Dashboard() {
 
         return () => clearInterval(timer);
     }, []);
+
+    // Fetch report data for admin dashboard
+    useEffect(() => {
+        const fetchReportData = async () => {
+            if (role !== "admin") return;
+            try {
+                setReportLoading(true);
+
+                const now = new Date();
+                const year = now.getFullYear();
+                const startDate = `${year}-01-01`;
+                const endDate = `${year}-12-31`;
+
+                const [invRes, qtyRes, valRes, plRes] = await Promise.all([
+                    fetch("/api/reports/medicine/inventory"),
+                    fetch("/api/reports/medicine/inventory/quantity"),
+                    fetch("/api/reports/medicine/inventory/value"),
+                    fetch(
+                        `/api/reports/profit-loss/monthly?startDate=${startDate}&endDate=${endDate}`
+                    ),
+                ]);
+
+                const invData = await invRes.json();
+                const qtyData = await qtyRes.json();
+                const valData = await valRes.json();
+                const plData = await plRes.json();
+
+                if (!invRes.ok) throw new Error(invData.error || "Không thể lấy tồn kho thuốc");
+                if (!qtyRes.ok)
+                    throw new Error(qtyData.error || "Không thể lấy tổng số lượng tồn kho");
+                if (!valRes.ok)
+                    throw new Error(valData.error || "Không thể lấy tổng giá trị tồn kho");
+                if (!plRes.ok)
+                    throw new Error(plData.error || "Không thể lấy báo cáo lãi/lỗ theo tháng");
+
+                setInventory(invData.data || []);
+                setTotalQuantity(qtyData.total_quantity || 0);
+                setTotalValue(valData.total_value || 0);
+                setMonthlyProfitLoss(plData);
+            } catch (err: any) {
+                console.error("Fetch dashboard report error:", err);
+                message.error(err.message || "Không thể tải dữ liệu báo cáo");
+            } finally {
+                setReportLoading(false);
+            }
+        };
+
+        fetchReportData();
+    }, [role]);
 
     const formatDate = (date: Date) => {
         const days = [
@@ -298,6 +378,53 @@ export default function Dashboard() {
         return "Chào buổi tối";
     };
 
+    // Chuẩn bị dữ liệu chart (admin)
+    const { xLabels, incomeSeries, expenseSeries } = useMemo(() => {
+        if (!monthlyProfitLoss || !monthlyProfitLoss.data) {
+            return { xLabels: [], incomeSeries: [], expenseSeries: [] };
+        }
+        const keys = Object.keys(monthlyProfitLoss.data).sort(); // YYYY-MM
+        const incomeSeries = keys.map((k) => monthlyProfitLoss.data[k].income || 0);
+        const expenseSeries = keys.map((k) => {
+            const d = monthlyProfitLoss.data[k];
+            return (d.medicineCost || 0) + (d.payrollCost || 0);
+        });
+        const xLabels = keys.map((k) => `Th${Number(k.slice(5, 7))}`);
+        return { xLabels, incomeSeries, expenseSeries };
+    }, [monthlyProfitLoss]);
+
+    const stockData = useMemo(() => {
+        if (!inventory || inventory.length === 0) return [];
+        const sorted = [...inventory].sort((a, b) => b.total_remaining - a.total_remaining);
+        const top = sorted.slice(0, 5);
+        const others = sorted.slice(5);
+        const data = top.map((item, idx) => ({
+            id: idx,
+            value: item.total_remaining,
+            label: item.name,
+        }));
+        const otherTotal = others.reduce(
+            (sum, item) => sum + (item.total_remaining || 0),
+            0
+        );
+        if (otherTotal > 0) {
+            data.push({
+                id: data.length,
+                value: otherTotal,
+                label: "Khác",
+            });
+        }
+        return data;
+    }, [inventory]);
+
+    const totalProfitYear = useMemo(() => {
+        if (!monthlyProfitLoss || !monthlyProfitLoss.data) return 0;
+        return Object.values(monthlyProfitLoss.data).reduce(
+            (sum, d) => sum + (d.profit || 0),
+            0
+        );
+    }, [monthlyProfitLoss]);
+
     if (loading) {
         return (
             <div className="flex h-screen bg-gray-50 items-center justify-center">
@@ -313,84 +440,99 @@ export default function Dashboard() {
             <div className="flex-1 flex flex-col">
                 <main className="flex-1 p-6 overflow-y-auto space-y-6">
                     {isAdmin ? (
-                        // Admin view: Show statistics
-                        <>
-                            {/* Top stats */}
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <Card>
-                                    <CardContent className="p-4">
-                                        <h2 className="text-sm text-gray-500">Total User</h2>
-                                        <p className="text-2xl font-bold">40,689</p>
-                                        <span className="text-green-500 text-sm">↑ 8.5% Up from yesterday</span>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardContent className="p-4">
-                                        <h2 className="text-sm text-gray-500">Total Order</h2>
-                                        <p className="text-2xl font-bold">10,293</p>
-                                        <span className="text-green-500 text-sm">↑ 1.3% Up from past week</span>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardContent className="p-4">
-                                        <h2 className="text-sm text-gray-500">Total Sales</h2>
-                                        <p className="text-2xl font-bold">$89,000</p>
-                                        <span className="text-red-500 text-sm">↓ 4.3% Down from yesterday</span>
-                                    </CardContent>
-                                </Card>
-                                <Card>
-                                    <CardContent className="p-4">
-                                        <h2 className="text-sm text-gray-500">Total Pending</h2>
-                                        <p className="text-2xl font-bold">2,040</p>
-                                        <span className="text-green-500 text-sm">↑ 1.8% Up from yesterday</span>
-                                    </CardContent>
-                                </Card>
+                        // Admin view: Report summary
+                        reportLoading ? (
+                            <div className="flex justify-center py-10">
+                                <Spin />
                             </div>
+                        ) : (
+                            <div className="space-y-6">
+                                {/* Top stats */}
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <Card>
+                                        <CardContent className="p-4">
+                                            <h2 className="text-sm text-gray-500">Tổng giá trị tồn kho</h2>
+                                            <p className="text-2xl font-bold text-blue-600">
+                                                {new Intl.NumberFormat("vi-VN", {
+                                                    style: "currency",
+                                                    currency: "VND",
+                                                }).format(totalValue || 0)}
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                    <Card>
+                                        <CardContent className="p-4">
+                                            <h2 className="text-sm text-gray-500">Tổng số lượng tồn kho</h2>
+                                            <p className="text-2xl font-bold text-amber-600">
+                                                {(totalQuantity || 0).toLocaleString()} đơn vị
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                    <Card>
+                                        <CardContent className="p-4">
+                                            <h2 className="text-sm text-gray-500">Tổng lợi nhuận năm</h2>
+                                            <p className="text-2xl font-bold text-green-600">
+                                                {new Intl.NumberFormat("vi-VN", {
+                                                    style: "currency",
+                                                    currency: "VND",
+                                                }).format(totalProfitYear || 0)}
+                                            </p>
+                                        </CardContent>
+                                    </Card>
+                                </div>
 
-                            {/* Deals Details */}
-                            <Card>
-                                <CardContent className="p-4">
-                                    <h2 className="font-semibold mb-4">Deals Details</h2>
-                                    <div className="overflow-x-auto">
-                                        <table className="w-full border-collapse text-left">
-                                            <thead>
-                                                <tr className="border-b text-gray-500 text-sm">
-                                                    <th className="py-2">Product Name</th>
-                                                    <th>Location</th>
-                                                    <th>Date - Time</th>
-                                                    <th>Piece</th>
-                                                    <th>Amount</th>
-                                                    <th>Status</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                <tr className="border-b">
-                                                    <td className="py-2 flex items-center gap-2">
-                                                        <Image
-                                                            src="/favicon.ico"
-                                                            alt="Moni Roy"
-                                                            width={32}
-                                                            height={32}
-                                                            className="rounded-full"
-                                                        />
-                                                        Apple Watch
-                                                    </td>
-                                                    <td>6096 Marjoline Landing</td>
-                                                    <td>12.09.2019 - 12:53 PM</td>
-                                                    <td>423</td>
-                                                    <td>$34,295</td>
-                                                    <td>
-                                                        <span className="bg-green-100 text-green-600 px-3 py-1 rounded-full text-sm">
-                                                            Delivered
-                                                        </span>
-                                                    </td>
-                                                </tr>
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </>
+                                {/* Charts */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <Box className="bg-white p-6 shadow rounded-lg">
+                                        <h2 className="text-lg font-semibold mb-4">
+                                            Thu - chi theo tháng ({new Date().getFullYear()})
+                                        </h2>
+                                        <LineChart
+                                            width={500}
+                                            height={280}
+                                            series={[
+                                                {
+                                                    data: incomeSeries,
+                                                    label: "Thu nhập",
+                                                    yAxisId: "leftAxisId",
+                                                },
+                                                {
+                                                    data: expenseSeries,
+                                                    label: "Chi phí",
+                                                    yAxisId: "rightAxisId",
+                                                },
+                                            ]}
+                                            xAxis={[{ scaleType: "point", data: xLabels }]}
+                                            yAxis={[
+                                                { id: "leftAxisId", width: 50 },
+                                                { id: "rightAxisId", position: "right" },
+                                            ]}
+                                        />
+                                    </Box>
+
+                                    <Box className="bg-white p-6 shadow rounded-lg">
+                                        <h2 className="text-lg font-semibold mb-4">Cơ cấu tồn kho dược phẩm</h2>
+                                        <PieChart
+                                            series={[
+                                                {
+                                                    data: stockData,
+                                                    arcLabel: undefined,
+                                                    arcLabelMinAngle: 15,
+                                                    arcLabelRadius: "60%",
+                                                },
+                                            ]}
+                                            width={420}
+                                            height={280}
+                                            sx={{
+                                                [`& .${pieArcLabelClasses.root}`]: {
+                                                    fontWeight: "bold",
+                                                },
+                                            }}
+                                        />
+                                    </Box>
+                                </div>
+                            </div>
+                        )
                     ) : (
                         // Non-admin view: Show welcome, date/time, and quotes
                         <div className="space-y-6">

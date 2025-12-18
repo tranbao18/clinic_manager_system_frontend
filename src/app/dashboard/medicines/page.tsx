@@ -38,7 +38,8 @@ export default function MedicinesPage() {
     const [importResult, setImportResult] = useState<{
         success: number;
         failed: number;
-        errors: Array<{ row: number; name: string; error: string }>;
+        skipped?: number;
+        errors: Array<{ row: number; name: string; error: string; type?: string }>;
     } | null>(null);
     const [fileList, setFileList] = useState<UploadFile[]>([]);
     const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
@@ -226,9 +227,11 @@ export default function MedicinesPage() {
             if (!res.ok) {
                 const errorMsg = data.error || data.message || "Không thể import file";
                 console.error("Import failed:", errorMsg, data);
+                const skipped = data.skipped || 0;
                 setImportResult({
                     success: data.success || 0,
                     failed: data.failed || 0,
+                    skipped,
                     errors: data.errors || [],
                 });
                 message.error(errorMsg);
@@ -237,15 +240,19 @@ export default function MedicinesPage() {
 
             console.log("Import success data:", data);
 
+            const skipped = data.skipped || 0;
             setImportResult({
                 success: data.success || 0,
                 failed: data.failed || 0,
+                skipped,
                 errors: data.errors || [],
             });
 
             if (data.success > 0) {
                 message.success(
-                    `Import thành công ${data.success} thuốc${data.failed > 0 ? `, ${data.failed} thất bại` : ""}`
+                    `Import thành công ${data.success} thuốc` +
+                    (data.failed > 0 ? `, ${data.failed} thất bại` : "") +
+                    (skipped > 0 ? `, ${skipped} bị bỏ qua (đã tồn tại trong hệ thống)` : "")
                 );
                 fetchMedicines(); // Refresh danh sách
             } else if (data.failed > 0) {
@@ -602,22 +609,30 @@ export default function MedicinesPage() {
                     {importResult && (
                         <div className="mt-4">
                             <Alert
-                                message={`Import hoàn tất: ${importResult.success} thành công, ${importResult.failed} thất bại`}
+                                message={
+                                    `Import hoàn tất: ${importResult.success} thành công, ${importResult.failed} thất bại` +
+                                    (typeof importResult.skipped === "number" && importResult.skipped > 0
+                                        ? `, ${importResult.skipped} bị bỏ qua`
+                                        : "")
+                                }
                                 type={importResult.failed === 0 ? "success" : "warning"}
                                 showIcon
                                 className="mb-2"
                             />
-                            {importResult.errors.length > 0 && (
+                            {/* Chỉ hiển thị các lỗi failed, không hiển thị skipped */}
+                            {importResult.errors.filter((err) => err.type !== "skipped").length > 0 && (
                                 <div className="mt-2 max-h-40 overflow-y-auto">
                                     <Text strong className="text-red-600">
                                         Chi tiết lỗi:
                                     </Text>
                                     <ul className="list-disc list-inside mt-1 space-y-1 text-sm">
-                                        {importResult.errors.map((err, idx) => (
-                                            <li key={idx}>
-                                                Dòng {err.row}: {err.name} - {err.error}
-                                            </li>
-                                        ))}
+                                        {importResult.errors
+                                            .filter((err) => err.type !== "skipped")
+                                            .map((err, idx) => (
+                                                <li key={idx}>
+                                                    Dòng {err.row}: {err.name} - {err.error}
+                                                </li>
+                                            ))}
                                     </ul>
                                 </div>
                             )}

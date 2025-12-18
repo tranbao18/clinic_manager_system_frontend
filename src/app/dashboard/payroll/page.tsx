@@ -46,10 +46,26 @@ export default function PayrollPage() {
     const [importResult, setImportResult] = useState<{
         success: number;
         failed: number;
-        errors: Array<{ row: number; name: string; error: string }>;
+        skipped?: number;
+        errors: Array<{ row: number; name: string; error: string; type?: string }>;
     } | null>(null);
     const [fileList, setFileList] = useState<UploadFile[]>([]);
+    const [role, setRole] = useState<string>("");
     const router = useRouter();
+
+    // Fetch user role
+    useEffect(() => {
+        const fetchRole = async () => {
+            try {
+                const res = await fetch("/api/session", { cache: "no-store" });
+                const data = await res.json();
+                setRole((data?.user?.role || "").toLowerCase());
+            } catch {
+                setRole("");
+            }
+        };
+        fetchRole();
+    }, []);
 
     const formatCurrency = (amount: number) => {
         return new Intl.NumberFormat("vi-VN").format(amount || 0);
@@ -294,11 +310,16 @@ export default function PayrollPage() {
                 throw new Error("Không thể đọc phản hồi từ server");
             }
 
+            const skipped = data.skipped || 0;
+            const success = data.success || 0;
+            const failed = data.failed || 0;
+
             if (!res.ok) {
                 const errorMsg = data.error || data.message || "Không thể import file";
                 setImportResult({
-                    success: data.success || 0,
-                    failed: data.failed || 0,
+                    success,
+                    failed,
+                    skipped,
                     errors: data.errors || [],
                 });
                 message.error(errorMsg);
@@ -306,18 +327,21 @@ export default function PayrollPage() {
             }
 
             setImportResult({
-                success: data.success || 0,
-                failed: data.failed || 0,
+                success,
+                failed,
+                skipped,
                 errors: data.errors || [],
             });
 
-            if (data.success > 0) {
+            if (success > 0) {
                 message.success(
-                    `Import thành công ${data.success} bảng lương${data.failed > 0 ? `, ${data.failed} thất bại` : ""}`
+                    `Import thành công ${success} bảng lương` +
+                    (failed > 0 ? `, ${failed} thất bại` : "") +
+                    (skipped > 0 ? `, ${skipped} bị bỏ qua (đã có bảng lương trong tháng đó)` : "")
                 );
                 fetchPayrolls(); // Refresh danh sách
-            } else if (data.failed > 0) {
-                message.warning(`Import thất bại: ${data.failed} bảng lương không thể import`);
+            } else if (failed > 0) {
+                message.warning(`Import thất bại: ${failed} bảng lương không thể import`);
             } else {
                 message.warning("Không có bảng lương nào được import thành công");
             }
@@ -328,6 +352,7 @@ export default function PayrollPage() {
             setImportResult({
                 success: 0,
                 failed: 0,
+                skipped: 0,
                 errors: [{ row: 0, name: "", error: errorMessage }],
             });
         } finally {
@@ -410,16 +435,20 @@ export default function PayrollPage() {
                     : record.employee_id._id;
                 const employeeIdStr = String(employeeId);
                 const isSending = sendingEmailIds.has(employeeIdStr);
+                const canEdit = role === "admin" || role === "accountant";
+                const canDelete = role === "admin";
 
                 return (
                     <Space size="middle">
-                        <Button
-                            type="link"
-                            icon={<EditOutlined />}
-                            onClick={() => router.push(`/dashboard/payroll/${record._id}`)}
-                        >
-                            Sửa
-                        </Button>
+                        {canEdit && (
+                            <Button
+                                type="link"
+                                icon={<EditOutlined />}
+                                onClick={() => router.push(`/dashboard/payroll/${record._id}`)}
+                            >
+                                Sửa
+                            </Button>
+                        )}
                         <Button
                             type="link"
                             icon={<MailOutlined />}
@@ -429,20 +458,22 @@ export default function PayrollPage() {
                         >
                             Gửi email
                         </Button>
-                        <Popconfirm
-                            title="Xóa bảng lương này?"
-                            onConfirm={() => handleDelete(record._id)}
-                            okText="Xóa"
-                            cancelText="Hủy"
-                        >
-                            <Button
-                                type="link"
-                                danger
-                                icon={<DeleteOutlined />}
+                        {canDelete && (
+                            <Popconfirm
+                                title="Xóa bảng lương này?"
+                                onConfirm={() => handleDelete(record._id)}
+                                okText="Xóa"
+                                cancelText="Hủy"
                             >
-                                Xóa
-                            </Button>
-                        </Popconfirm>
+                                <Button
+                                    type="link"
+                                    danger
+                                    icon={<DeleteOutlined />}
+                                >
+                                    Xóa
+                                </Button>
+                            </Popconfirm>
+                        )}
                     </Space>
                 );
             },
@@ -472,19 +503,23 @@ export default function PayrollPage() {
                                 Gửi email cho {selectedRowKeys.length} nhân viên đã chọn
                             </Button>
                         )}
-                        <Button
-                            type="primary"
-                            icon={<PlusOutlined />}
-                            onClick={() => router.push("/dashboard/payroll/new")}
-                        >
-                            Tạo bảng lương mới
-                        </Button>
-                        <Button
-                            icon={<FileExcelOutlined />}
-                            onClick={() => setImportModalVisible(true)}
-                        >
-                            Import Excel/CSV
-                        </Button>
+                        {(role === "admin" || role === "accountant") && (
+                            <>
+                                <Button
+                                    type="primary"
+                                    icon={<PlusOutlined />}
+                                    onClick={() => router.push("/dashboard/payroll/new")}
+                                >
+                                    Tạo bảng lương mới
+                                </Button>
+                                <Button
+                                    icon={<FileExcelOutlined />}
+                                    onClick={() => setImportModalVisible(true)}
+                                >
+                                    Import Excel/CSV
+                                </Button>
+                            </>
+                        )}
                     </Space>
                 </div>
 
@@ -604,7 +639,12 @@ export default function PayrollPage() {
                         {importResult && (
                             <div className="mt-4">
                                 <Alert
-                                    message={`Import hoàn tất: ${importResult.success} thành công, ${importResult.failed} thất bại`}
+                                    message={
+                                        `Import hoàn tất: ${importResult.success} thành công, ${importResult.failed} thất bại` +
+                                        (typeof importResult.skipped === "number"
+                                            ? `, ${importResult.skipped} bị bỏ qua`
+                                            : "")
+                                    }
                                     type={importResult.failed === 0 ? "success" : "warning"}
                                     showIcon
                                     className="mb-2"
@@ -615,11 +655,16 @@ export default function PayrollPage() {
                                             Chi tiết lỗi:
                                         </Text>
                                         <ul className="list-disc list-inside mt-1 space-y-1 text-sm">
-                                            {importResult.errors.map((err, idx) => (
-                                                <li key={idx}>
-                                                    Dòng {err.row}: {err.name} - {err.error}
-                                                </li>
-                                            ))}
+                                            {importResult.errors.map((err, idx) => {
+                                                const isSkipped = err.type === "skipped";
+                                                return (
+                                                    <li key={idx}>
+                                                        Dòng {err.row}: {err.name} -{" "}
+                                                        {isSkipped ? "[BỎ QUA] " : ""}
+                                                        {err.error}
+                                                    </li>
+                                                );
+                                            })}
                                         </ul>
                                     </div>
                                 )}

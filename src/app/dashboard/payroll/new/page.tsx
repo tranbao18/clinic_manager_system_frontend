@@ -35,6 +35,25 @@ export default function NewPayrollPage() {
   const [loadingEmployees, setLoadingEmployees] = useState(true);
   const router = useRouter();
 
+  // ✅ Chặn truy cập nếu không phải Admin hoặc Accountant
+  useEffect(() => {
+    const fetchRole = async () => {
+      try {
+        const res = await fetch("/api/session", { cache: "no-store" });
+        const data = await res.json();
+        const r = (data?.user?.role || "").toLowerCase();
+        if (r && r !== "admin" && r !== "accountant") {
+          message.warning("Bạn không có quyền truy cập trang này");
+          router.push("/dashboard/payroll");
+        }
+      } catch {
+        router.push("/auth/login");
+      }
+    };
+    fetchRole();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     const fetchEmployees = async () => {
       try {

@@ -716,6 +716,15 @@ export default function PatientDetailPage() {
                                                 <Descriptions.Item label="Ngày tạo">
                                                     {formatDateTime(record.created_at)}
                                                 </Descriptions.Item>
+                                                <Descriptions.Item label="Ngày hẹn">
+                                                    {record.appointment_id &&
+                                                        typeof record.appointment_id === 'object' &&
+                                                        (record.appointment_id as any)?.appointment_date
+                                                        ? formatDateTime(
+                                                            (record.appointment_id as any).appointment_date
+                                                        )
+                                                        : "—"}
+                                                </Descriptions.Item>
                                                 <Descriptions.Item label="Bác sĩ">
                                                     {typeof record.doctor_id === 'object'
                                                         ? record.doctor_id.fullname
@@ -950,15 +959,34 @@ export default function PatientDetailPage() {
                                         return validStatuses.includes(apt.status);
                                     })
                                     .sort((a: Appointment, b: Appointment) => {
-                                        // Ưu tiên Completed, sau đó sắp xếp theo ngày (mới nhất trước)
-                                        if (a.status === 'Completed' && b.status !== 'Completed') return -1;
-                                        if (a.status !== 'Completed' && b.status === 'Completed') return 1;
-                                        return new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime();
+                                        // Sắp xếp theo ngày từ cũ -> mới
+                                        const timeA = new Date(a.appointment_date).getTime();
+                                        const timeB = new Date(b.appointment_date).getTime();
+                                        return timeA - timeB;
                                     })
                                     .map((apt: Appointment) => (
-                                        <Select.Option key={apt._id} value={apt._id}>
-                                            {dayjs(apt.appointment_date).format("DD/MM/YYYY HH:mm")} - {apt.status}
-                                        </Select.Option>
+                                        (() => {
+                                            // Disable các lịch hẹn đã có hồ sơ y tế
+                                            const hasMedicalRecord = medicalRecords.some(
+                                                (mr: MedicalRecord) => {
+                                                    const mrAppointmentId = typeof mr.appointment_id === 'object'
+                                                        ? mr.appointment_id?._id
+                                                        : mr.appointment_id;
+                                                    return mrAppointmentId === apt._id;
+                                                }
+                                            );
+
+                                            return (
+                                                <Select.Option
+                                                    key={apt._id}
+                                                    value={apt._id}
+                                                    disabled={hasMedicalRecord}
+                                                >
+                                                    {dayjs(apt.appointment_date).format("DD/MM/YYYY HH:mm")} - {apt.status}
+                                                    {hasMedicalRecord ? " (đã có hồ sơ)" : ""}
+                                                </Select.Option>
+                                            );
+                                        })()
                                     ))}
                             </Select>
                         </Form.Item>

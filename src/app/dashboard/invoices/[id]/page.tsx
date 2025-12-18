@@ -77,6 +77,27 @@ export default function InvoiceDetailPage() {
     const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
     const [creatingPayment, setCreatingPayment] = useState(false);
     const [processingVNPay, setProcessingVNPay] = useState(false);
+    const [role, setRole] = useState<string>("");
+
+    // ✅ Kiểm tra quyền truy cập
+    useEffect(() => {
+        const fetchRole = async () => {
+            try {
+                const res = await fetch("/api/session", { cache: "no-store" });
+                const data = await res.json();
+                const r = (data?.user?.role || "").toLowerCase();
+                setRole(r);
+                if (r && r !== "admin" && r !== "accountant") {
+                    message.warning("Bạn không có quyền truy cập trang này");
+                    router.push("/dashboard/invoices");
+                }
+            } catch {
+                router.push("/auth/login");
+            }
+        };
+        fetchRole();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
 
     const fetchInvoice = async () => {
         if (!id) return;
@@ -249,14 +270,16 @@ export default function InvoiceDetailPage() {
             title: "Thao tác",
             key: "action",
             render: (_: any, record: Payment) => (
-                <Button
-                    type="link"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleDeletePayment(record._id)}
-                >
-                    Xóa
-                </Button>
+                role === "admin" && (
+                    <Button
+                        type="link"
+                        danger
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleDeletePayment(record._id)}
+                    >
+                        Xóa
+                    </Button>
+                )
             ),
         },
     ];
@@ -354,14 +377,16 @@ export default function InvoiceDetailPage() {
                     <Card
                         title="Lịch sử Thanh toán"
                         extra={
-                            <Button
-                                type="primary"
-                                icon={<PlusOutlined />}
-                                onClick={() => setIsPaymentModalVisible(true)}
-                                disabled={remaining <= 0}
-                            >
-                                Thanh toán
-                            </Button>
+                            (role === "admin" || role === "accountant") && (
+                                <Button
+                                    type="primary"
+                                    icon={<PlusOutlined />}
+                                    onClick={() => setIsPaymentModalVisible(true)}
+                                    disabled={remaining <= 0}
+                                >
+                                    Thanh toán
+                                </Button>
+                            )
                         }
                     >
                         <Table
@@ -402,13 +427,15 @@ export default function InvoiceDetailPage() {
                                 </Title>
                             </div>
                             <Divider />
-                            <Button
-                                type="default"
-                                block
-                                onClick={handleUpdateStatus}
-                            >
-                                Cập nhật trạng thái
-                            </Button>
+                            {(role === "admin" || role === "accountant") && (
+                                <Button
+                                    type="default"
+                                    block
+                                    onClick={handleUpdateStatus}
+                                >
+                                    Cập nhật trạng thái
+                                </Button>
+                            )}
                         </Space>
                     </Card>
                 </Col>
