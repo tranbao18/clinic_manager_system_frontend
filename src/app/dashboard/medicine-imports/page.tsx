@@ -40,6 +40,7 @@ export default function MedicineImportsPage() {
         errors: Array<{ row: number; medicine: string; error: string; type?: string }>;
     } | null>(null);
     const [fileList, setFileList] = useState<UploadFile[]>([]);
+    const [importMode, setImportMode] = useState<"import" | "update">("import");
     const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
     const [deleting, setDeleting] = useState(false);
     const router = useRouter();
@@ -160,56 +161,65 @@ export default function MedicineImportsPage() {
 
             console.log("Đang gửi file import...", file.name, file.size);
 
-            const res = await fetch("/api/medicine-imports/import", {
+            // Branch endpoint depending on mode
+            const endpoint =
+                importMode === "update"
+                    ? "/api/medicine-imports/update-quantities"
+                    : "/api/medicine-imports/import";
+
+            const res = await fetch(endpoint, {
                 method: "POST",
                 body: formData,
             });
 
             console.log("Response status:", res.status, res.statusText);
 
-            let data;
+            // Read response as text first, attempt JSON parse, otherwise keep raw text
+            const text = await res.text();
+            console.log("Response text:", text);
+            let data: any = {};
             try {
-                const text = await res.text();
-                console.log("Response text:", text);
                 data = text ? JSON.parse(text) : {};
             } catch (parseError) {
-                console.error("Parse JSON error:", parseError);
-                throw new Error("Không thể đọc phản hồi từ server");
+                // not valid JSON — keep raw text for debugging
+                data = { __raw: text };
+                console.warn("Response is not JSON:", parseError);
             }
 
             if (!res.ok) {
-                const errorMsg = data.error || data.message || "Không thể import file";
+                const errorMsg = data.error || data.message || data.__raw || `HTTP ${res.status} ${res.statusText}`;
                 console.error("Import failed:", errorMsg, data);
-                const skipped = data.skipped || 0;
+                const payloadErr = data.results || data;
+                const skippedErr = payloadErr.skipped || 0;
                 setImportResult({
-                    success: data.success || 0,
-                    failed: data.failed || 0,
-                    skipped,
-                    errors: data.errors || [],
+                    success: payloadErr.success || 0,
+                    failed: payloadErr.failed || 0,
+                    skipped: skippedErr,
+                    errors: payloadErr.errors || [],
                 });
                 message.error(errorMsg);
                 return;
             }
 
             console.log("Import success data:", data);
-
-            const skipped = data.skipped || 0;
+            const payload = data.results || data;
+            const skipped = payload.skipped || 0;
             setImportResult({
-                success: data.success || 0,
-                failed: data.failed || 0,
+                success: payload.success || 0,
+                failed: payload.failed || 0,
                 skipped,
-                errors: data.errors || [],
+                errors: payload.errors || [],
             });
 
-            if (data.success > 0) {
+            if (payload.success > 0) {
                 message.success(
-                    `Import thành công ${data.success} nhập thuốc` +
-                    (data.failed > 0 ? `, ${data.failed} thất bại` : "") +
+                    `Import thành công ${payload.success} nhập thuốc` +
+                    (payload.failed > 0 ? `, ${payload.failed} thất bại` : "") +
                     (skipped > 0 ? `, ${skipped} bị bỏ qua (đã tồn tại trong hệ thống)` : "")
                 );
                 fetchImports(); // Refresh danh sách
-            } else if (data.failed > 0) {
-                message.warning(`Import thất bại: ${data.failed} nhập thuốc không thể import`);
+            } else if (payload.failed > 0) {
+                message.warning(`Import thất bại: ${payload.failed} nhập thuốc không thể import`);
             } else {
                 message.warning("Không có nhập thuốc nào được import thành công");
             }
@@ -253,23 +263,23 @@ export default function MedicineImportsPage() {
 
     const columns: ColumnsType<MedicineImport> = [
         {
+            title: "Medicine ID",
+            dataIndex: "medicine_id",
+            key: "medicine_id",
+            width: 220,
+            render: (medicine) => {
+                if (!medicine) return "N/A";
+                if (typeof medicine === "string") return medicine;
+                if (typeof medicine === "object" && medicine._id) return String(medicine._id);
+                return "N/A";
+            },
+        },
+        {
             title: "Thuốc",
             dataIndex: "medicine_id",
             key: "medicine",
             width: 200,
             render: (medicine) => getMedicineName(medicine),
-        },
-        {
-            title: "Nhà cung cấp",
-            dataIndex: "supplier",
-            key: "supplier",
-            width: 150,
-        },
-        {
-            title: "Mã lô",
-            dataIndex: "batchcode",
-            key: "batchcode",
-            width: 120,
         },
         {
             title: "Số lượng",
@@ -510,6 +520,30 @@ export default function MedicineImportsPage() {
                         showIcon
                         className="mb-4"
                     />
+
+                    <div className="mb-3">
+                        <label className="block mb-1 font-medium">Chế độ xử lý file</label>
+                        <div>
+                            <input
+                                type="radio"
+                                id="mode-import"
+                                name="importMode"
+                                checked={importMode === "import"}
+                                onChange={() => setImportMode("import")}
+                            />
+                            <label htmlFor="mode-import" className="ml-2">Import nhập thuốc (theo flow hiện tại)</label>
+                        </div>
+                        <div className="mt-2">
+                            <input
+                                type="radio"
+                                id="mode-update"
+                                name="importMode"
+                                checked={importMode === "update"}
+                                onChange={() => setImportMode("update")}
+                            />
+                            <label htmlFor="mode-update" className="ml-2">Cập nhật số lượng theo file</label>
+                        </div>
+                    </div>
 
                     <Upload
                         fileList={fileList}

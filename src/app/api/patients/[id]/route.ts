@@ -59,8 +59,12 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
     try {
         const { id } = await context.params;
         const headers = await getAuthHeaderServer();
+        const { searchParams } = new URL(req.url);
+        const hard = searchParams.get("hard");
+        let url = `${API_URL}/${id}`;
+        if (hard === "true") url += `?hard=true`;
 
-        const res = await fetch(`${API_URL}/${id}`, { method: "DELETE", headers });
+        const res = await fetch(url, { method: "DELETE", headers });
         if (!res.ok) {
             const text = await res.text();
             console.error(`External API (DELETE patient ${id}) error:`, res.status, text);

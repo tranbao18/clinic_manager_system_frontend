@@ -47,8 +47,12 @@ export async function DELETE(
   try {
     const { id } = await context.params;
     const headers = await getAuthHeaderServer();
+    const { searchParams } = new URL(req.url);
+    const hard = searchParams.get("hard");
+    let url = `${API_URL}/${id}`;
+    if (hard === "true") url += `?hard=true`;
 
-    const response = await fetch(`${API_URL}/${id}`, {
+    const response = await fetch(url, {
       method: "DELETE",
       headers: { ...headers, "Content-Type": "application/json" },
     });

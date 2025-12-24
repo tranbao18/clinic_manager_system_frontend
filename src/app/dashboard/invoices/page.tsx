@@ -15,7 +15,7 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/navigation";
-import { EyeOutlined, DollarOutlined } from "@ant-design/icons";
+import { EyeOutlined, DollarOutlined, DeleteOutlined } from "@ant-design/icons";
 import { getInvoices, deleteInvoice, Invoice } from "@/lib/services/invoiceService";
 import dayjs from "dayjs";
 
@@ -223,6 +223,14 @@ export default function InvoicesPage() {
         <div style={{ padding: "24px" }}>
             <div style={{ marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Typography.Title level={2}>Quản lý Hóa đơn</Typography.Title>
+                {role === "admin" && (
+                    <Button
+                        icon={<DeleteOutlined />}
+                        onClick={() => router.push("/dashboard/invoices/disabled")}
+                    >
+                        Thùng rác
+                    </Button>
+                )}
             </div>
 
             <Space style={{ marginBottom: "16px", width: "100%" }} direction="vertical" size="middle">

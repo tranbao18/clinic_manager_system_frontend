@@ -81,9 +81,10 @@ const EmployeesService = {
     }
   },
 
-  async deleteEmployee(id: string) {
+  async deleteEmployee(id: string, permanent = false) {
     try {
-      const res = await fetch(`${BASE_URL}/${id}`, {
+      const url = `${BASE_URL}/${id}` + (permanent ? "?hard=true" : "");
+      const res = await fetch(url, {
         method: "DELETE",
         headers: getAuthHeaderClient(),
       });

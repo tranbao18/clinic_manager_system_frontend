@@ -91,6 +91,24 @@ const UsersService = {
     if (!response.ok) throw new Error("Không thể cập nhật tài khoản");
     return response.json();
   },
+  // Update own account (employee fields) via auth/account endpoint
+  async updateAccount(userId: string, employeeData: any) {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${BASE_URL}/api/auth/account/${userId}`, {
+      method: "PUT",
+      headers: {
+        ...headers,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(employeeData),
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || "Không thể cập nhật thông tin cá nhân");
+    }
+    return response.json();
+  },
 
   async delete(id: string) {
     const headers = await getAuthHeaders();

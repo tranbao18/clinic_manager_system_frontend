@@ -15,10 +15,11 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/navigation";
-import { 
-    getDisabledMedicalRecords, 
-    restoreMedicalRecord, 
-    MedicalRecord 
+import {
+    getDisabledMedicalRecords,
+    restoreMedicalRecord,
+    deleteMedicalRecord,
+    MedicalRecord
 } from "@/lib/services/medicalRecordService";
 import { UndoOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
@@ -93,17 +94,12 @@ export default function DisabledMedicalRecordsPage() {
         }
     };
 
+    // Permanent delete and bulk permanent delete are disabled for deleted medical records list.
+
     const formatDate = (date: string) =>
         date ? dayjs(date).format("DD/MM/YYYY HH:mm") : "—";
 
     const columns: ColumnsType<MedicalRecord> = [
-        {
-            title: "Ngày tạo",
-            dataIndex: "created_at",
-            key: "created_at",
-            width: 150,
-            render: (date: string) => formatDate(date),
-        },
         {
             title: "Bệnh nhân",
             key: "patient",
@@ -132,23 +128,6 @@ export default function DisabledMedicalRecordsPage() {
             key: "diagnosis",
             width: 250,
             ellipsis: true,
-        },
-        {
-            title: "Toa thuốc",
-            key: "prescriptions",
-            width: 100,
-            render: (_, record) => {
-                const count = record.prescriptions?.length || 0;
-                return count > 0 ? <Tag color="blue">{count} thuốc</Tag> : <Tag>Không có</Tag>;
-            },
-        },
-        {
-            title: "Trạng thái",
-            key: "status",
-            width: 100,
-            render: () => (
-                <Tag color="red">Đã xóa</Tag>
-            ),
         },
         {
             title: "Hành động",
@@ -229,8 +208,8 @@ export default function DisabledMedicalRecordsPage() {
                                             <div className="space-y-1">
                                                 {record.prescriptions.map((p: any, idx: number) => (
                                                     <div key={idx} className="text-sm">
-                                                        • {typeof p.medicine_id === 'object' 
-                                                            ? p.medicine_id.name 
+                                                        • {typeof p.medicine_id === 'object'
+                                                            ? p.medicine_id.name
                                                             : '—'} - Số lượng: {p.quantity} - Liều: {p.dosage}
                                                     </div>
                                                 ))}

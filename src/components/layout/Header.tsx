@@ -12,6 +12,7 @@ import {
 import { useEffect, useState } from "react";
 import { UserOutlined } from "@ant-design/icons";
 import AuthService from "@/lib/services/authService";
+import NotificationBell from "./NotificationBell";
 
 const { Header: AntHeader } = Layout;
 
@@ -45,13 +46,13 @@ export default function Header() {
     try {
       // Gọi AuthService logout để xóa token ở backend và frontend
       await AuthService.logout();
-      
+
       // Xóa session (thông qua /api/logout route)
       await fetch("/auth/logout", {
         method: "POST",
         credentials: "include",
       });
-      
+
       router.push("/auth/login");
     } catch (err) {
       console.error("Logout failed", err);
@@ -66,25 +67,29 @@ export default function Header() {
     <AntHeader className="bg-white flex justify-between items-center px-4 shadow">
       <div className="flex items-center gap-4"></div>
 
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <div className="flex items-center gap-2 cursor-pointer">
-            <Avatar
-              size={36}
-              className="bg-gray-500"
-              icon={<UserOutlined />}
-            />
-            <span>{user?.username || "User"}</span>
-          </div>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent>
-          {/* ✅ Click chuyển đến trang Profile */}
-          <DropdownMenuItem onClick={() => router.push("/dashboard/profile")}>
-            Profile
-          </DropdownMenuItem>
-          <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="flex items-center gap-4">
+        <NotificationBell />
+
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <div className="flex items-center gap-2 cursor-pointer">
+              <Avatar
+                size={36}
+                className="bg-gray-500"
+                icon={<UserOutlined />}
+              />
+              <span>{user?.username || "User"}</span>
+            </div>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            {/* ✅ Click chuyển đến trang Profile */}
+            <DropdownMenuItem onClick={() => router.push("/dashboard/profile")}>
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleLogout}>Logout</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
     </AntHeader>
   );
 }

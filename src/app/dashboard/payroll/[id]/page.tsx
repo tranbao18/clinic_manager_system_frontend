@@ -97,9 +97,18 @@ export default function PayrollDetailPage() {
     try {
       setSaving(true);
 
+      // Ensure we send net_salary and basic_salary to backend so DB stays consistent.
+      // Use form values if available, otherwise fallback to current payroll values.
+      const basicSalaryValue = form.getFieldValue("basic_salary") ?? (payroll?.basic_salary ?? 0);
+      const bonusValue = values.bonus ?? form.getFieldValue("bonus") ?? (payroll?.bonus ?? 0);
+      const deductionsValue = values.deductions ?? form.getFieldValue("deductions") ?? (payroll?.deductions ?? 0);
+      const computedNetSalary = basicSalaryValue + bonusValue - deductionsValue;
+
       const payload: UpdatePayrollData = {
-        bonus: values.bonus || 0,
-        deductions: values.deductions || 0,
+        basic_salary: basicSalaryValue,
+        bonus: bonusValue,
+        deductions: deductionsValue,
+        net_salary: computedNetSalary,
       };
 
       const result = await PayrollService.update(id as string, payload, sendEmail);
@@ -211,7 +220,7 @@ export default function PayrollDetailPage() {
                   {formatCurrency(payroll.net_salary)} đ
                 </strong>
               </Descriptions.Item>
-              <Descriptions.Item label="Ngày thanh toán">
+              <Descriptions.Item label="Ngày tạo">
                 {formatDate(payroll.paydate)}
               </Descriptions.Item>
               <Descriptions.Item label="Trạng thái email">

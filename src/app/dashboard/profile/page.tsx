@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import dayjs from "dayjs";
 import {
   Card,
   Avatar,
@@ -13,6 +14,7 @@ import {
   Form,
   Input,
   Modal,
+  DatePicker,
 } from "antd";
 import {
   UserOutlined,
@@ -34,6 +36,8 @@ export default function ProfilePage() {
   const [changingPassword, setChangingPassword] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [form] = Form.useForm();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editForm] = Form.useForm();
   const router = useRouter();
 
   useEffect(() => {
@@ -109,25 +113,74 @@ export default function ProfilePage() {
     }
   };
 
+  const openEditModal = () => {
+    editForm.setFieldsValue({
+      dob: data.employee?.dob ? dayjs(data.employee.dob) : null,
+      email: data.employee?.email || user?.email || "",
+      phone: data.employee?.phone || "",
+    });
+    setIsEditModalOpen(true);
+  };
+
+  const handleSubmitEditProfile = async (values: any) => {
+    try {
+      const userId = user?._id || user?.id;
+      if (!userId) throw new Error("Không tìm thấy user id");
+      // Prepare payload for employee fields
+      const payload: any = {};
+      if (values.dob) payload.dob = dayjs(values.dob).format("YYYY-MM-DD");
+      if (values.email !== undefined) payload.email = values.email;
+      if (values.phone !== undefined) payload.phone = values.phone;
+      await UsersService.updateAccount(userId, payload);
+      // Refresh canonical profile from server to avoid local timezone/format mismatch
+      const refreshed = await UsersService.getByUserId(userId);
+      setData(refreshed);
+      message.success("Cập nhật thông tin cá nhân thành công");
+      setIsEditModalOpen(false);
+    } catch (err: any) {
+      console.error("Update profile failed:", err);
+      message.error(err.message || "Cập nhật thất bại");
+    }
+  };
+
   return (
     <div className="p-6 flex justify-center bg-gray-50 min-h-screen">
       <Card
         className="w-full max-w-3xl shadow-xl rounded-2xl border border-gray-200"
         styles={{ body: { padding: "2rem" } }}
       >
-        {/* Header */}
-        <div className="flex flex-col items-center text-center mb-6">
-          <Avatar
-            size={96}
-            icon={<UserOutlined />}
-            className="mb-4 bg-blue-500"
-          />
-          <Title level={3} className="!mb-0">
-            {employee?.fullname || user?.username}
-          </Title>
-          <Text type="secondary" className="text-gray-500">
-            {employee?.position || user?.role || "Nhân viên"}
-          </Text>
+        {/* Header - themed banner */}
+        <div className="w-full mb-6">
+          <div className="relative rounded-2xl overflow-hidden">
+            <div className="bg-gradient-to-r from-[#0ea5a4] to-[#60a5fa] p-6 text-white">
+              <div className="flex items-center gap-6">
+                <Avatar
+                  size={96}
+                  src="/logo_phong_kham.png"
+                  className="!mb-0 ring-4 ring-white bg-white/10"
+                />
+                <div>
+                  <Title className="!mb-0 text-white/90">
+                    {employee?.fullname || user?.username}
+                  </Title>
+                  <Text className="text-white/90">
+                    {employee?.position || user?.role || "Nhân viên"}
+                  </Text>
+
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <span className="text-xs bg-white/20 px-2 py-1 rounded">ID: {employee?._id || "-"}</span>
+                    <span className="text-xs bg-white/20 px-2 py-1 rounded">Trạng thái: Hoạt động</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* decorative SVG */}
+            <svg className="absolute right-2 top-2 w-20 h-20 opacity-20" viewBox="0 0 24 24" fill="none" aria-hidden>
+              <path d="M12 2v6" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M8 8a4 4 0 1 0 8 0v6a4 4 0 1 1-8 0V8z" stroke="#fff" strokeWidth="1.2" strokeLinecap="round" />
+            </svg>
+          </div>
         </div>
 
         <Divider className="border-gray-200" />
@@ -135,50 +188,93 @@ export default function ProfilePage() {
         {/* Info section */}
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12}>
-            <Card
-              className="rounded-xl shadow-sm border border-gray-100"
-              size="small"
-            >
-              <p className="mb-2">
-                <IdcardOutlined className="text-blue-500 mr-2" />
-                <Text strong>Mã nhân viên:</Text> {employee?._id || "-"}
-              </p>
-              <p className="mb-2">
-                <MailOutlined className="text-blue-500 mr-2" />
-                <Text strong>Email:</Text> {employee?.email || user?.email || "-"}
-              </p>
-              <p>
-                <PhoneOutlined className="text-blue-500 mr-2" />
-                <Text strong>Điện thoại:</Text> {employee?.phone || "-"}
-              </p>
+            <Card className="rounded-xl shadow-sm border border-gray-100" size="small">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-md bg-gradient-to-br from-[#0ea5a4] to-[#60a5fa] flex items-center justify-center text-white">
+                  <IdcardOutlined />
+                </div>
+                <div>
+                  <Text strong className="block">Mã nhân viên</Text>
+                  <div className="text-sm">{employee?._id || "-"}</div>
+                </div>
+              </div>
+
+              <Divider className="my-4" />
+
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-md bg-gradient-to-br from-[#7dd3fc] to-[#60a5fa] flex items-center justify-center text-white">
+                  <MailOutlined />
+                </div>
+                <div>
+                  <Text strong className="block">Email</Text>
+                  <div className="text-sm">{employee?.email || user?.email || "-"}</div>
+                </div>
+              </div>
+
+              <Divider className="my-4" />
+
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-md bg-gradient-to-br from-[#34d399] to-[#0ea5a4] flex items-center justify-center text-white">
+                  <PhoneOutlined />
+                </div>
+                <div>
+                  <Text strong className="block">Điện thoại</Text>
+                  <div className="text-sm">{employee?.phone || "-"}</div>
+                </div>
+              </div>
             </Card>
           </Col>
 
           <Col xs={24} sm={12}>
-            <Card
-              className="rounded-xl shadow-sm border border-gray-100"
-              size="small"
-            >
-              <p className="mb-2">
-                <EnvironmentOutlined className="text-blue-500 mr-2" />
-                <Text strong>Ngày sinh:</Text> {employee?.dob
-              ? new Date(employee.dob).toLocaleDateString("vi-VN")
-              : "-"}
-              </p>
-              <p className="mb-2">
-                <UserOutlined className="text-blue-500 mr-2" />
-                <Text strong>Tài khoản:</Text> {user?.username || "-"}
-              </p>
-              <p>
-                <CalendarOutlined className="text-blue-500 mr-2" />
-                <Text strong>Ngày tạo:</Text>{" "}
-                {user?.created_at
-                  ? new Date(user.created_at).toLocaleDateString("vi-VN")
-                  : "-"}
-              </p>
+            <Card className="rounded-xl shadow-sm border border-gray-100" size="small">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-md bg-gradient-to-br from-[#60a5fa] to-[#7dd3fc] flex items-center justify-center text-white">
+                  <EnvironmentOutlined />
+                </div>
+                <div>
+                  <Text strong className="block">Ngày sinh</Text>
+                  <div className="text-sm">{employee?.dob ? new Date(employee.dob).toLocaleDateString("vi-VN") : "-"}</div>
+                </div>
+              </div>
+
+              <Divider className="my-4" />
+
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-md bg-gradient-to-br from-[#0ea5a4] to-[#34d399] flex items-center justify-center text-white">
+                  <UserOutlined />
+                </div>
+                <div>
+                  <Text strong className="block">Tài khoản</Text>
+                  <div className="text-sm">{user?.username || "-"}</div>
+                </div>
+              </div>
+
+              <Divider className="my-4" />
+
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-md bg-gradient-to-br from-[#60a5fa] to-[#0ea5a4] flex items-center justify-center text-white">
+                  <CalendarOutlined />
+                </div>
+                <div>
+                  <Text strong className="block">Ngày tạo</Text>
+                  <div className="text-sm">{user?.created_at ? new Date(user.created_at).toLocaleDateString("vi-VN") : "-"}</div>
+                </div>
+              </div>
             </Card>
           </Col>
         </Row>
+        <div className="mt-4 flex justify-end gap-2">
+          <Button onClick={() => {
+            openEditModal();
+          }}>
+            Chỉnh sửa thông tin
+          </Button>
+          {canSelfChangePassword && (
+            <Button type="primary" onClick={() => setIsModalOpen(true)}>
+              Đổi mật khẩu
+            </Button>
+          )}
+        </div>
 
         {canSelfChangePassword && (
           <>
@@ -253,6 +349,38 @@ export default function ProfilePage() {
             </Modal>
           </>
         )}
+
+        {/* Edit profile modal */}
+        <Modal
+          title="Chỉnh sửa thông tin cá nhân"
+          open={isEditModalOpen}
+          onCancel={() => {
+            setIsEditModalOpen(false);
+            editForm.resetFields();
+          }}
+          footer={null}
+          destroyOnHidden
+        >
+          <Form layout="vertical" form={editForm} onFinish={handleSubmitEditProfile}>
+            <Form.Item label="Email" name="email" rules={[{ type: "email", message: "Email không hợp lệ" }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="Số điện thoại" name="phone">
+              <Input />
+            </Form.Item>
+            <Form.Item label="Ngày sinh" name="dob">
+              <DatePicker style={{ width: "100%" }} />
+            </Form.Item>
+            <div className="text-right">
+              <Button className="mr-2" onClick={() => { setIsEditModalOpen(false); editForm.resetFields(); }}>
+                Hủy
+              </Button>
+              <Button type="primary" htmlType="submit">
+                Lưu
+              </Button>
+            </div>
+          </Form>
+        </Modal>
 
         {/* Footer */}
         <Divider className="border-gray-200 mt-6" />

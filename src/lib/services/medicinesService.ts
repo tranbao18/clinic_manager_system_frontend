@@ -130,3 +130,25 @@ export async function restoreMedicine(id: string): Promise<Medicine> {
     return res.json();
 }
 
+// ❌ Xóa vĩnh viễn thuốc (hard delete)
+export async function hardDeleteMedicine(id: string): Promise<void> {
+    const res = await fetch(`/api/medicines/${id}?hard=true`, { method: "DELETE" });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Không thể xóa vĩnh viễn thuốc" }));
+        throw new Error(error.error || "Không thể xóa vĩnh viễn thuốc");
+    }
+}
+
+// ❌ Xóa vĩnh viễn nhiều thuốc (bulk hard delete). Body: { ids: string[] }
+export async function hardDeleteMedicines(ids: string[]): Promise<void> {
+    const res = await fetch(`/api/medicines/bulk-delete?hard=true`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ids }),
+    });
+    if (!res.ok) {
+        const error = await res.json().catch(() => ({ error: "Không thể xóa vĩnh viễn các thuốc" }));
+        throw new Error(error.error || "Không thể xóa vĩnh viễn các thuốc");
+    }
+}
+

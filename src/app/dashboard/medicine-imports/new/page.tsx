@@ -29,6 +29,7 @@ export default function NewMedicineImportPage() {
     const [employees, setEmployees] = useState<any[]>([]);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    // keep this page focused on form import only
 
     useEffect(() => {
         const fetchData = async () => {
@@ -91,6 +92,8 @@ export default function NewMedicineImportPage() {
             setSaving(false);
         }
     };
+
+    // form-only create page; bulk import handled from list page modal
 
     if (loading) {
         return (

@@ -66,8 +66,9 @@ export async function updateMedicalRecord(
 }
 
 // ❌ Xóa hồ sơ y tế (soft delete - set disabled: true)
-export async function deleteMedicalRecord(id: string): Promise<void> {
-    const res = await fetch(`/api/medical-records/${id}`, { method: "DELETE" });
+export async function deleteMedicalRecord(id: string, permanent = false): Promise<void> {
+    const url = `/api/medical-records/${id}` + (permanent ? "?hard=true" : "");
+    const res = await fetch(url, { method: "DELETE" });
     if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Không thể xóa hồ sơ y tế" }));
         throw new Error(error.error || error.message || "Không thể xóa hồ sơ y tế");

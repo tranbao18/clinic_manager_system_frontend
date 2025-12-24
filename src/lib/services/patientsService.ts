@@ -56,8 +56,9 @@ export async function updatePatient(
 }
 
 // ❌ Xóa bệnh nhân (soft delete - set disabled: true)
-export async function deletePatient(id: string): Promise<void> {
-    const res = await fetch(`/api/patients/${id}`, { method: "DELETE" });
+export async function deletePatient(id: string, permanent = false): Promise<void> {
+    const url = `/api/patients/${id}` + (permanent ? "?hard=true" : "");
+    const res = await fetch(url, { method: "DELETE" });
     if (!res.ok) throw new Error("Không thể xóa bệnh nhân");
 }
 

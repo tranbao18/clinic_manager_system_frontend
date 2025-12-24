@@ -13,7 +13,7 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/navigation";
-import { getDisabledPatients, restorePatient, Patient } from "@/lib/services/patientsService";
+import { getDisabledPatients, restorePatient, deletePatient, Patient } from "@/lib/services/patientsService";
 import { UndoOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 
 const { Search } = Input;
@@ -27,6 +27,9 @@ const mapGenderFromApiValue = (gender: string) => {
 export default function DisabledPatientsPage() {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
+    const [deletingPatientId, setDeletingPatientId] = useState<string | null>(null);
+    const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+    const [bulkDeleting, setBulkDeleting] = useState(false);
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState("");
     const router = useRouter();
@@ -87,6 +90,44 @@ export default function DisabledPatientsPage() {
         }
     };
 
+    const handlePermanentDelete = async (id: string) => {
+        try {
+            setDeletingPatientId(id);
+            await deletePatient(id, true);
+            message.success("Đã xóa vĩnh viễn bệnh nhân");
+            fetchPatients();
+        } catch (err: any) {
+            console.error("Permanent delete patient failed:", err);
+            message.error(err.message || "Xóa vĩnh viễn thất bại");
+        } finally {
+            setDeletingPatientId(null);
+        }
+    };
+
+    const handleBulkPermanentDelete = async () => {
+        if (!selectedRowKeys || selectedRowKeys.length === 0) return;
+        const ids = selectedRowKeys.map(k => String(k));
+        try {
+            setBulkDeleting(true);
+            const results = await Promise.allSettled(ids.map(id => deletePatient(id, true)));
+            const successCount = results.filter(r => r.status === "fulfilled").length;
+            const failCount = results.length - successCount;
+            if (successCount > 0) {
+                message.success(`Đã xóa vĩnh viễn ${successCount} bệnh nhân`);
+            }
+            if (failCount > 0) {
+                message.error(`${failCount} bệnh nhân xóa thất bại`);
+            }
+            setSelectedRowKeys([]);
+            fetchPatients();
+        } catch (err: any) {
+            console.error("Bulk delete patients failed:", err);
+            message.error(err.message || "Xóa hàng loạt thất bại");
+        } finally {
+            setBulkDeleting(false);
+        }
+    };
+
     const columns: ColumnsType<Patient> = [
         {
             title: "Họ và tên",
@@ -130,6 +171,19 @@ export default function DisabledPatientsPage() {
                             Khôi phục
                         </Button>
                     </Popconfirm>
+                    <Popconfirm
+                        title="Xóa vĩnh viễn sẽ không thể khôi phục. Tiếp tục?"
+                        onConfirm={() => handlePermanentDelete(record._id)}
+                        okText="Xóa vĩnh viễn"
+                        cancelText="Hủy"
+                    >
+                        <Button
+                            danger
+                            loading={deletingPatientId === record._id}
+                        >
+                            Xóa vĩnh viễn
+                        </Button>
+                    </Popconfirm>
                 </div>
             ),
         },
@@ -147,7 +201,7 @@ export default function DisabledPatientsPage() {
                         Quay lại
                     </Button>
                     <h1 className="text-2xl font-bold">Danh sách bệnh nhân đã xóa</h1>
-                    
+
                 </div>
             </div>
 
@@ -159,6 +213,22 @@ export default function DisabledPatientsPage() {
                     onSearch={onSearch}
                     style={{ width: 300 }}
                 />
+                <div className="ml-4">
+                    <Popconfirm
+                        title={() => `Bạn có chắc chắn muốn xóa vĩnh viễn ${selectedRowKeys.length} bệnh nhân đã chọn?`}
+                        onConfirm={handleBulkPermanentDelete}
+                        okText="Xóa vĩnh viễn"
+                        cancelText="Hủy"
+                        okButtonProps={{ loading: bulkDeleting }}
+                    >
+                        <Button
+                            danger
+                            disabled={selectedRowKeys.length === 0}
+                        >
+                            Xóa vĩnh viễn (hàng loạt)
+                        </Button>
+                    </Popconfirm>
+                </div>
             </Space>
 
             {loading ? (
@@ -168,6 +238,13 @@ export default function DisabledPatientsPage() {
             ) : (
                 <Table
                     rowKey="_id"
+                    rowSelection={{
+                        selectedRowKeys,
+                        onChange: (keys) => setSelectedRowKeys(keys as string[]),
+                        getCheckboxProps: (record) => ({
+                            disabled: bulkDeleting || deletingPatientId === record._id,
+                        }),
+                    }}
                     columns={columns}
                     dataSource={filteredPatients}
                     pagination={{ pageSize: 8 }}

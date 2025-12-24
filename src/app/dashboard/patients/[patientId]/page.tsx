@@ -42,7 +42,7 @@ import {
     getInvoicesByPatientId,
     Invoice,
 } from "@/lib/services/invoiceService";
-import { getAppointments, Appointment } from "@/lib/services/appointmentsService";
+import { getAppointments, Appointment, updateAppointment } from "@/lib/services/appointmentsService";
 
 // 🔹 Hàm chuyển đổi giới tính theo backend
 const mapGenderToApiValue = (gender: string) => {
@@ -309,6 +309,19 @@ export default function PatientDetailPage() {
                 (p: any) => p.medicine_id && p.quantity && p.dosage
             );
 
+            // Kiểm tra trùng thuốc trong toa (bổ sung validation server-side trước khi gửi)
+            const medIdCounts: Record<string, number> = {};
+            for (const p of validPrescriptions) {
+                const mid = String(p.medicine_id);
+                medIdCounts[mid] = (medIdCounts[mid] || 0) + 1;
+            }
+            const duplicateMedId = Object.keys(medIdCounts).find((k) => medIdCounts[k] > 1);
+            if (duplicateMedId) {
+                message.error("Không được kê trùng cùng một loại thuốc trong cùng một toa");
+                setSavingRecord(false);
+                return;
+            }
+
             // Tạo payload, chỉ bao gồm các trường có giá trị
             const payload: any = {
                 patient_id: patientId,
@@ -393,6 +406,16 @@ export default function PatientDetailPage() {
             } else {
                 await createMedicalRecord(payload);
                 message.success("Tạo hồ sơ y tế thành công!");
+            }
+
+            // Nếu medical record được link tới một appointment thì cập nhật trạng thái appointment sang Completed
+            if (payload.appointment_id) {
+                try {
+                    await updateAppointment(payload.appointment_id, { status: "Completed" });
+                    console.log("✅ Cập nhật appointment sang Completed:", payload.appointment_id);
+                } catch (err) {
+                    console.error("Không thể cập nhật trạng thái appointment:", err);
+                }
             }
 
             // Reload danh sách
@@ -951,6 +974,7 @@ export default function PatientDetailPage() {
                                     : "Chưa có lịch hẹn"}
                                 allowClear
                                 disabled={appointments.length === 0}
+                                style={{ width: "100%" }}
                             >
                                 {appointments
                                     // Hiển thị tất cả appointments, ưu tiên Completed, Scheduled, Confirmed, In Progress
@@ -1084,7 +1108,32 @@ export default function PatientDetailPage() {
                                                                             <Form.Item
                                                                                 {...field}
                                                                                 name={[field.name, "medicine_id"]}
-                                                                                rules={[{ required: true, message: "Chọn thuốc" }]}
+                                                                                // Thêm validator để không cho chọn trùng thuốc trong cùng một toa
+                                                                                rules={[
+                                                                                    { required: true, message: "Chọn thuốc" },
+                                                                                    {
+                                                                                        validator: async (_rule, value) => {
+                                                                                            // Nếu chưa chọn thì bỏ qua (required sẽ bắt)
+                                                                                            if (!value) return Promise.resolve();
+                                                                                            try {
+                                                                                                const formValues = medicalRecordForm.getFieldsValue();
+                                                                                                const prescriptions = formValues.prescriptions || [];
+                                                                                                const currentValue = String(value);
+                                                                                                // Đếm số lần medicine_id xuất hiện
+                                                                                                const occurrences = prescriptions.reduce((acc: number, p: any) => {
+                                                                                                    if (!p || !p.medicine_id) return acc;
+                                                                                                    return acc + (String(p.medicine_id) === currentValue ? 1 : 0);
+                                                                                                }, 0);
+                                                                                                if (occurrences > 1) {
+                                                                                                    return Promise.reject(new Error("Không được chọn trùng thuốc trong cùng toa"));
+                                                                                                }
+                                                                                                return Promise.resolve();
+                                                                                            } catch (err) {
+                                                                                                return Promise.resolve();
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                ]}
                                                                                 className="mb-0"
                                                                             >
                                                                                 <Select

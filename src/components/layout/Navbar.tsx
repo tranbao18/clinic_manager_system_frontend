@@ -54,19 +54,104 @@ export default function Navbar() {
     };
 
     return (
-        <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
-            <div className="text-white text-center py-4 text-lg font-bold">CMS</div>
-            <Menu
-                theme="dark"
-                mode="inline"
-                items={menuItems.map((item) => ({
-                    key: item.key,
-                    icon: item.icon,
-                    label: item.label,
-                }))}
-                selectedKeys={[selectedKey]}
-                onClick={handleMenuClick}
-            />
+        <Sider
+            collapsible
+            collapsed={collapsed}
+            onCollapse={setCollapsed}
+            width={260}
+            collapsedWidth={80}
+            className="flex flex-col min-h-screen bg-gradient-to-b from-[#021425] to-[#07263a] text-white shadow-lg"
+        >
+            {/* Header / brand */}
+            <div
+                className="flex items-center justify-between px-4 py-4 cursor-pointer select-none"
+                role="button"
+                tabIndex={0}
+                onClick={() => setCollapsed(!collapsed)}
+                onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                        setCollapsed(!collapsed);
+                        e.preventDefault();
+                    }
+                }}
+            >
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-md bg-white/10 flex items-center justify-center overflow-hidden">
+                        <img
+                            src="/logo_phong_kham.png"
+                            alt="Logo Phòng khám"
+                            className="w-full h-full object-contain"
+                        />
+                    </div>
+                    {!collapsed && (
+                        <div>
+                            <div className="text-base font-bold">Phòng khám</div>
+                            <div className="text-xs text-white/70">Quản lý khám & dược</div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Visual indicator (not a separate interactive button) */}
+
+            </div>
+
+            {/* Menu area */}
+            <div className="px-2">
+                <Menu
+                    theme="dark"
+                    mode="inline"
+                    className="bg-transparent"
+                    items={menuItems.map((item) => ({
+                        key: item.key,
+                        icon: item.icon,
+                        label: !collapsed ? item.label : "",
+                    }))}
+                    selectedKeys={[selectedKey]}
+                    onClick={handleMenuClick}
+                />
+            </div>
+
+            {/* Footer / quick actions */}
+            <div className="mt-auto px-4 py-4 border-t border-white/5">
+                {!collapsed ? (
+                    <div className="flex items-center justify-between">
+                        <div className="text-sm text-white/80">Phiên làm việc</div>
+                        <button
+                            onClick={() => {
+                                // quick logout: clear session and redirect to login
+                                try {
+                                    localStorage.removeItem("token");
+                                    sessionStorage.removeItem("token");
+                                } catch (e) { }
+                                router.push("/auth/login");
+                            }}
+                            className="text-xs bg-white/10 px-3 py-1 rounded hover:bg-white/20"
+                        >
+                            Đăng xuất
+                        </button>
+                    </div>
+                ) : (
+                    <div className="flex items-center justify-center">
+                        <button
+                            onClick={() => {
+                                try {
+                                    localStorage.removeItem("token");
+                                    sessionStorage.removeItem("token");
+                                } catch (e) { }
+                                router.push("/auth/login");
+                            }}
+                            className="p-2 rounded hover:bg-white/5"
+                            title="Đăng xuất"
+                        >
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
+                                <path d="M16 17l5-5-5-5" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M21 12H9" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                                <path d="M9 19H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h3" stroke="#fff" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
+            </div>
         </Sider>
     );
 }

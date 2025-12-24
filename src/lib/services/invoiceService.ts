@@ -246,8 +246,9 @@ export async function updateInvoiceStatus(id: string): Promise<Invoice> {
 }
 
 // ❌ Xóa hóa đơn (soft delete)
-export async function deleteInvoice(id: string): Promise<void> {
-  const res = await fetch(`/api/invoices/${id}`, { method: "DELETE" });
+export async function deleteInvoice(id: string, permanent = false): Promise<void> {
+  const url = `/api/invoices/${id}` + (permanent ? "?hard=true" : "");
+  const res = await fetch(url, { method: "DELETE" });
   if (!res.ok) {
     let detail = "";
     try {
@@ -257,4 +258,21 @@ export async function deleteInvoice(id: string): Promise<void> {
     }
     throw new Error(detail || "Không thể xóa hóa đơn");
   }
+}
+
+// 📦 Lấy danh sách hóa đơn đã xóa (disabled: true) - Admin only
+export async function getDisabledInvoices(): Promise<Invoice[]> {
+  const res = await fetch("/api/invoices?disabled=true", { cache: "no-store" });
+  if (!res.ok) throw new Error("Không thể lấy danh sách hóa đơn đã xóa");
+  return res.json();
+}
+
+// ♻️ Khôi phục hóa đơn (Admin only) - use dedicated restore endpoint
+export async function restoreInvoice(id: string): Promise<Invoice> {
+  const res = await fetch(`/api/invoices/${id}/restore`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+  });
+  if (!res.ok) throw new Error("Không thể khôi phục hóa đơn");
+  return res.json();
 }

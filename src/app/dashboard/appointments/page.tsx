@@ -57,7 +57,7 @@ export default function AppointmentsClient({
                     const userData = await userRes.json();
                     const role = userData.role || "";
                     const employeeId = userData.employee_id || null;
-                    
+
                     setUserRole(role);
                     setUserEmployeeId(employeeId);
                     // Chỉ Admin và Receptionist được quản lý appointments
@@ -109,7 +109,7 @@ export default function AppointmentsClient({
                     const appointmentsRes = await fetch("/api/appointments", { cache: "no-store" });
                     if (appointmentsRes.ok) {
                         const appointmentsData = await appointmentsRes.json();
-                        
+
                         // Map status từ API về UI values (API có thể trả về "warning"/"success"/"error" hoặc "Scheduled"/"Completed"/"Cancelled")
                         const mapApiToUiStatus = (s: string) => {
                             if (s === "warning") return "Scheduled";
@@ -124,18 +124,18 @@ export default function AppointmentsClient({
                         const findDoctor = (doctorId: string | null): Doctor | null => {
                             if (!doctorId) return null;
                             const normalizedDoctorId = String(doctorId);
-                            
+
                             // Tìm trong doctorsList trước
                             let doctor = doctorsList.find((d: Doctor) => {
                                 return String(d._id) === normalizedDoctorId;
                             });
-                            
+
                             // Nếu không tìm thấy, thử tìm trong allEmployeesData (có thể doctor chưa được filter vào doctorsList)
                             if (!doctor) {
                                 const employee = allEmployeesData.find((emp: any) => {
                                     return String(emp._id) === normalizedDoctorId;
                                 });
-                                
+
                                 if (employee) {
                                     doctor = {
                                         _id: String(employee._id),
@@ -148,7 +148,7 @@ export default function AppointmentsClient({
                                     }
                                 }
                             }
-                            
+
                             return doctor || null;
                         };
 
@@ -164,7 +164,7 @@ export default function AppointmentsClient({
                             // Normalize IDs to strings for comparison
                             const appointmentDoctorId = a.doctor_id ? String(a.doctor_id) : null;
                             const appointmentPatientId = a.patient_id ? String(a.patient_id) : null;
-                            
+
                             const doctor = findDoctor(appointmentDoctorId);
                             const patient = mappedPatients.find((p: Patient) => {
                                 const patientId = String(p._id);
@@ -228,19 +228,19 @@ export default function AppointmentsClient({
             if (!appointmentsRes.ok) throw new Error("Failed to refresh appointments");
 
             const appointmentsData = await appointmentsRes.json();
-            
+
             // Parse employees data một lần
             let employeesData: any[] = [];
             if (employeesRes.ok) {
                 employeesData = await employeesRes.json();
                 const doctorsList = Array.isArray(employeesData)
                     ? employeesData
-                          .filter((emp: any) => emp.position === "Bác sĩ")
-                          .map((emp: any) => ({
-                              _id: String(emp._id),
-                              fullname: emp.fullname,
-                              position: emp.position,
-                          }))
+                        .filter((emp: any) => emp.position === "Bác sĩ")
+                        .map((emp: any) => ({
+                            _id: String(emp._id),
+                            fullname: emp.fullname,
+                            position: emp.position,
+                        }))
                     : [];
                 setDoctors(doctorsList);
             }
@@ -264,28 +264,28 @@ export default function AppointmentsClient({
             const findDoctorInRefresh = (doctorId: string | null): Doctor | null => {
                 if (!doctorId) return null;
                 const normalizedDoctorId = String(doctorId);
-                
+
                 // Tìm trong currentDoctors trước
                 const currentDoctors = Array.isArray(employeesData)
                     ? employeesData
-                          .filter((emp: any) => emp.position === "Bác sĩ")
-                          .map((emp: any) => ({
-                              _id: String(emp._id),
-                              fullname: emp.fullname,
-                              position: emp.position,
-                          }))
+                        .filter((emp: any) => emp.position === "Bác sĩ")
+                        .map((emp: any) => ({
+                            _id: String(emp._id),
+                            fullname: emp.fullname,
+                            position: emp.position,
+                        }))
                     : doctors.map(d => ({ ...d, _id: String(d._id) }));
-                
+
                 let doctor = currentDoctors.find((d: Doctor) => {
                     return String(d._id) === normalizedDoctorId;
                 });
-                
+
                 // Nếu không tìm thấy, thử tìm trong toàn bộ employeesData
                 if (!doctor) {
                     const employee = employeesData.find((emp: any) => {
                         return String(emp._id) === normalizedDoctorId;
                     });
-                    
+
                     if (employee) {
                         doctor = {
                             _id: String(employee._id),
@@ -294,7 +294,7 @@ export default function AppointmentsClient({
                         };
                     }
                 }
-                
+
                 return doctor || null;
             };
 
@@ -310,7 +310,7 @@ export default function AppointmentsClient({
                 // Normalize IDs to strings for comparison
                 const appointmentDoctorId = a.doctor_id ? String(a.doctor_id) : null;
                 const appointmentPatientId = a.patient_id ? String(a.patient_id) : null;
-                
+
                 const doctor = findDoctorInRefresh(appointmentDoctorId);
                 const patient = mappedPatients.find((p: Patient) => {
                     const patientId = String(p._id);
@@ -363,12 +363,12 @@ export default function AppointmentsClient({
                 const employeesData = await employeesRes.json();
                 const doctorsList = Array.isArray(employeesData)
                     ? employeesData
-                          .filter((emp: any) => emp.position === "Bác sĩ")
-                          .map((emp: any) => ({
-                              _id: String(emp._id),
-                              fullname: emp.fullname,
-                              position: emp.position,
-                          }))
+                        .filter((emp: any) => emp.position === "Bác sĩ")
+                        .map((emp: any) => ({
+                            _id: String(emp._id),
+                            fullname: emp.fullname,
+                            position: emp.position,
+                        }))
                     : [];
                 setDoctors(doctorsList);
             }
@@ -389,13 +389,6 @@ export default function AppointmentsClient({
         <div>
             <div className="p-6 pb-0 flex justify-between items-center">
                 <h1 className="text-2xl font-bold">Lịch hẹn</h1>
-                {canManage && (
-                    <Button
-                        onClick={() => router.push("/dashboard/appointments/disabled")}
-                    >
-                        Thùng rác
-                    </Button>
-                )}
             </div>
             <CalendarLayout
                 appointments={appointments}

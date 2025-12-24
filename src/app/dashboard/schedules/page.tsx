@@ -20,6 +20,7 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import SchedulesService, { ShiftSchedule } from "@/lib/services/schedulesService";
+import { getAppointments, Appointment } from "@/lib/services/appointmentsService";
 import EmployeesService from "@/lib/services/employeesService";
 
 interface ScheduleItem {
@@ -99,10 +100,11 @@ export default function SchedulesPage() {
     const [currentMonth, setCurrentMonth] = useState(today.getMonth());
     const [currentYear, setCurrentYear] = useState(today.getFullYear());
     const [schedules, setSchedules] = useState<ShiftSchedule[]>([]);
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [employees, setEmployees] = useState<Array<{ _id: string; fullname: string; position: string }>>([]);
     const [role, setRole] = useState<string>("");
     const [loading, setLoading] = useState(true);
-    
+
     // Dialog states
     const [openDetailDialog, setOpenDetailDialog] = useState(false);
     const [openFormDialog, setOpenFormDialog] = useState(false);
@@ -112,7 +114,7 @@ export default function SchedulesPage() {
     const [selectedDate, setSelectedDate] = useState<Date | null>(null);
     const [selectedSchedules, setSelectedSchedules] = useState<ScheduleDetail[]>([]);
     const [editingScheduleDetail, setEditingScheduleDetail] = useState<ScheduleDetail | null>(null);
-    
+
     // Form states
     const [formEmployeeId, setFormEmployeeId] = useState<string>("");
     const [formDate, setFormDate] = useState<string>(""); // Lưu dạng YYYY-mm-dd
@@ -157,6 +159,20 @@ export default function SchedulesPage() {
             }
         };
         fetchSchedules();
+    }, []);
+
+    // Fetch appointments to determine completed appointments on dates
+    useEffect(() => {
+        const fetchAppointments = async () => {
+            try {
+                const data = await getAppointments();
+                setAppointments(Array.isArray(data) ? data : []);
+            } catch (err) {
+                console.error("Error fetching appointments:", err);
+                setAppointments([]);
+            }
+        };
+        fetchAppointments();
     }, []);
 
     // Fetch employees (for Admin only)
@@ -206,7 +222,7 @@ export default function SchedulesPage() {
                 const employee = employees.find(emp => emp._id === schedule.employee_id);
                 position = employee?.position;
             }
-            
+
             schedule.shift_schedule.forEach((item: ScheduleItem) => {
                 if (item.date === dateStr) {
                     details.push({
@@ -277,14 +293,14 @@ export default function SchedulesPage() {
     const validateTimeRange = (start: string, end: string): boolean => {
         const [startHours, startMinutes] = start.split(':').map(Number);
         const [endHours, endMinutes] = end.split(':').map(Number);
-        
+
         const startTotal = startHours * 60 + startMinutes;
         const endTotal = endHours * 60 + endMinutes;
-        
+
         // Check if end is after start (handle overnight shifts)
         let diff = endTotal - startTotal;
         if (diff < 0) diff += 24 * 60; // Add 24 hours if overnight
-        
+
         return diff >= 8 * 60; // At least 8 hours (480 minutes)
     };
 
@@ -300,7 +316,7 @@ export default function SchedulesPage() {
             if (!dateToSave && formDateDisplay) {
                 dateToSave = parseDateDisplay(formDateDisplay);
             }
-            
+
             if (!dateToSave) {
                 showNotification("warning", "Vui lòng chọn ngày");
                 return;
@@ -323,23 +339,23 @@ export default function SchedulesPage() {
 
             if (existingSchedule && Array.isArray(existingSchedule.shift_schedule)) {
                 newSchedule = [...existingSchedule.shift_schedule];
-                
+
                 // If editing, remove old item
                 if (editingScheduleDetail && editingScheduleDetail.employee_id === formEmployeeId) {
                     newSchedule = newSchedule.filter(
-                        item => !(item.date === editingScheduleDetail.date && 
-                                item.start === editingScheduleDetail.start && 
-                                item.end === editingScheduleDetail.end)
+                        item => !(item.date === editingScheduleDetail.date &&
+                            item.start === editingScheduleDetail.start &&
+                            item.end === editingScheduleDetail.end)
                     );
                 }
-                
-                                // Add or update item
-                                const existingIndex = newSchedule.findIndex(item => item.date === dateToSave);
-                                if (existingIndex >= 0) {
-                                    newSchedule[existingIndex] = scheduleItem;
-                                } else {
-                                    newSchedule.push(scheduleItem);
-                                }
+
+                // Add or update item
+                const existingIndex = newSchedule.findIndex(item => item.date === dateToSave);
+                if (existingIndex >= 0) {
+                    newSchedule[existingIndex] = scheduleItem;
+                } else {
+                    newSchedule.push(scheduleItem);
+                }
             } else {
                 newSchedule = [scheduleItem];
             }
@@ -371,12 +387,12 @@ export default function SchedulesPage() {
 
         try {
             const existingSchedule = schedules.find(s => s.employee_id === editingScheduleDetail.employee_id);
-            
+
             if (existingSchedule && Array.isArray(existingSchedule.shift_schedule)) {
                 const newSchedule = existingSchedule.shift_schedule.filter(
-                    item => !(item.date === editingScheduleDetail.date && 
-                            item.start === editingScheduleDetail.start && 
-                            item.end === editingScheduleDetail.end)
+                    item => !(item.date === editingScheduleDetail.date &&
+                        item.start === editingScheduleDetail.start &&
+                        item.end === editingScheduleDetail.end)
                 );
 
                 if (newSchedule.length === 0) {
@@ -534,20 +550,38 @@ export default function SchedulesPage() {
                                             "p-2 border rounded text-sm min-h-[80px] text-left transition",
                                             daySchedules.length > 0 && "cursor-pointer hover:bg-blue-50",
                                             formatDateInput(date) === formatDateInput(today) &&
-                                                "bg-blue-100 font-bold"
+                                            "bg-blue-100 font-bold"
                                         )}
                                     >
                                         <div className="font-medium">{date.getDate()}</div>
                                         <div className="space-y-1 mt-1">
                                             {daySchedules.length > 0 ? (
-                                                daySchedules.map((s, i) => (
-                                                    <div
-                                                        key={i}
-                                                        className="p-1 rounded text-xs truncate bg-green-100 text-green-700"
-                                                    >
-                                                        {s.employee_name} ({formatTimeDisplay(s.start)} - {formatTimeDisplay(s.end)})
-                                                    </div>
-                                                ))
+                                                daySchedules.map((s, i) => {
+                                                    // Kiểm tra nếu có appointment của bác sĩ (employee_id) vào ngày này và trạng thái Completed
+                                                    const hasCompletedAppointment = appointments.some((apt) => {
+                                                        try {
+                                                            const aptDate = new Date(apt.appointment_date);
+                                                            const aptDateStr = formatDateInput(aptDate);
+                                                            return String(apt.doctor_id) === String(s.employee_id) &&
+                                                                aptDateStr === formatDateInput(date) &&
+                                                                (apt.status === "Completed" || apt.status === "completed" || apt.status === "Hoàn thành");
+                                                        } catch (e) {
+                                                            return false;
+                                                        }
+                                                    });
+
+                                                    return (
+                                                        <div
+                                                            key={i}
+                                                            className={cn(
+                                                                "p-1 rounded text-xs truncate",
+                                                                hasCompletedAppointment ? "bg-gray-200 text-gray-700" : "bg-green-100 text-green-700"
+                                                            )}
+                                                        >
+                                                            {s.employee_name} ({formatTimeDisplay(s.start)} - {formatTimeDisplay(s.end)}){hasCompletedAppointment ? " — Đã khám" : ""}
+                                                        </div>
+                                                    );
+                                                })
                                             ) : (
                                                 <div className="text-muted-foreground text-xs italic">
                                                     &nbsp;
@@ -612,7 +646,7 @@ export default function SchedulesPage() {
                             {editingScheduleDetail ? "Chỉnh sửa lịch trực" : "Thêm lịch trực"}
                         </DialogTitle>
                         <DialogDescription>
-                            {editingScheduleDetail 
+                            {editingScheduleDetail
                                 ? "Cập nhật thông tin lịch trực."
                                 : "Điền thông tin để tạo lịch trực mới. Thời gian trực tối thiểu là 8 giờ."}
                         </DialogDescription>
@@ -667,7 +701,7 @@ export default function SchedulesPage() {
                                     ✓ Ngày đã chọn: {formatDateDisplay(formDate)}
                                 </p>
                             )}
-                            
+
                             {/* Date Picker Calendar */}
                             {openDatePicker && (
                                 <div className="absolute z-50 mt-2 bg-white border rounded-lg shadow-lg p-4 w-[320px] left-0">
@@ -708,23 +742,23 @@ export default function SchedulesPage() {
                                             →
                                         </button>
                                     </div>
-                                    
+
                                     <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold mb-2">
                                         {weekdays.map((day) => (
                                             <div key={day} className="p-2">{day}</div>
                                         ))}
                                     </div>
-                                    
+
                                     <div className="grid grid-cols-7 gap-1">
                                         {generateCalendar(datePickerYear, datePickerMonth).flat().map((date, idx) => {
                                             if (!date) {
                                                 return <div key={idx} className="p-2"></div>;
                                             }
-                                            
+
                                             const dateStr = formatDateInput(date);
                                             const isSelected = formDate === dateStr;
                                             const isToday = formatDateInput(today) === dateStr;
-                                            
+
                                             return (
                                                 <button
                                                     key={idx}
@@ -742,7 +776,7 @@ export default function SchedulesPage() {
                                             );
                                         })}
                                     </div>
-                                    
+
                                     <div className="flex justify-end gap-2 mt-4">
                                         <Button
                                             type="button"
@@ -839,7 +873,7 @@ export default function SchedulesPage() {
                             notificationMessage?.type === "error" && "text-red-600",
                             notificationMessage?.type === "warning" && "text-yellow-600"
                         )}>
-                            {notificationMessage?.type === "success" && "Thành công"} 
+                            {notificationMessage?.type === "success" && "Thành công"}
                             {notificationMessage?.type === "error" && "Lỗi"}
                             {notificationMessage?.type === "warning" && "Cảnh báo"}
                         </DialogTitle>

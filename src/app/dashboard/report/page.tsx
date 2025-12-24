@@ -13,7 +13,9 @@ import {
     pieArcLabelClasses,
 } from "@mui/x-charts";
 import { Box } from "@mui/material";
-import { Spin, message } from "antd";
+import { Spin, Select, Button, InputNumber, Modal } from "antd";
+import { getAuthHeaderClient } from "@/lib/authHeaderClient";
+// dayjs removed; not needed for export-only flow
 
 interface InventoryItem {
     medicine_id: string;
@@ -44,6 +46,8 @@ export default function ReportsPage() {
     const [totalValue, setTotalValue] = useState<number>(0);
     const [monthlyProfitLoss, setMonthlyProfitLoss] =
         useState<ProfitLossMonthlyResponse | null>(null);
+    const [reportType, setReportType] = useState<string>("medicine-inventory-value");
+    const [exportYear, setExportYear] = useState<number>(() => new Date().getFullYear());
 
     useEffect(() => {
         const fetchData = async () => {
@@ -56,13 +60,12 @@ export default function ReportsPage() {
                 const startDate = `${year}-01-01`;
                 const endDate = `${year}-12-31`;
 
+                // Default load same data as before (inventory + totals + profit-loss)
                 const [invRes, qtyRes, valRes, plRes] = await Promise.all([
                     fetch("/api/reports/medicine/inventory"),
                     fetch("/api/reports/medicine/inventory/quantity"),
                     fetch("/api/reports/medicine/inventory/value"),
-                    fetch(
-                        `/api/reports/profit-loss/monthly?startDate=${startDate}&endDate=${endDate}`
-                    ),
+                    fetch(`/api/reports/profit-loss/monthly?startDate=${startDate}&endDate=${endDate}`),
                 ]);
 
                 const invData = await invRes.json();
@@ -74,19 +77,13 @@ export default function ReportsPage() {
                     throw new Error(invData.error || "Không thể lấy tồn kho thuốc");
                 }
                 if (!qtyRes.ok) {
-                    throw new Error(
-                        qtyData.error || "Không thể lấy tổng số lượng tồn kho"
-                    );
+                    throw new Error(qtyData.error || "Không thể lấy tổng số lượng tồn kho");
                 }
                 if (!valRes.ok) {
-                    throw new Error(
-                        valData.error || "Không thể lấy tổng giá trị tồn kho"
-                    );
+                    throw new Error(valData.error || "Không thể lấy tổng giá trị tồn kho");
                 }
                 if (!plRes.ok) {
-                    throw new Error(
-                        plData.error || "Không thể lấy báo cáo lãi/lỗ theo tháng"
-                    );
+                    throw new Error(plData.error || "Không thể lấy báo cáo lãi/lỗ theo tháng");
                 }
 
                 setInventory(invData.data || []);
@@ -95,7 +92,7 @@ export default function ReportsPage() {
                 setMonthlyProfitLoss(plData);
             } catch (err: any) {
                 console.error("Fetch report data error:", err);
-                message.error(err.message || "Không thể tải dữ liệu báo cáo");
+                showError(err.message || "Không thể tải dữ liệu báo cáo");
             } finally {
                 setLoading(false);
             }
@@ -103,6 +100,64 @@ export default function ReportsPage() {
 
         fetchData();
     }, []);
+
+
+    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
+
+    const downloadBlob = async (url: string, filenameFallback: string) => {
+        const fullUrl = API_BASE ? `${API_BASE}${url}` : url;
+        const authHeader = getAuthHeaderClient();
+        const headers: Record<string, string> = { Accept: "*/*" };
+        if ((authHeader as any).Authorization) {
+            headers.Authorization = (authHeader as any).Authorization;
+        }
+        const res = await fetch(fullUrl, {
+            headers,
+        });
+        if (!res.ok) {
+            // Try to parse JSON error, otherwise fall back to text
+            const contentType = res.headers.get("content-type") || "";
+            let errMsg = "Download failed";
+            try {
+                if (contentType.includes("application/json")) {
+                    const errJson = await res.json();
+                    errMsg = errJson?.error || errJson?.message || JSON.stringify(errJson);
+                } else {
+                    const txt = await res.text();
+                    // strip HTML if it's long
+                    errMsg = txt ? (txt.length > 300 ? txt.slice(0, 300) + "..." : txt) : errMsg;
+                }
+            } catch (e) {
+                // ignore parsing errors
+            }
+            throw new Error(errMsg || "Download failed");
+        }
+
+        const blob = await res.blob();
+        const disposition = res.headers.get("content-disposition") || "";
+        let filename = filenameFallback;
+        const match = /filename="?(.*?)"?($|;)/.exec(disposition);
+        if (match && match[1]) filename = match[1];
+        const urlBlob = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = urlBlob;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(urlBlob);
+    };
+
+    // handleGenerate and generic handleExport removed — export buttons call downloadBlob directly
+
+    // Local lightweight toast helpers to avoid importing `message` from antd
+    const showError = (msg: string) => {
+        Modal.error({ title: "Lỗi", content: msg });
+    };
+
+    const showSuccess = (msg: string) => {
+        Modal.success({ title: "Thành công", content: msg });
+    };
 
     // Chuẩn bị dữ liệu cho LineChart (thu / chi theo tháng)
     const { xLabels, incomeSeries, expenseSeries } = useMemo(() => {
@@ -212,6 +267,56 @@ export default function ReportsPage() {
                 </div>
             ) : (
                 <>
+                    {/* Export selector + button */}
+                    <div className="flex flex-wrap items-center gap-4 mb-6">
+                        <Select
+                            value={reportType}
+                            onChange={(val) => setReportType(val)}
+                            options={[
+                                { label: "Tồn kho - Giá trị (Excel)", value: "medicine-inventory-value" },
+                                { label: "Tồn kho - Số lượng (Excel)", value: "medicine-inventory-quantity" },
+                                { label: "Lãi/lỗ theo năm (Excel)", value: "profit-loss-yearly" },
+                            ]}
+                            style={{ width: 320 }}
+                        />
+
+                        {reportType === "profit-loss-yearly" && (
+                            <InputNumber
+                                min={2000}
+                                max={2100}
+                                value={exportYear}
+                                onChange={(v) => setExportYear(Number(v || new Date().getFullYear()))}
+                            />
+                        )}
+
+                        <Button
+                            type="primary"
+                            onClick={async () => {
+                                try {
+                                    setLoading(true);
+                                    if (reportType === "medicine-inventory-value") {
+                                        await downloadBlob(`/api/reports/export?type=medicine-inventory-value&format=xlsx`, "medicine_inventory_value.xlsx");
+                                        showSuccess("Đã tải về file Excel (Tồn kho - Giá trị)");
+                                    } else if (reportType === "medicine-inventory-quantity") {
+                                        await downloadBlob(`/api/reports/export?type=medicine-inventory-quantity&format=xlsx`, "medicine_inventory_quantity.xlsx");
+                                        showSuccess("Đã tải về file Excel (Tồn kho - Số lượng)");
+                                    } else if (reportType === "profit-loss-yearly") {
+                                        const startYear = exportYear;
+                                        const endYear = exportYear;
+                                        await downloadBlob(`/api/reports/export?type=profit-loss-yearly&format=xlsx&startYear=${startYear}&endYear=${endYear}`, "profit_loss_yearly.xlsx");
+                                        showSuccess("Đã tải về file Excel (Lãi/lỗ năm)");
+                                    }
+                                } catch (err: any) {
+                                    showError(err?.message || "Xuất Excel thất bại");
+                                } finally {
+                                    setLoading(false);
+                                }
+                            }}
+                        >
+                            Xuất Excel
+                        </Button>
+                    </div>
+
                     {/* Cards */}
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                         {reportData.map((item, index) => (

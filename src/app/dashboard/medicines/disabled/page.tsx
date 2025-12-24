@@ -13,7 +13,7 @@ import {
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import { useRouter } from "next/navigation";
-import { getDisabledMedicines, restoreMedicine, Medicine } from "@/lib/services/medicinesService";
+import { getDisabledMedicines, restoreMedicine, hardDeleteMedicine, hardDeleteMedicines, Medicine } from "@/lib/services/medicinesService";
 import { UndoOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 
 const { Search } = Input;
@@ -21,6 +21,8 @@ const { Search } = Input;
 export default function DisabledMedicinesPage() {
     const [medicines, setMedicines] = useState<Medicine[]>([]);
     const [filteredMedicines, setFilteredMedicines] = useState<Medicine[]>([]);
+    const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+    const [deletingIds, setDeletingIds] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchText, setSearchText] = useState("");
     const router = useRouter();
@@ -80,6 +82,38 @@ export default function DisabledMedicinesPage() {
         }
     };
 
+    const handlePermanentDelete = async (id: string) => {
+        try {
+            setDeletingIds((prev) => [...prev, id]);
+            await hardDeleteMedicine(id);
+            message.success("Đã xóa vĩnh viễn");
+            // refresh
+            await fetchMedicines();
+            setSelectedRowKeys((prev) => prev.filter((k) => k !== id));
+        } catch (err: any) {
+            console.error(err);
+            message.error(err?.message || "Xóa vĩnh viễn thất bại");
+        } finally {
+            setDeletingIds((prev) => prev.filter((k) => k !== id));
+        }
+    };
+
+    const handleBulkPermanentDelete = async () => {
+        if (!selectedRowKeys || selectedRowKeys.length === 0) return;
+        try {
+            setDeletingIds(selectedRowKeys);
+            await hardDeleteMedicines(selectedRowKeys);
+            message.success("Đã xóa vĩnh viễn các thuốc đã chọn");
+            await fetchMedicines();
+            setSelectedRowKeys([]);
+        } catch (err: any) {
+            console.error(err);
+            message.error(err?.message || "Xóa hàng loạt thất bại");
+        } finally {
+            setDeletingIds([]);
+        }
+    };
+
     const columns: ColumnsType<Medicine> = [
         {
             title: "Tên thuốc",
@@ -136,7 +170,7 @@ export default function DisabledMedicinesPage() {
         {
             title: "Hành động",
             key: "action",
-            width: 200,
+            width: 260,
             render: (_, record) => (
                 <div className="flex gap-2">
                     <Popconfirm
@@ -147,6 +181,20 @@ export default function DisabledMedicinesPage() {
                     >
                         <Button type="primary" icon={<UndoOutlined />}>
                             Khôi phục
+                        </Button>
+                    </Popconfirm>
+
+                    <Popconfirm
+                        title="Xóa vĩnh viễn sẽ không thể khôi phục. Tiếp tục?"
+                        onConfirm={() => handlePermanentDelete(record._id)}
+                        okText="Xóa vĩnh viễn"
+                        cancelText="Hủy"
+                    >
+                        <Button
+                            danger
+                            loading={deletingIds.includes(record._id)}
+                        >
+                            Xóa vĩnh viễn
                         </Button>
                     </Popconfirm>
                 </div>
@@ -178,6 +226,21 @@ export default function DisabledMedicinesPage() {
                     onSearch={onSearch}
                     style={{ width: 300 }}
                 />
+                <div className="ml-4">
+                    <Popconfirm
+                        title="Xóa vĩnh viễn các thuốc đã chọn sẽ không thể khôi phục. Tiếp tục?"
+                        onConfirm={handleBulkPermanentDelete}
+                        okText="Xóa vĩnh viễn"
+                        cancelText="Hủy"
+                    >
+                        <Button
+                            danger
+                            disabled={selectedRowKeys.length === 0}
+                        >
+                            Xóa vĩnh viễn đã chọn
+                        </Button>
+                    </Popconfirm>
+                </div>
             </Space>
 
             {loading ? (
@@ -191,6 +254,10 @@ export default function DisabledMedicinesPage() {
                     dataSource={filteredMedicines}
                     pagination={{ pageSize: 10 }}
                     bordered
+                    rowSelection={{
+                        selectedRowKeys,
+                        onChange: (keys: React.Key[]) => setSelectedRowKeys(keys as string[]),
+                    }}
                 />
             )}
         </div>
