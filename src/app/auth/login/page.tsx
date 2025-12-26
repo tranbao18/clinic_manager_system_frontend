@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { notification } from "antd";
+import { notification, Modal } from "antd";
 
 export default function LoginPage() {
   const [username, setUserName] = useState("");
@@ -10,6 +10,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const [api, contextHolder] = notification.useNotification();
+
+  // Forgot password modal state
+  const [forgotPasswordModalVisible, setForgotPasswordModalVisible] = useState(false);
+  const [forgotUsername, setForgotUsername] = useState("");
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotLoading, setForgotLoading] = useState(false);
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -63,6 +69,70 @@ export default function LoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!forgotUsername || !forgotEmail) {
+      api.warning({
+        message: "Thiếu thông tin",
+        description: "Vui lòng nhập đầy đủ username và email",
+      });
+      return;
+    }
+
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(forgotEmail)) {
+      api.warning({
+        message: "Email không hợp lệ",
+        description: "Vui lòng nhập địa chỉ email đúng định dạng",
+      });
+      return;
+    }
+
+    setForgotLoading(true);
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username: forgotUsername, email: forgotEmail }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        api.error({
+          message: "Không thể gửi email",
+          description: data.error || "Có lỗi xảy ra khi gửi email khôi phục mật khẩu",
+        });
+        return;
+      }
+
+      api.success({
+        message: "Email đã được gửi",
+        description: "Vui lòng kiểm tra hộp thư để nhận hướng dẫn khôi phục mật khẩu",
+      });
+
+      // Close modal and reset form
+      setForgotPasswordModalVisible(false);
+      setForgotUsername("");
+      setForgotEmail("");
+
+    } catch (err: unknown) {
+      const error = err instanceof Error ? err : new Error(String(err));
+      api.error({
+        message: "Lỗi hệ thống",
+        description: error.message || "Có lỗi xảy ra khi gửi yêu cầu",
+      });
+    } finally {
+      setForgotLoading(false);
+    }
+  };
+
+  const handleForgotPasswordModalClose = () => {
+    setForgotPasswordModalVisible(false);
+    setForgotUsername("");
+    setForgotEmail("");
   };
 
   return (
@@ -142,7 +212,16 @@ export default function LoginPage() {
               </div>
 
               <div>
-                <label htmlFor="password" className="text-sm text-gray-600 block mb-1">Mật khẩu</label>
+                <div className="flex justify-between items-center mb-1">
+                  <label htmlFor="password" className="text-sm text-gray-600">Mật khẩu</label>
+                  <button
+                    type="button"
+                    onClick={() => setForgotPasswordModalVisible(true)}
+                    className="text-sm text-[#60a5fa] hover:text-[#089191] hover:underline bg-transparent border-none p-0 cursor-pointer"
+                  >
+                    Quên mật khẩu?
+                  </button>
+                </div>
                 <input
                   id="password"
                   type="password"
@@ -164,6 +243,81 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* Forgot Password Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white overflow-hidden bg-[#0ea5a4]">
+              <img
+                src="/logo_phong_kham.png"
+                alt="Logo"
+                className="w-full h-full object-contain"
+              />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold m-0">Quên mật khẩu</h3>
+            </div>
+          </div>
+        }
+        open={forgotPasswordModalVisible}
+        onCancel={handleForgotPasswordModalClose}
+        footer={null}
+        centered
+        width={400}
+      >
+        <div className="py-4">
+          <p className="text-sm text-gray-600 mb-4">
+            Nhập username và email của bạn để nhận hướng dẫn khôi phục mật khẩu.
+          </p>
+
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="forgot-username" className="text-sm text-gray-600 block mb-1">
+                Tên đăng nhập
+              </label>
+              <input
+                id="forgot-username"
+                type="text"
+                className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#60a5fa]"
+                value={forgotUsername}
+                onChange={(e) => setForgotUsername(e.target.value)}
+                placeholder="Nhập tên đăng nhập"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="forgot-email" className="text-sm text-gray-600 block mb-1">
+                Địa chỉ email
+              </label>
+              <input
+                id="forgot-email"
+                type="email"
+                className="w-full p-3 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#60a5fa]"
+                value={forgotEmail}
+                onChange={(e) => setForgotEmail(e.target.value)}
+                placeholder="Nhập địa chỉ email"
+              />
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button
+                onClick={handleForgotPassword}
+                disabled={forgotLoading}
+                className="flex-1 bg-[#0ea5a4] text-white py-2 px-4 rounded-lg hover:bg-[#089191] disabled:opacity-60 text-sm font-medium"
+              >
+                {forgotLoading ? "Đang gửi..." : "Gửi yêu cầu"}
+              </button>
+              <button
+                onClick={handleForgotPasswordModalClose}
+                className="flex-1 bg-gray-200 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-300 text-sm font-medium"
+              >
+                Hủy
+              </button>
+            </div>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
