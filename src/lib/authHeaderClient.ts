@@ -1,4 +1,4 @@
-// src/lib/authHeaderClient.ts
+// TỰ VIẾT
 'use client';
 
 export function getAuthHeaderClient() {

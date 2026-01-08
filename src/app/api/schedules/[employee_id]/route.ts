@@ -1,4 +1,4 @@
-// src/app/api/schedules/[employee_id]/route.ts
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
@@ -6,7 +6,6 @@ const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL
     ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/schedules`
     : "http://127.0.0.1:5050/api/schedules";
 
-// GET /api/schedules/[employee_id] - Lấy lịch trực của một nhân viên
 export async function GET(
     req: Request,
     context: { params: Promise<{ employee_id: string }> }
@@ -36,7 +35,6 @@ export async function GET(
         console.error("GET /api/schedules/[employee_id] exception:", err);
         const error = err instanceof Error ? err : { message: "Lỗi hệ thống", code: "" };
         const message = error.message || "Lỗi hệ thống";
-        // Kiểm tra nếu là lỗi kết nối
         if ((error as any).code === 'ECONNREFUSED' || message.includes('fetch failed')) {
             return NextResponse.json(
                 { error: "Không thể kết nối đến server backend. Vui lòng kiểm tra xem backend đã chạy chưa." },
@@ -47,7 +45,6 @@ export async function GET(
     }
 }
 
-// PUT /api/schedules/[employee_id] - Cập nhật lịch trực (chỉ Admin)
 export async function PUT(
     req: Request,
     context: { params: Promise<{ employee_id: string }> }
@@ -83,7 +80,6 @@ export async function PUT(
         console.error("PUT /api/schedules/[employee_id] exception:", err);
         const error = err instanceof Error ? err : { message: "Lỗi hệ thống", code: "" };
         const message = error.message || "Lỗi hệ thống";
-        // Kiểm tra nếu là lỗi kết nối
         if ((error as any).code === 'ECONNREFUSED' || message.includes('fetch failed')) {
             return NextResponse.json(
                 { error: "Không thể kết nối đến server backend. Vui lòng kiểm tra xem backend đã chạy chưa." },
@@ -94,7 +90,6 @@ export async function PUT(
     }
 }
 
-// DELETE /api/schedules/[employee_id] - Xóa lịch trực (chỉ Admin)
 export async function DELETE(
     req: Request,
     context: { params: Promise<{ employee_id: string }> }
@@ -125,7 +120,6 @@ export async function DELETE(
         console.error("DELETE /api/schedules/[employee_id] exception:", err);
         const error = err instanceof Error ? err : { message: "Lỗi hệ thống", code: "" };
         const message = error.message || "Lỗi hệ thống";
-        // Kiểm tra nếu là lỗi kết nối
         if ((error as any).code === 'ECONNREFUSED' || message.includes('fetch failed')) {
             return NextResponse.json(
                 { error: "Không thể kết nối đến server backend. Vui lòng kiểm tra xem backend đã chạy chưa." },

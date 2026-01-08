@@ -15,7 +15,6 @@ import {
 import { Box } from "@mui/material";
 import { Spin, Select, Button, InputNumber, Modal } from "antd";
 import { getAuthHeaderClient } from "@/lib/authHeaderClient";
-// dayjs removed; not needed for export-only flow
 
 interface InventoryItem {
     medicine_id: string;
@@ -54,13 +53,11 @@ export default function ReportsPage() {
             try {
                 setLoading(true);
 
-                // Lấy năm hiện tại để tính lãi/lỗ theo tháng trong năm
                 const now = new Date();
                 const year = now.getFullYear();
                 const startDate = `${year}-01-01`;
                 const endDate = `${year}-12-31`;
 
-                // Default load same data as before (inventory + totals + profit-loss)
                 const [invRes, qtyRes, valRes, plRes] = await Promise.all([
                     fetch("/api/reports/medicine/inventory"),
                     fetch("/api/reports/medicine/inventory/quantity"),
@@ -115,7 +112,6 @@ export default function ReportsPage() {
             headers,
         });
         if (!res.ok) {
-            // Try to parse JSON error, otherwise fall back to text
             const contentType = res.headers.get("content-type") || "";
             let errMsg = "Download failed";
             try {
@@ -124,11 +120,9 @@ export default function ReportsPage() {
                     errMsg = errJson?.error || errJson?.message || JSON.stringify(errJson);
                 } else {
                     const txt = await res.text();
-                    // strip HTML if it's long
                     errMsg = txt ? (txt.length > 300 ? txt.slice(0, 300) + "..." : txt) : errMsg;
                 }
             } catch (e) {
-                // ignore parsing errors
             }
             throw new Error(errMsg || "Download failed");
         }
@@ -148,9 +142,7 @@ export default function ReportsPage() {
         window.URL.revokeObjectURL(urlBlob);
     };
 
-    // handleGenerate and generic handleExport removed — export buttons call downloadBlob directly
 
-    // Local lightweight toast helpers to avoid importing `message` from antd
     const showError = (msg: string) => {
         Modal.error({ title: "Lỗi", content: msg });
     };
@@ -159,7 +151,6 @@ export default function ReportsPage() {
         Modal.success({ title: "Thành công", content: msg });
     };
 
-    // Chuẩn bị dữ liệu cho LineChart (thu / chi theo tháng)
     const { xLabels, incomeSeries, expenseSeries } = useMemo(() => {
         if (!monthlyProfitLoss || !monthlyProfitLoss.data) {
             return { xLabels: [], incomeSeries: [], expenseSeries: [] };
@@ -174,7 +165,6 @@ export default function ReportsPage() {
             return (d.medicineCost || 0) + (d.payrollCost || 0);
         });
 
-        // Hiển thị nhãn dạng Th1, Th2,...
         const xLabels = keys.map((k) => {
             const month = Number(k.slice(5, 7));
             return `Th${month}`;
@@ -183,7 +173,6 @@ export default function ReportsPage() {
         return { xLabels, incomeSeries, expenseSeries };
     }, [monthlyProfitLoss]);
 
-    // Chuẩn bị dữ liệu cho PieChart tồn kho (top 5 + Khác)
     const stockData = useMemo(() => {
         if (!inventory || inventory.length === 0) return [];
         const sorted = [...inventory].sort(
@@ -215,7 +204,6 @@ export default function ReportsPage() {
             });
         }
 
-        // Nếu tổng = 0, tránh chia 0 khi hiển thị %
         if (total === 0) {
             return data;
         }
@@ -369,8 +357,6 @@ export default function ReportsPage() {
                                 series={[
                                     {
                                         data: stockData,
-                                        // Không hiển thị tên thuốc trực tiếp trên lát cắt,
-                                        // chỉ dùng legend bên phải.
                                         arcLabel: undefined,
                                         arcLabelMinAngle: 15,
                                         arcLabelRadius: "60%",

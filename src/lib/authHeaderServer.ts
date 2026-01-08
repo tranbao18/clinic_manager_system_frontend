@@ -1,4 +1,4 @@
-// src/lib/authHeaderServer.ts
+// TỰ VIẾT
 'use server';
 
 import { getIronSession } from "iron-session";

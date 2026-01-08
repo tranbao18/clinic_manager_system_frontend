@@ -1,10 +1,9 @@
-// src/app/api/reports/profit-loss/monthly/route.ts
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
-// 📈 GET - Lãi/Lỗ theo tháng trong khoảng ngày
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);

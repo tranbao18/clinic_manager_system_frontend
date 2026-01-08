@@ -1,10 +1,9 @@
-// src/app/api/medical-records/patient/[id]/route.ts
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
-// 📦 GET - Lấy danh sách hồ sơ y tế theo patient_id
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await context.params;

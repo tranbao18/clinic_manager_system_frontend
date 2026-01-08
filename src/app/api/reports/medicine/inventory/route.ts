@@ -1,10 +1,9 @@
-// src/app/api/reports/medicine/inventory/route.ts
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
-// 📦 GET - Tồn kho từng loại thuốc
 export async function GET() {
     try {
         const authHeaders = await getAuthHeaderServer();
@@ -23,7 +22,6 @@ export async function GET() {
         }
 
         const data = await res.json();
-        // Backend trả { success, data }
         return NextResponse.json(data);
     } catch (err: any) {
         console.error("GET /api/reports/medicine/inventory exception:", err);

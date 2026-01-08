@@ -20,7 +20,6 @@ export const printPrescription = (record: MedicalRecord, patient: Patient | null
     const patientPhone = patient?.phone || '—';
     const recordDate = formatDateTime(record.created_at);
 
-    // Format ngày sinh
     const formatDate = (dateString: string) => {
         if (!dateString) return '—';
         try {
@@ -36,7 +35,6 @@ export const printPrescription = (record: MedicalRecord, patient: Patient | null
 
     const patientDob = patient?.dob ? formatDate(patient.dob) : '—';
 
-    // Map giới tính từ backend sang hiển thị
     const mapGender = (gender: string | undefined) => {
         if (!gender) return '—';
         if (gender === "Male") return "Nam";

@@ -135,7 +135,7 @@ export default function DisabledAppointmentsPage() {
             ),
         },
     ];
-
+    // TỰ VIẾT
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-4">
@@ -148,7 +148,7 @@ export default function DisabledAppointmentsPage() {
                         Quay lại
                     </Button>
                     <h1 className="text-2xl font-bold">Danh sách lịch hẹn đã xóa</h1>
-                    
+
                 </div>
             </div>
 
@@ -177,5 +177,6 @@ export default function DisabledAppointmentsPage() {
             )}
         </div>
     );
+    // 
 }
 

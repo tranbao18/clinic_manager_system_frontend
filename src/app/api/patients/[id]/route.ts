@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
-const API_URL = "http://127.0.0.1:5050/api/patients";
+const API_URL_PATIENTS = "http://127.0.0.1:5050/api/patients";
 
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await context.params;
         const headers = await getAuthHeaderServer();
 
-        const res = await fetch(`${API_URL}/${id}`, { cache: "no-store", headers });
+        const res = await fetch(`${API_URL_PATIENTS}/${id}`, { cache: "no-store", headers });
         if (!res.ok) {
             const text = await res.text();
             console.error(`External API (GET patient ${id}) error:`, res.status, text);
@@ -32,7 +32,7 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
             "Content-Type": "application/json",
         };
 
-        const res = await fetch(`${API_URL}/${id}`, {
+        const res = await fetch(`${API_URL_PATIENTS}/${id}`, {
             method: "PUT",
             headers,
             body: JSON.stringify(body),
@@ -61,7 +61,7 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
         const headers = await getAuthHeaderServer();
         const { searchParams } = new URL(req.url);
         const hard = searchParams.get("hard");
-        let url = `${API_URL}/${id}`;
+        let url = `${API_URL_PATIENTS}/${id}`;
         if (hard === "true") url += `?hard=true`;
 
         const res = await fetch(url, { method: "DELETE", headers });
@@ -77,6 +77,39 @@ export async function DELETE(req: Request, context: { params: Promise<{ id: stri
         return NextResponse.json({ message: "Xóa bệnh nhân thành công" });
     } catch (err: any) {
         console.error("DELETE /api/patients/[id] exception:", err);
+        return NextResponse.json({ error: err.message || "Lỗi hệ thống" }, { status: 500 });
+    }
+}
+
+
+export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
+    try {
+        const { id } = await context.params;
+        const headers = await getAuthHeaderServer();
+        const body = await req.json().catch(() => ({}));
+
+        const res = await fetch(`${API_URL_PATIENTS}/${id}`, {
+            method: "PATCH",
+            headers: {
+                ...headers,
+                "Content-Type": "application/json",
+            },
+            body: Object.keys(body).length > 0 ? JSON.stringify(body) : undefined,
+        });
+
+        if (!res.ok) {
+            const text = await res.text();
+            console.error(`External API (PATCH patient ${id}) error:`, res.status, text);
+            return NextResponse.json(
+                { error: `Không thể cập nhật bệnh nhân ${id}`, detail: text },
+                { status: res.status }
+            );
+        }
+
+        const data = await res.json();
+        return NextResponse.json(data);
+    } catch (err: any) {
+        console.error("PATCH /api/patients/[id] exception:", err);
         return NextResponse.json({ error: err.message || "Lỗi hệ thống" }, { status: 500 });
     }
 }

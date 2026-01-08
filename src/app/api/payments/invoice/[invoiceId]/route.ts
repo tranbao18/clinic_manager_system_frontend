@@ -1,10 +1,8 @@
-// src/app/api/payments/invoice/[invoiceId]/route.ts
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
-// 🔍 GET - Lấy thanh toán theo invoice_id
 export async function GET(
     req: Request,
     { params }: { params: Promise<{ invoiceId: string }> }

@@ -27,6 +27,7 @@ export default function DisabledMedicinesPage() {
     const [searchText, setSearchText] = useState("");
     const router = useRouter();
 
+    // TỰ VIẾT
     const fetchMedicines = async () => {
         try {
             setLoading(true);
@@ -44,6 +45,7 @@ export default function DisabledMedicinesPage() {
     useEffect(() => {
         fetchMedicines();
     }, []);
+    // 
 
     const normalizeText = (str: string) =>
         str
@@ -53,6 +55,7 @@ export default function DisabledMedicinesPage() {
             .toLowerCase()
             .trim();
 
+    // TỰ VIẾT
     const onSearch = (value: string) => {
         setSearchText(value);
         const search = normalizeText(value);
@@ -87,7 +90,6 @@ export default function DisabledMedicinesPage() {
             setDeletingIds((prev) => [...prev, id]);
             await hardDeleteMedicine(id);
             message.success("Đã xóa vĩnh viễn");
-            // refresh
             await fetchMedicines();
             setSelectedRowKeys((prev) => prev.filter((k) => k !== id));
         } catch (err: any) {
@@ -113,6 +115,7 @@ export default function DisabledMedicinesPage() {
             setDeletingIds([]);
         }
     };
+    // 
 
     const columns: ColumnsType<Medicine> = [
         {
@@ -201,7 +204,7 @@ export default function DisabledMedicinesPage() {
             ),
         },
     ];
-
+    // TỰ VIẾT
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-4">
@@ -214,7 +217,7 @@ export default function DisabledMedicinesPage() {
                         Quay lại
                     </Button>
                     <h1 className="text-2xl font-bold">Danh sách thuốc đã xóa</h1>
-                    
+
                 </div>
             </div>
 
@@ -262,5 +265,6 @@ export default function DisabledMedicinesPage() {
             )}
         </div>
     );
+    // 
 }
 

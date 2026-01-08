@@ -16,13 +16,13 @@ import dayjs from "dayjs";
 import { PlusOutlined, MinusCircleOutlined } from "@ant-design/icons";
 import { createPatient, Patient } from "@/lib/services/patientsService";
 
+// TỰ VIẾT
 export default function AddPatientPage() {
   const router = useRouter();
   const [form] = Form.useForm();
   const [saving, setSaving] = useState(false);
   const [role, setRole] = useState<string>("");
 
-  // ✅ Chặn truy cập nếu không phải lễ tân
   useEffect(() => {
     const fetchRole = async () => {
       try {
@@ -38,7 +38,6 @@ export default function AddPatientPage() {
       }
     };
     fetchRole();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const specializations = [
@@ -50,7 +49,6 @@ export default function AddPatientPage() {
     "Tai mũi họng",
   ];
 
-  // ✅ Gửi dữ liệu
   const handleAddPatient = async (values: any) => {
     try {
       setSaving(true);
@@ -76,6 +74,7 @@ export default function AddPatientPage() {
     }
   };
 
+
   return (
     <div className="p-6 max-w-3xl mx-auto">
       <Card
@@ -97,7 +96,6 @@ export default function AddPatientPage() {
             medical_history: [],
           }}
         >
-          {/* Họ và tên */}
           <Form.Item
             label="Họ và tên"
             name="fullname"
@@ -106,7 +104,6 @@ export default function AddPatientPage() {
             <Input placeholder="VD: Phan Thanh Tùng" />
           </Form.Item>
 
-          {/* Ngày sinh & Giới tính */}
           <div className="grid grid-cols-2 gap-4">
             <Form.Item
               label="Ngày sinh"
@@ -133,7 +130,6 @@ export default function AddPatientPage() {
             </Form.Item>
           </div>
 
-          {/* Địa chỉ */}
           <Form.Item
             label="Địa chỉ"
             name="address"
@@ -142,7 +138,6 @@ export default function AddPatientPage() {
             <Input placeholder="VD: 12 Nguyễn Huệ, TP.HCM" />
           </Form.Item>
 
-          {/* Số điện thoại & Email */}
           <div className="grid grid-cols-2 gap-4">
             <Form.Item
               label="Số điện thoại"
@@ -167,7 +162,6 @@ export default function AddPatientPage() {
             </Form.Item>
           </div>
 
-          {/* Tiền sử bệnh - Danh sách động */}
           <Form.List name="medical_history">
             {(fields, { add, remove }) => (
               <>
@@ -232,7 +226,6 @@ export default function AddPatientPage() {
             )}
           </Form.List>
 
-          {/* Nút hành động */}
           <div className="flex justify-end gap-3 mt-6">
             <Button onClick={() => router.back()}>Hủy</Button>
             <Button type="primary" htmlType="submit" loading={saving}>
@@ -244,3 +237,4 @@ export default function AddPatientPage() {
     </div>
   );
 }
+// 

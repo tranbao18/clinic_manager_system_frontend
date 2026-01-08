@@ -5,6 +5,7 @@ import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
+// TỰ VIẾT
 export async function GET(req: Request) {
   const res = new NextResponse();
   const session = await getIronSession<SessionData>(req, res, sessionOptions);
@@ -13,14 +14,12 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Chưa đăng nhập" }, { status: 401 });
   }
 
-  // Nếu session đã có employee_id, trả về luôn
   if (session.user.employee_id) {
     return NextResponse.json(session.user, {
       headers: { "Cache-Control": "no-store" },
     });
   }
 
-  // Nếu chưa có employee_id, fetch từ backend
   if (session.user._id) {
     try {
       const headers = await getAuthHeaderServer();
@@ -34,7 +33,6 @@ export async function GET(req: Request) {
 
       if (backendRes.ok) {
         const userData = await backendRes.json();
-        // Update session với employee_id
         if (userData.employee_id) {
           session.user.employee_id = userData.employee_id;
           await session.save();
@@ -48,8 +46,8 @@ export async function GET(req: Request) {
     }
   }
 
-  // Fallback: trả về session user hiện tại
   return NextResponse.json(session.user, {
     headers: { "Cache-Control": "no-store" },
   });
 }
+//

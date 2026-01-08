@@ -1,4 +1,4 @@
-// src/app/api/users/route.ts
+// KẾ THỪA 
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
@@ -13,7 +13,6 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const employee_id = searchParams.get("employee_id");
 
-    // ✅ Lấy token (server-side)
     const headers = await getAuthHeaderServer();
 
     const res = await fetch(

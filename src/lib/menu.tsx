@@ -1,4 +1,4 @@
-// lib/menu.tsx
+// TỰ VIẾT
 import Link from "next/link";
 import {
     DashboardOutlined,
@@ -49,6 +49,12 @@ export const getMenuByRole = (role: string) => {
             { key: "5", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
             { key: "6", icon: <ScheduleOutlined />, label: "Bảng lương", href: "/dashboard/payroll" },
         ],
+        pharmacist: [
+            { key: "1", icon: <MedicineBoxOutlined />, label: "Dashboard", href: "/dashboard" },
+            { key: "2", icon: <MedicineBoxOutlined />, label: "DS Thuốc", href: "/dashboard/medicines" },
+            { key: "3", icon: <MedicineBoxOutlined />, label: "DS Nhập thuốc", href: "/dashboard/medicine-imports" },
+            { key: "4", icon: <ScheduleOutlined />, label: "Lịch trực", href: "/dashboard/schedules" },
+        ],
     };
 
     if (role === "admin") return allMenus.admin;
@@ -56,5 +62,6 @@ export const getMenuByRole = (role: string) => {
     if (role === "nurse") return allMenus.nurse;
     if (role === "receptionist") return allMenus.receptionist;
     if (role === "accountant") return allMenus.accountant;
+    if (role === "pharmacist") return allMenus.pharmacist;
     return [];
 };

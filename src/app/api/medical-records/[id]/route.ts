@@ -1,10 +1,9 @@
-// src/app/api/medical-records/[id]/route.ts
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
-// 🔍 GET - Lấy chi tiết hồ sơ y tế theo ID
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await context.params;
@@ -35,7 +34,6 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
     }
 }
 
-// ✏️ PUT - Cập nhật hồ sơ y tế
 export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await context.params;
@@ -71,14 +69,12 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
     }
 }
 
-// ❌ DELETE - Xóa hồ sơ y tế
 export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await context.params;
         const headers = await getAuthHeaderServer();
         const { searchParams } = new URL(req.url);
         const hard = searchParams.get("hard");
-        // Forward the hard query param to backend if present
         let url = `${API_URL}/api/medical-records/${id}`;
         if (hard === "true") url += `?hard=true`;
 

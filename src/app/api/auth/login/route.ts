@@ -1,15 +1,14 @@
-// src/app/api/login/route.ts
 import { getIronSession } from "iron-session";
 import { sessionOptions, SessionData } from "@/lib/session";
 import { NextResponse } from "next/server";
 
+// TỰ VIẾT
 export async function POST(req: Request) {
   const res = new NextResponse();
 
   try {
     const { username, password } = await req.json();
 
-    // Gọi API backend thật sự (mock URL)
     const backendRes = await fetch(
       `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/login`,
       {
@@ -28,7 +27,6 @@ export async function POST(req: Request) {
       );
     }
 
-    // Lưu user vào session
     const session = await getIronSession<SessionData>(req, res, sessionOptions);
     session.user = {
       _id: data.user._id || data.user.id,
@@ -39,12 +37,11 @@ export async function POST(req: Request) {
     };
     await session.save();
 
-    // Trả JSON có cả token để frontend lưu
     return NextResponse.json(
       {
         message: "Đăng nhập thành công",
         user: session.user,
-        token: data.token, // <— thêm dòng này
+        token: data.token,
       },
       { headers: res.headers }
     );
@@ -56,3 +53,4 @@ export async function POST(req: Request) {
     );
   }
 }
+//

@@ -1,4 +1,4 @@
-// src/lib/services/medicineImportsService.ts
+import { getAuthHeaderClient } from "@/lib/authHeaderClient";
 export interface MedicineImport {
     _id: string;
     medicine_id: string | {
@@ -37,10 +37,12 @@ export interface UpdateMedicineImportData {
     remaining?: number;
 }
 
-// 📦 Lấy danh sách nhập thuốc
 export async function getMedicineImports(): Promise<MedicineImport[]> {
     try {
-        const res = await fetch("/api/medicine-imports", { cache: "no-store" });
+        const res = await fetch("/api/medicine-imports", {
+            cache: "no-store",
+            headers: getAuthHeaderClient()
+        });
         if (!res.ok) {
             throw new Error(`Failed to fetch medicine imports: ${res.status}`);
         }
@@ -53,18 +55,22 @@ export async function getMedicineImports(): Promise<MedicineImport[]> {
     }
 }
 
-// 🔍 Lấy chi tiết nhập thuốc theo ID
 export async function getMedicineImportById(id: string): Promise<MedicineImport> {
-    const res = await fetch(`/api/medicine-imports/${id}`, { cache: "no-store" });
+    const res = await fetch(`/api/medicine-imports/${id}`, {
+        cache: "no-store",
+        headers: getAuthHeaderClient()
+    });
     if (!res.ok) throw new Error("Không thể lấy thông tin nhập thuốc");
     return res.json();
 }
 
-// ➕ Tạo nhập thuốc mới
 export async function createMedicineImport(data: CreateMedicineImportData): Promise<MedicineImport> {
     const res = await fetch("/api/medicine-imports", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaderClient()
+        },
         body: JSON.stringify(data),
     });
     if (!res.ok) {
@@ -74,14 +80,16 @@ export async function createMedicineImport(data: CreateMedicineImportData): Prom
     return res.json();
 }
 
-// ✏️ Cập nhật nhập thuốc
 export async function updateMedicineImport(
     id: string,
     data: UpdateMedicineImportData
 ): Promise<MedicineImport> {
     const res = await fetch(`/api/medicine-imports/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaderClient()
+        },
         body: JSON.stringify(data),
     });
     if (!res.ok) {
@@ -91,18 +99,22 @@ export async function updateMedicineImport(
     return res.json();
 }
 
-// ❌ Xóa nhập thuốc (soft delete - set disabled: true)
 export async function deleteMedicineImport(id: string): Promise<void> {
-    const res = await fetch(`/api/medicine-imports/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/medicine-imports/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaderClient()
+    });
     if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Không thể xóa nhập thuốc" }));
         throw new Error(error.error || "Không thể xóa nhập thuốc");
     }
 }
 
-// 📦 Lấy danh sách nhập thuốc đã xóa (disabled: true)
 export async function getDisabledMedicineImports(): Promise<MedicineImport[]> {
-    const res = await fetch("/api/medicine-imports?disabled=true", { cache: "no-store" });
+    const res = await fetch("/api/medicine-imports?disabled=true", {
+        cache: "no-store",
+        headers: getAuthHeaderClient()
+    });
     if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Không thể lấy danh sách nhập thuốc đã xóa" }));
         throw new Error(error.error || "Không thể lấy danh sách nhập thuốc đã xóa");
@@ -110,12 +122,13 @@ export async function getDisabledMedicineImports(): Promise<MedicineImport[]> {
     return res.json();
 }
 
-// ♻️ Khôi phục nhập thuốc (set disabled: false)
 export async function restoreMedicineImport(id: string): Promise<MedicineImport> {
-    const res = await fetch(`/api/medicine-imports/${id}`, {
+    const res = await fetch(`/api/medicine-imports/${id}/restore`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ disabled: false }),
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaderClient()
+        },
     });
     if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Không thể khôi phục nhập thuốc" }));

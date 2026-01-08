@@ -1,4 +1,4 @@
-// src/components/reports/ReportCard.tsx
+// TỰ VIẾT
 "use client";
 
 import { Card } from "antd";

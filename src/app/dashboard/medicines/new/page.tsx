@@ -13,12 +13,12 @@ import {
 } from "antd";
 import { createMedicine, CreateMedicineData, MEDICINE_CATEGORIES } from "@/lib/services/medicinesService";
 
+// TỰ VIẾT
 export default function NewMedicinePage() {
     const router = useRouter();
     const [form] = Form.useForm();
     const [saving, setSaving] = useState(false);
 
-    // ✅ Chặn truy cập nếu không phải Admin hoặc Accountant
     useEffect(() => {
         const fetchRole = async () => {
             try {
@@ -34,10 +34,8 @@ export default function NewMedicinePage() {
             }
         };
         fetchRole();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // ✅ Gửi dữ liệu
     const handleCreateMedicine = async (values: CreateMedicineData) => {
         try {
             setSaving(true);
@@ -79,7 +77,6 @@ export default function NewMedicinePage() {
                         price: 0,
                     }}
                 >
-                    {/* Tên thuốc */}
                     <Form.Item
                         label="Tên thuốc"
                         name="name"
@@ -91,7 +88,6 @@ export default function NewMedicinePage() {
                         <Input placeholder="VD: Paracetamol 500mg" />
                     </Form.Item>
 
-                    {/* Danh mục & Đơn vị */}
                     <div className="grid grid-cols-2 gap-4">
                         <Form.Item
                             label="Danh mục"
@@ -137,7 +133,6 @@ export default function NewMedicinePage() {
                         </Form.Item>
                     </div>
 
-                    {/* Giá */}
                     <Form.Item
                         label="Giá (VND)"
                         name="price"
@@ -161,7 +156,6 @@ export default function NewMedicinePage() {
                         />
                     </Form.Item>
 
-                    {/* Nút hành động */}
                     <div className="flex justify-end gap-3 mt-6">
                         <Button onClick={() => router.back()}>Hủy</Button>
                         <Button type="primary" htmlType="submit" loading={saving}>
@@ -173,4 +167,5 @@ export default function NewMedicinePage() {
         </div>
     );
 }
+//
 

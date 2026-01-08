@@ -30,6 +30,7 @@ import AuthService from "@/lib/services/authService";
 
 const { Title, Text } = Typography;
 
+
 export default function ProfilePage() {
   const [data, setData] = useState<{ user?: any; employee?: any } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,10 +41,10 @@ export default function ProfilePage() {
   const [editForm] = Form.useForm();
   const router = useRouter();
 
+  // TỰ VIẾT
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        // Lấy user từ session (server) thay vì localStorage
         const meRes = await fetch("/api/users/me", {
           credentials: "include",
           cache: "no-store",
@@ -81,6 +82,7 @@ export default function ProfilePage() {
         Không có thông tin người dùng
       </div>
     );
+  // 
 
   const { user, employee } = data;
   const userId = user?._id || user?.id;
@@ -113,6 +115,7 @@ export default function ProfilePage() {
     }
   };
 
+  // TỰ VIẾT
   const openEditModal = () => {
     editForm.setFieldsValue({
       dob: data.employee?.dob ? dayjs(data.employee.dob) : null,
@@ -121,18 +124,16 @@ export default function ProfilePage() {
     });
     setIsEditModalOpen(true);
   };
-
+  // 
   const handleSubmitEditProfile = async (values: any) => {
     try {
       const userId = user?._id || user?.id;
       if (!userId) throw new Error("Không tìm thấy user id");
-      // Prepare payload for employee fields
       const payload: any = {};
       if (values.dob) payload.dob = dayjs(values.dob).format("YYYY-MM-DD");
       if (values.email !== undefined) payload.email = values.email;
       if (values.phone !== undefined) payload.phone = values.phone;
       await UsersService.updateAccount(userId, payload);
-      // Refresh canonical profile from server to avoid local timezone/format mismatch
       const refreshed = await UsersService.getByUserId(userId);
       setData(refreshed);
       message.success("Cập nhật thông tin cá nhân thành công");
@@ -185,7 +186,6 @@ export default function ProfilePage() {
 
         <Divider className="border-gray-200" />
 
-        {/* Info section */}
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12}>
             <Card className="rounded-xl shadow-sm border border-gray-100" size="small">
@@ -350,7 +350,6 @@ export default function ProfilePage() {
           </>
         )}
 
-        {/* Edit profile modal */}
         <Modal
           title="Chỉnh sửa thông tin cá nhân"
           open={isEditModalOpen}
@@ -382,7 +381,6 @@ export default function ProfilePage() {
           </Form>
         </Modal>
 
-        {/* Footer */}
         <Divider className="border-gray-200 mt-6" />
         <div className="text-center text-gray-500 text-sm">
           <Text type="secondary">

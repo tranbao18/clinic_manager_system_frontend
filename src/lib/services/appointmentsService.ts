@@ -1,5 +1,4 @@
-// src/lib/services/appointmentsService.ts
-import { getAuthHeaderClient } from "../authHeaderClient";
+import { getAuthHeaderClient } from "@/lib/authHeaderClient";
 
 export interface Appointment {
     _id: string;
@@ -29,10 +28,12 @@ export interface UpdateAppointmentData {
     reason?: string;
 }
 
-// 📦 Lấy danh sách lịch hẹn
 export async function getAppointments(): Promise<Appointment[]> {
     try {
-        const res = await fetch("/api/appointments", { cache: "no-store" });
+        const res = await fetch("/api/appointments", {
+            cache: "no-store",
+            headers: getAuthHeaderClient()
+        });
         if (!res.ok) {
             throw new Error(`Failed to fetch appointments: ${res.status}`);
         }
@@ -45,18 +46,22 @@ export async function getAppointments(): Promise<Appointment[]> {
 }
 
 
-// 🔍 Lấy chi tiết lịch hẹn theo ID
 export async function getAppointmentById(id: string): Promise<Appointment> {
-    const res = await fetch(`/api/appointments/${id}`, { cache: "no-store" });
+    const res = await fetch(`/api/appointments/${id}`, {
+        cache: "no-store",
+        headers: getAuthHeaderClient()
+    });
     if (!res.ok) throw new Error("Không thể lấy thông tin lịch hẹn");
     return res.json();
 }
 
-// ➕ Tạo lịch hẹn mới
 export async function createAppointment(data: CreateAppointmentData): Promise<Appointment> {
     const res = await fetch("/api/appointments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaderClient()
+        },
         body: JSON.stringify(data),
     });
     if (!res.ok) {
@@ -66,7 +71,6 @@ export async function createAppointment(data: CreateAppointmentData): Promise<Ap
     return res.json();
 }
 
-// ✏️ Cập nhật lịch hẹn
 export async function updateAppointment(
     id: string,
     data: UpdateAppointmentData
@@ -74,7 +78,10 @@ export async function updateAppointment(
 
     const res = await fetch(`/api/appointments/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaderClient()
+        },
         body: JSON.stringify(data),
     });
     if (!res.ok) {
@@ -84,18 +91,22 @@ export async function updateAppointment(
     return res.json();
 }
 
-// ❌ Xóa lịch hẹn (soft delete - set disabled: true)
 export async function deleteAppointment(id: string): Promise<void> {
-    const res = await fetch(`/api/appointments/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/appointments/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaderClient()
+    });
     if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Không thể xóa lịch hẹn" }));
         throw new Error(error.error || "Không thể xóa lịch hẹn");
     }
 }
 
-// 📦 Lấy danh sách lịch hẹn đã xóa (disabled: true)
 export async function getDisabledAppointments(): Promise<Appointment[]> {
-    const res = await fetch("/api/appointments?disabled=true", { cache: "no-store" });
+    const res = await fetch("/api/appointments?disabled=true", {
+        cache: "no-store",
+        headers: getAuthHeaderClient()
+    });
     if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Không thể lấy danh sách lịch hẹn đã xóa" }));
         throw new Error(error.error || "Không thể lấy danh sách lịch hẹn đã xóa");
@@ -103,12 +114,13 @@ export async function getDisabledAppointments(): Promise<Appointment[]> {
     return res.json();
 }
 
-// ♻️ Khôi phục lịch hẹn (set disabled: false)
 export async function restoreAppointment(id: string): Promise<Appointment> {
-    const res = await fetch(`/api/appointments/${id}`, {
+    const res = await fetch(`/api/appointments/${id}/restore`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ disabled: false }),
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaderClient()
+        },
     });
     if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Không thể khôi phục lịch hẹn" }));

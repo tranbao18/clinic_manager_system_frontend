@@ -134,7 +134,6 @@ const PayrollService = {
         }
     },
 
-    // Gửi email bảng lương cho 1 nhân viên
     async sendPayrollToEmployee(employeeId: string) {
         try {
             const res = await fetch(`${BASE_URL}/send/${employeeId}`, {
@@ -150,7 +149,6 @@ const PayrollService = {
         }
     },
 
-    // Gửi email bảng lương hàng loạt
     async sendPayrollBulk(employeeIds: string[]) {
         try {
             const res = await fetch(`${BASE_URL}/send/bulk`, {
@@ -170,7 +168,6 @@ const PayrollService = {
         }
     },
 
-    // Lấy lịch sử lương của 1 nhân viên
     async getByEmployeeId(employeeId: string) {
         try {
             const allPayrolls = await this.getAll();

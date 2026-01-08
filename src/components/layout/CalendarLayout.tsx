@@ -1,3 +1,4 @@
+// KẾ THỪA
 "use client";
 
 import { useState, useEffect } from "react";
@@ -42,14 +43,14 @@ type Appointment = {
 };
 
 type Doctor = {
-    _id: string;
-    fullname: string;
-    position: string;
+  _id: string;
+  fullname: string;
+  position: string;
 };
 
 type Patient = {
-    _id: string;
-    fullname: string;
+  _id: string;
+  fullname: string;
 };
 
 type CalendarLayoutProps = {
@@ -96,7 +97,6 @@ export default function CalendarLayout({
   canManage = false,
 }: CalendarLayoutProps) {
   const router = useRouter();
-  // Sử dụng lazy initialization để tránh hydration mismatch
   const [currentMonth, setCurrentMonth] = useState<number>(() => {
     if (typeof window !== 'undefined') {
       return new Date().getMonth();
@@ -109,17 +109,16 @@ export default function CalendarLayout({
     }
     return 2024; // Default value for SSR
   });
-  
-  // Sync với client sau khi mount
+
   const [today, setToday] = useState<Date>(() => {
     if (typeof window !== 'undefined') {
       return new Date();
     }
     return new Date(2024, 0, 1); // Default value for SSR
   });
-  
+
   const [mounted, setMounted] = useState(false);
-  
+
   useEffect(() => {
     setMounted(true);
     const now = new Date();
@@ -127,7 +126,7 @@ export default function CalendarLayout({
     setCurrentMonth(now.getMonth());
     setCurrentYear(now.getFullYear());
   }, []);
-  
+
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedAppointments, setSelectedAppointments] = useState<
     Appointment[]
@@ -157,21 +156,18 @@ export default function CalendarLayout({
   const getAppointmentByDate = (date: Date) => {
     if (!appointments || !Array.isArray(appointments)) return [];
     const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
-    
-    // Lọc appointments theo ngày
+
     let filteredAppointments = appointments.filter((a) => {
       if (!a.appointmentDate) return false;
       const apptDate = getLocalDateOnlyString(a.appointmentDate);
       return apptDate === dateStr;
     });
 
-    // Nếu không hiển thị lịch hẹn cũ, lọc bỏ các lịch hẹn đã qua ngày
     if (!showOldAppointments) {
       const todayStr = getLocalDateOnlyString(today.toISOString());
       filteredAppointments = filteredAppointments.filter((a) => {
         if (!a.appointmentDate) return false;
         const apptDate = getLocalDateOnlyString(a.appointmentDate);
-        // Chỉ hiển thị lịch hẹn từ hôm nay trở đi
         return apptDate >= todayStr;
       });
     }
@@ -190,26 +186,20 @@ export default function CalendarLayout({
     }
   };
 
-  // Helper function để convert ISO string hoặc date string sang datetime-local format (xử lý timezone)
   const isoToLocalDateTime = (dateString: string): string => {
     if (!dateString) return "";
 
-    // Nếu chỉ có date (yyyy-mm-dd), thêm time mặc định là 00:00 local
     let date: Date;
     if (dateString.match(/^\d{4}-\d{2}-\d{2}$/)) {
-      // Chỉ có date, không có time - tạo date với time 00:00 local
       const [year, month, day] = dateString.split("-").map(Number);
       date = new Date(year, month - 1, day, 0, 0);
     } else {
-      // Có đầy đủ datetime ISO string
       date = new Date(dateString);
     }
 
 
-    // Kiểm tra date hợp lệ
     if (isNaN(date.getTime())) return "";
 
-    // Lấy local time và format thành YYYY-MM-DDTHH:mm
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
@@ -218,27 +208,22 @@ export default function CalendarLayout({
     return `${year}-${month}-${day}T${hours}:${minutes}`;
   };
 
-  // Parse bất kỳ dạng chuỗi ngày giờ về đối tượng Date theo local timezone an toàn
   const parseToLocalDate = (value: string): Date | null => {
     if (!value) return null;
-    // yyyy-mm-dd
     if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
       const [y, m, d] = value.split("-").map(Number);
       return new Date(y, m - 1, d, 0, 0, 0);
     }
-    // yyyy-mm-ddTHH:mm (datetime-local)
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) {
       const [datePart, timePart] = value.split("T");
       const [y, m, d] = datePart.split("-").map(Number);
       const [hh, mm] = timePart.split(":").map(Number);
       return new Date(y, m - 1, d, hh, mm, 0);
     }
-    // Fallback: let JS parse (handles full ISO with Z)
     const d = new Date(value);
     return isNaN(d.getTime()) ? null : d;
   };
 
-  // Lấy phần yyyy-mm-dd theo local từ bất kỳ chuỗi ngày giờ
   const getLocalDateOnlyString = (value: string): string => {
     const d = parseToLocalDate(value);
     if (!d) return "";
@@ -248,9 +233,7 @@ export default function CalendarLayout({
     return `${y}-${m}-${day}`;
   };
 
-  // Chuyển giá trị input datetime-local sang chuỗi local đầy đủ giây (không timezone)
   const toLocalDateTimeSeconds = (value: string): string => {
-    // value dạng yyyy-mm-ddTHH:mm
     if (!value) return value;
     if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return `${value}:00`;
     return value;
@@ -259,7 +242,6 @@ export default function CalendarLayout({
   const handleEdit = (appointment: Appointment) => {
     setEditingAppointment(appointment);
     setIsEditing(true);
-    // Tìm patient_id và doctor_id từ appointments gốc
     const fullAppointment = appointments.find((a) => a.id === appointment.id);
     setFormData({
       patient_id: appointment.patient_id || "",
@@ -275,7 +257,6 @@ export default function CalendarLayout({
   const handleSave = async () => {
     if (!editingAppointment) return;
 
-    // Validation
     if (
       !formData.patient_id ||
       !formData.doctor_id ||
@@ -290,11 +271,8 @@ export default function CalendarLayout({
 
     try {
       setIsSaving(true);
-      // Dùng chuỗi local không timezone để tránh lệch múi giờ
       const localDateTime = toLocalDateTimeSeconds(formData.appointment_date);
 
-      // Backend chỉ chấp nhận: 'Scheduled', 'Completed', 'Cancelled'
-      // Không cần map, giữ nguyên giá trị từ UI
       const updateData: UpdateAppointmentData = {
         ...formData,
         appointment_date: localDateTime,
@@ -302,7 +280,6 @@ export default function CalendarLayout({
       };
 
       await updateAppointment(editingAppointment.id, updateData);
-      // Refresh để cập nhật dữ liệu mới nhất
       if (onRefresh) {
         await onRefresh();
       } else {
@@ -311,7 +288,6 @@ export default function CalendarLayout({
       setIsEditing(false);
       setEditingAppointment(null);
       setOpen(false);
-      // Reset form data
       setFormData({
         patient_id: "",
         doctor_id: "",
@@ -338,16 +314,13 @@ export default function CalendarLayout({
     try {
       setIsDeleting(true);
       await deleteAppointment(deleteAppointmentId);
-      // Refresh để cập nhật danh sách
       if (onRefresh) {
         await onRefresh();
       } else {
         router.refresh();
       }
-      // Đóng modal sau khi xóa thành công
       setOpen(false);
       setOpenDeleteConfirm(false);
-      // Reset state
       setSelectedAppointments([]);
       setDeleteAppointmentId(null);
     } catch (error: any) {
@@ -384,7 +357,6 @@ export default function CalendarLayout({
   };
 
   const handleSaveCreate = async () => {
-    // Validation
     if (
       !formData.patient_id ||
       !formData.doctor_id ||
@@ -399,11 +371,8 @@ export default function CalendarLayout({
 
     try {
       setIsSaving(true);
-      // Dùng chuỗi local không timezone để tránh lệch múi giờ
       const localDateTime = toLocalDateTimeSeconds(formData.appointment_date);
 
-      // Backend chỉ chấp nhận: 'Scheduled', 'Completed', 'Cancelled'
-      // Không cần map, giữ nguyên giá trị từ UI
       const createData: CreateAppointmentData = {
         patient_id: formData.patient_id,
         doctor_id: formData.doctor_id,
@@ -413,7 +382,6 @@ export default function CalendarLayout({
       };
 
       await createAppointment(createData);
-      // Refresh để cập nhật dữ liệu mới nhất
       if (onRefresh) {
         await onRefresh();
       } else {
@@ -421,7 +389,6 @@ export default function CalendarLayout({
       }
       setIsCreating(false);
       setOpenCreate(false);
-      // Reset form data
       setFormData({
         patient_id: "",
         doctor_id: "",
@@ -437,7 +404,6 @@ export default function CalendarLayout({
     }
   };
 
-  // Map UI status -> API status
   const mapUiToApiStatus = (s: string) => {
     if (s === "Scheduled") return "Đã lên lịch";
     if (s === "Completed") return "Hoàn thành";
@@ -524,7 +490,7 @@ export default function CalendarLayout({
                 ➕ Tạo lịch hẹn mới
               </Button>
             )}
-            
+
             {/* Toggle hiển thị lịch hẹn cũ */}
             <label className="flex items-center gap-2 cursor-pointer">
               <input
@@ -596,8 +562,7 @@ export default function CalendarLayout({
 
                 const dayAppointments = getAppointmentByDate(date);
 
-                // Kiểm tra xem ngày có phải là quá khứ không (khi không hiển thị lịch hẹn cũ)
-                const isPastDate = !showOldAppointments && 
+                const isPastDate = !showOldAppointments &&
                   getLocalDateOnlyString(date.toISOString()) < getLocalDateOnlyString(today.toISOString());
                 const hasAppointments = dayAppointments.length > 0;
                 const isClickable = hasAppointments && (!isPastDate || showOldAppointments);
@@ -609,7 +574,7 @@ export default function CalendarLayout({
                     className={cn(
                       "p-2 border rounded text-sm min-h-[80px] text-left transition",
                       date.toDateString() === today.toDateString() &&
-                        "bg-blue-100 font-bold",
+                      "bg-blue-100 font-bold",
                       isClickable && "cursor-pointer hover:bg-blue-50",
                       !isClickable && "cursor-default opacity-50",
                       isPastDate && !showOldAppointments && "bg-gray-50"
@@ -624,13 +589,13 @@ export default function CalendarLayout({
                             className={cn(
                               "p-1 rounded text-xs truncate",
                               a.status === "Scheduled" &&
-                                "bg-green-100 text-green-700",
+                              "bg-green-100 text-green-700",
                               a.status === "Pending" &&
-                                "bg-yellow-100 text-yellow-700",
+                              "bg-yellow-100 text-yellow-700",
                               a.status === "Cancelled" &&
-                                "bg-red-100 text-red-700",
+                              "bg-red-100 text-red-700",
                               a.status === "Completed" &&
-                                "bg-blue-100 text-blue-700"
+                              "bg-blue-100 text-blue-700"
                             )}
                           >
                             {a.patientName}

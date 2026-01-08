@@ -1,8 +1,8 @@
-// src/lib/services/medicinesService.ts
+import { getAuthHeaderClient } from "@/lib/authHeaderClient";
 export interface Medicine {
     _id: string;
     name: string;
-    category: string[]; // Array of categories
+    category: string[];
     unit: string;
     price: number;
     total_remaining?: number; // Tổng số lượng còn lại từ medicine-imports
@@ -12,19 +12,18 @@ export interface Medicine {
 
 export interface CreateMedicineData {
     name: string;
-    category: string[]; // Array of categories
+    category: string[];
     unit: string;
     price: number;
 }
 
 export interface UpdateMedicineData {
     name?: string;
-    category?: string[]; // Array of categories
+    category?: string[];
     unit?: string;
     price?: number;
 }
 
-// Danh sách các danh mục thuốc có sẵn
 export const MEDICINE_CATEGORIES = [
     "Kháng sinh",
     "Giảm đau",
@@ -43,10 +42,12 @@ export const MEDICINE_CATEGORIES = [
     "Khác",
 ] as const;
 
-// 📦 Lấy danh sách thuốc
 export async function getMedicines(): Promise<Medicine[]> {
     try {
-        const res = await fetch("/api/medicines", { cache: "no-store" });
+        const res = await fetch("/api/medicines", {
+            cache: "no-store",
+            headers: getAuthHeaderClient()
+        });
         if (!res.ok) {
             throw new Error(`Failed to fetch medicines: ${res.status}`);
         }
@@ -59,18 +60,22 @@ export async function getMedicines(): Promise<Medicine[]> {
     }
 }
 
-// 🔍 Lấy chi tiết thuốc theo ID
 export async function getMedicineById(id: string): Promise<Medicine> {
-    const res = await fetch(`/api/medicines/${id}`, { cache: "no-store" });
+    const res = await fetch(`/api/medicines/${id}`, {
+        cache: "no-store",
+        headers: getAuthHeaderClient()
+    });
     if (!res.ok) throw new Error("Không thể lấy thông tin thuốc");
     return res.json();
 }
 
-// ➕ Tạo thuốc mới
 export async function createMedicine(data: CreateMedicineData): Promise<Medicine> {
     const res = await fetch("/api/medicines", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaderClient()
+        },
         body: JSON.stringify(data),
     });
     if (!res.ok) {
@@ -80,14 +85,16 @@ export async function createMedicine(data: CreateMedicineData): Promise<Medicine
     return res.json();
 }
 
-// ✏️ Cập nhật thuốc
 export async function updateMedicine(
     id: string,
     data: UpdateMedicineData
 ): Promise<Medicine> {
     const res = await fetch(`/api/medicines/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaderClient()
+        },
         body: JSON.stringify(data),
     });
     if (!res.ok) {
@@ -97,18 +104,22 @@ export async function updateMedicine(
     return res.json();
 }
 
-// ❌ Xóa thuốc (soft delete - set disabled: true)
 export async function deleteMedicine(id: string): Promise<void> {
-    const res = await fetch(`/api/medicines/${id}`, { method: "DELETE" });
+    const res = await fetch(`/api/medicines/${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaderClient()
+    });
     if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Không thể xóa thuốc" }));
         throw new Error(error.error || "Không thể xóa thuốc");
     }
 }
 
-// 📦 Lấy danh sách thuốc đã xóa (disabled: true)
 export async function getDisabledMedicines(): Promise<Medicine[]> {
-    const res = await fetch("/api/medicines?disabled=true", { cache: "no-store" });
+    const res = await fetch("/api/medicines?disabled=true", {
+        cache: "no-store",
+        headers: getAuthHeaderClient()
+    });
     if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Không thể lấy danh sách thuốc đã xóa" }));
         throw new Error(error.error || "Không thể lấy danh sách thuốc đã xóa");
@@ -116,12 +127,13 @@ export async function getDisabledMedicines(): Promise<Medicine[]> {
     return res.json();
 }
 
-// ♻️ Khôi phục thuốc (set disabled: false)
 export async function restoreMedicine(id: string): Promise<Medicine> {
-    const res = await fetch(`/api/medicines/${id}`, {
+    const res = await fetch(`/api/medicines/${id}/restore`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ disabled: false }),
+        headers: {
+            "Content-Type": "application/json",
+            ...getAuthHeaderClient()
+        },
     });
     if (!res.ok) {
         const error = await res.json().catch(() => ({ error: "Không thể khôi phục thuốc" }));
@@ -130,7 +142,6 @@ export async function restoreMedicine(id: string): Promise<Medicine> {
     return res.json();
 }
 
-// ❌ Xóa vĩnh viễn thuốc (hard delete)
 export async function hardDeleteMedicine(id: string): Promise<void> {
     const res = await fetch(`/api/medicines/${id}?hard=true`, { method: "DELETE" });
     if (!res.ok) {
@@ -139,7 +150,6 @@ export async function hardDeleteMedicine(id: string): Promise<void> {
     }
 }
 
-// ❌ Xóa vĩnh viễn nhiều thuốc (bulk hard delete). Body: { ids: string[] }
 export async function hardDeleteMedicines(ids: string[]): Promise<void> {
     const res = await fetch(`/api/medicines/bulk-delete?hard=true`, {
         method: "POST",

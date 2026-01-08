@@ -1,6 +1,6 @@
 import { getAuthHeaderClient } from "@/lib/authHeaderClient";
 
-const BASE_URL = "/api/employees";
+const BASE_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050"}/api/employees`;
 
 const EmployeesService = {
   async getAll() {
@@ -97,7 +97,6 @@ const EmployeesService = {
     }
   },
 
-  // 📦 Lấy danh sách nhân viên đã xóa (disabled: true)
   async getDisabledEmployees() {
     try {
       const res = await fetch(`${BASE_URL}?disabled=true`, {
@@ -112,16 +111,14 @@ const EmployeesService = {
     }
   },
 
-  // ♻️ Khôi phục nhân viên (set disabled: false)
   async restoreEmployee(id: string) {
     try {
-      const res = await fetch(`${BASE_URL}/${id}`, {
+      const res = await fetch(`${BASE_URL}/${id}/restore`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
           ...getAuthHeaderClient(),
         },
-        body: JSON.stringify({ disabled: false }),
       });
       const text = await res.text();
       if (!res.ok) throw new Error(`Lỗi khi khôi phục nhân viên: ${text}`);

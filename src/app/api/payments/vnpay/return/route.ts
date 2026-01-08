@@ -13,7 +13,6 @@ export async function GET(req: NextRequest) {
 
         console.log('📥 VNPay Return - Nhận params:', Array.from(searchParams.keys()));
 
-        // Lấy invoice_id từ vnp_TxnRef để fallback
         const invoiceId = searchParams.get('vnp_TxnRef');
         if (!invoiceId) {
             return NextResponse.redirect(
@@ -21,7 +20,6 @@ export async function GET(req: NextRequest) {
             );
         }
 
-        // Gọi backend để xử lý payment
         const backendUrl = `${BACKEND_URL}/api/payments/vnpay-return?${searchParams.toString()}`;
         console.log('🔄 Calling backend:', backendUrl);
         console.log('🔧 BACKEND_URL:', BACKEND_URL);
@@ -43,27 +41,22 @@ export async function GET(req: NextRequest) {
                 headers: Object.fromEntries(backendRes.headers.entries())
             });
 
-            // Nếu backend redirect, lấy Location header
             if (backendRes.status >= 300 && backendRes.status < 400) {
                 const redirectUrl = backendRes.headers.get('Location');
                 if (redirectUrl) {
                     console.log('✅ Backend redirect to:', redirectUrl);
-                    // Backend đã xử lý và redirect về frontend
                     return NextResponse.redirect(redirectUrl);
                 }
             }
 
-            // Nếu không có redirect, đọc response
             const responseText = await backendRes.text();
             console.log('⚠️ Backend response text:', responseText);
 
-            // Fallback: redirect về invoice page với success (giả sử đã xử lý)
             return NextResponse.redirect(
                 new URL(`/dashboard/invoices/${invoiceId}?payment=success`, req.url)
             );
         } catch (fetchErr: any) {
             console.error('❌ Backend fetch error:', fetchErr);
-            // Fallback: redirect về invoice page với error
             return NextResponse.redirect(
                 new URL(`/dashboard/invoices/${invoiceId}?payment=failed&message=${encodeURIComponent(fetchErr.message)}`, req.url)
             );

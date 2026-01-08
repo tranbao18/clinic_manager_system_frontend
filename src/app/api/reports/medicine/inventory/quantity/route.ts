@@ -1,10 +1,9 @@
-// src/app/api/reports/medicine/inventory/quantity/route.ts
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
-// 📦 GET - Tổng số lượng tồn kho
 export async function GET() {
     try {
         const authHeaders = await getAuthHeaderServer();

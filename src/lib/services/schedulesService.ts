@@ -1,5 +1,3 @@
-// src/lib/services/schedulesService.ts
-
 export interface ShiftSchedule {
     employee_id: string;
     employee_name: string;
@@ -25,7 +23,6 @@ async function getAuthHeaderClient() {
 }
 
 const SchedulesService = {
-    // Lấy tất cả lịch trực (Admin: tất cả, Others: chỉ lịch trực của mình)
     async getAll(): Promise<ShiftSchedule[]> {
         try {
             const headers = await getAuthHeaderClient();
@@ -46,7 +43,6 @@ const SchedulesService = {
         }
     },
 
-    // Lấy lịch trực của một nhân viên cụ thể
     async getByEmployeeId(employee_id: string): Promise<ShiftSchedule | null> {
         try {
             const headers = await getAuthHeaderClient();
@@ -67,7 +63,6 @@ const SchedulesService = {
         }
     },
 
-    // Tạo/cập nhật lịch trực (chỉ Admin)
     async create(input: CreateScheduleInput): Promise<ShiftSchedule> {
         try {
             const headers = await getAuthHeaderClient();
@@ -93,7 +88,6 @@ const SchedulesService = {
         }
     },
 
-    // Cập nhật lịch trực (chỉ Admin)
     async update(employee_id: string, shift_schedule: any): Promise<ShiftSchedule> {
         try {
             const headers = await getAuthHeaderClient();
@@ -119,7 +113,6 @@ const SchedulesService = {
         }
     },
 
-    // Xóa lịch trực (chỉ Admin)
     async delete(employee_id: string): Promise<void> {
         try {
             const headers = await getAuthHeaderClient();

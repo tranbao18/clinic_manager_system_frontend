@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -26,6 +27,7 @@ const { Search } = Input;
 const { Option } = Select;
 const { Text } = Typography;
 
+
 export default function MedicinesPage() {
     const [medicines, setMedicines] = useState<Medicine[]>([]);
     const [filteredMedicines, setFilteredMedicines] = useState<Medicine[]>([]);
@@ -46,6 +48,7 @@ export default function MedicinesPage() {
     const [deleting, setDeleting] = useState(false);
     const router = useRouter();
 
+    // TỰ VIẾT
     const fetchMedicines = async () => {
         try {
             setLoading(true);
@@ -59,11 +62,13 @@ export default function MedicinesPage() {
             setLoading(false);
         }
     };
+    //
 
     useEffect(() => {
         fetchMedicines();
     }, []);
 
+    // TỰ VIẾT
     useEffect(() => {
         const fetchRole = async () => {
             try {
@@ -76,7 +81,9 @@ export default function MedicinesPage() {
         };
         fetchRole();
     }, []);
+    //
 
+    // TỰ VIẾT
     const normalizeText = (str: string) =>
         str
             .normalize("NFD")
@@ -84,7 +91,9 @@ export default function MedicinesPage() {
             .replace(/[^a-zA-Z0-9\s]/g, "")
             .toLowerCase()
             .trim();
+    //
 
+    // TỰ VIẾT
     const handleFilter = (text: string, category: string | null) => {
         let filtered = [...medicines];
         const search = normalizeText(text);
@@ -109,17 +118,23 @@ export default function MedicinesPage() {
 
         setFilteredMedicines(filtered);
     };
+    //
 
+    // TỰ VIẾT
     const onSearch = (value: string) => {
         setSearchText(value);
         handleFilter(value, categoryFilter);
     };
+    //
 
+    // TỰ VIẾT
     const onCategoryChange = (value: string | null) => {
         setCategoryFilter(value);
         handleFilter(searchText, value);
     };
+    //
 
+    // TỰ VIẾT
     const handleDelete = async (_id: string) => {
         try {
             await deleteMedicine(_id);
@@ -129,6 +144,7 @@ export default function MedicinesPage() {
             message.error("Xóa thất bại");
         }
     };
+    //
 
     const handleBatchDelete = async () => {
         if (selectedRowKeys.length === 0) {
@@ -167,33 +183,25 @@ export default function MedicinesPage() {
     };
 
     const canDelete = role === "admin";
-    const canCreate = role === "admin" || role === "accountant";
-    const canUpdate = role === "admin" || role === "accountant";
-    const canImport = role === "admin" || role === "accountant";
+    const canCreate = role === "admin" || role === "accountant" || role === "pharmacist";
+    const canUpdate = role === "admin" || role === "accountant" || role === "pharmacist";
+    const canImport = role === "admin" || role === "accountant" || role === "pharmacist";
 
-    // Xử lý import file
     const handleImport = async () => {
-        console.log("🚀 handleImport được gọi", { fileListLength: fileList.length });
 
         if (fileList.length === 0) {
-            console.warn("⚠️ Không có file được chọn");
+            console.warn("Không có file được chọn");
             message.warning("Vui lòng chọn file để import");
             return;
         }
 
-        // Lấy file từ fileList - thử originFileObj trước, nếu không có thì lấy file trực tiếp
         const fileItem = fileList[0];
         const file = fileItem?.originFileObj || fileItem;
 
-        console.log("📄 File info:", {
-            fileItem,
-            file: file ? { name: file.name, size: file.size, type: file.type } : null,
-            fileList: fileList,
-            hasOriginFileObj: !!fileItem?.originFileObj
-        });
+
 
         if (!file || !(file instanceof File)) {
-            console.error("❌ File không hợp lệ hoặc không phải File object", { file, fileItem });
+            console.error(" File không hợp lệ hoặc không phải File object", { file, fileItem });
             message.warning("File không hợp lệ. Vui lòng chọn lại file.");
             return;
         }
@@ -212,7 +220,6 @@ export default function MedicinesPage() {
                 body: formData,
             });
 
-            console.log("Response status:", res.status, res.statusText);
 
             let data;
             try {
@@ -254,7 +261,7 @@ export default function MedicinesPage() {
                     (data.failed > 0 ? `, ${data.failed} thất bại` : "") +
                     (skipped > 0 ? `, ${skipped} bị bỏ qua (đã tồn tại trong hệ thống)` : "")
                 );
-                fetchMedicines(); // Refresh danh sách
+                fetchMedicines();
             } else if (data.failed > 0) {
                 message.warning(`Import thất bại: ${data.failed} thuốc không thể import`);
             } else {
@@ -280,12 +287,10 @@ export default function MedicinesPage() {
         setImportResult(null);
     };
 
-    // Lấy danh sách các category duy nhất từ tất cả thuốc
     const categories = Array.from(
         new Set(
             medicines
                 .flatMap((m) => {
-                    // Xử lý cả trường hợp category là string hoặc array
                     if (Array.isArray(m.category)) {
                         return m.category;
                     }
@@ -544,14 +549,12 @@ export default function MedicinesPage() {
                                 size: file.size
                             });
 
-                            // Kiểm tra extension
                             const fileName = file.name.toLowerCase();
                             const hasValidExtension =
                                 fileName.endsWith(".xlsx") ||
                                 fileName.endsWith(".xls") ||
                                 fileName.endsWith(".csv");
 
-                            // Kiểm tra MIME type
                             const isValidMimeType =
                                 file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
                                 file.type === "application/vnd.ms-excel" ||
@@ -590,7 +593,6 @@ export default function MedicinesPage() {
                                 file: info.file,
                                 fileListLength: info.fileList.length
                             });
-                            // Chỉ cập nhật nếu có file
                             if (info.fileList.length > 0) {
                                 setFileList(info.fileList);
                             }
@@ -643,4 +645,5 @@ export default function MedicinesPage() {
         </div>
     );
 }
+//
 

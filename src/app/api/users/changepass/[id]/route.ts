@@ -3,6 +3,7 @@ import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/users/changepass`;
 
+// TỰ VIẾT
 export async function PATCH(
   req: Request,
   context: { params: Promise<{ id: string }> }
@@ -39,4 +40,4 @@ export async function PATCH(
     );
   }
 }
-
+//

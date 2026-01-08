@@ -1,11 +1,10 @@
-// src/app/api/medicine-imports/route.ts
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 const MEDICINE_IMPORTS_URL = `${API_URL}/api/medicine-imports`;
 
-// 📦 GET - Lấy danh sách nhập thuốc
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
@@ -13,7 +12,6 @@ export async function GET(req: Request) {
         
         const headers = await getAuthHeaderServer();
         
-        // Tạo URL với query params nếu có
         let url = MEDICINE_IMPORTS_URL;
         if (disabled === "true") {
             url += `?disabled=true`;
@@ -36,7 +34,6 @@ export async function GET(req: Request) {
         const data = await res.json();
         let list = Array.isArray(data) ? data : data.medicineImports || [];
         
-        // Filter disabled items ở frontend nếu backend không hỗ trợ query params
         if (disabled === "true") {
             list = list.filter((item: any) => item.disabled === true);
         } else if (disabled === "false") {
@@ -54,7 +51,6 @@ export async function GET(req: Request) {
     }
 }
 
-// ➕ POST - Tạo nhập thuốc mới
 export async function POST(req: Request) {
     try {
         const headers = {

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -24,7 +25,6 @@ const data = [
     { name: "60k", uv: 48 },
 ];
 
-// Fallback quotes array in case API fails
 const fallbackQuotes = [
     {
         text: "Mỗi ngày là cơ hội mới để làm cho cuộc sống tốt đẹp hơn.",
@@ -108,13 +108,11 @@ const fallbackQuotes = [
     },
 ];
 
-// Function to get a random quote from fallback array
 const getRandomFallbackQuote = () => {
     const randomIndex = Math.floor(Math.random() * fallbackQuotes.length);
     return fallbackQuotes[randomIndex];
 };
 
-// Role names in Vietnamese
 const roleNames: { [key: string]: string } = {
     doctor: "Bác sĩ",
     nurse: "Y tá",
@@ -163,11 +161,9 @@ export default function Dashboard() {
     const [monthlyProfitLoss, setMonthlyProfitLoss] =
         useState<ProfitLossMonthlyResponse | null>(null);
 
-    // Fetch user role and employee name
     useEffect(() => {
         const fetchUserData = async () => {
             try {
-                // Use /api/users/me to get user info (same as profile page)
                 const meRes = await fetch("/api/users/me", {
                     credentials: "include",
                     cache: "no-store",
@@ -181,7 +177,6 @@ export default function Dashboard() {
                 const userRole = (me?.role || "").toLowerCase();
                 setRole(userRole);
 
-                // Fetch employee name using userId
                 const userId = me.id || me._id;
                 if (userId) {
                     try {
@@ -198,7 +193,6 @@ export default function Dashboard() {
                         }
                     } catch (err) {
                         console.error("Error fetching employee data:", err);
-                        // Fallback to username if employee fetch fails
                         if (me?.username) {
                             setEmployeeName(me.username);
                         }
@@ -215,10 +209,9 @@ export default function Dashboard() {
         fetchUserData();
     }, []);
 
-    // Fetch quote from API - ưu tiên sử dụng API, chỉ fallback khi API thực sự lỗi
+    // TỰ VIẾT
     const fetchQuote = async () => {
         try {
-            // Gọi API route proxy để tránh CORS issue
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
 
@@ -234,12 +227,10 @@ export default function Dashboard() {
                 const data = await response.json();
                 console.log("Quote data received from API:", data);
 
-                // Kiểm tra xem response có chứa error không
                 if (data.error) {
                     throw new Error(data.error);
                 }
 
-                // Đảm bảo có text và author
                 if (data.text && data.author) {
                     setCurrentQuote({
                         text: data.text,
@@ -255,13 +246,13 @@ export default function Dashboard() {
             }
         } catch (error) {
             console.error("Error fetching quote from API:", error);
-            // Chỉ sử dụng fallback quote khi API thực sự lỗi
             console.log("Using fallback quote from local array");
             setCurrentQuote(getRandomFallbackQuote());
         }
     };
+    //
 
-    // Fetch quote on mount and every 30 seconds
+    // TỰ VIẾT
     useEffect(() => {
         if (!loading && role !== "admin") {
             fetchQuote();
@@ -272,8 +263,9 @@ export default function Dashboard() {
             return () => clearInterval(quoteTimer);
         }
     }, [loading, role]);
+    //
 
-    // Update time every second
+    // TỰ VIẾT
     useEffect(() => {
         const timer = setInterval(() => {
             setCurrentTime(new Date());
@@ -281,8 +273,8 @@ export default function Dashboard() {
 
         return () => clearInterval(timer);
     }, []);
+    //
 
-    // Fetch report data for admin dashboard
     useEffect(() => {
         const fetchReportData = async () => {
             if (role !== "admin") return;
@@ -378,7 +370,6 @@ export default function Dashboard() {
         return "Chào buổi tối";
     };
 
-    // Chuẩn bị dữ liệu chart (admin)
     const { xLabels, incomeSeries, expenseSeries } = useMemo(() => {
         if (!monthlyProfitLoss || !monthlyProfitLoss.data) {
             return { xLabels: [], incomeSeries: [], expenseSeries: [] };
@@ -440,7 +431,6 @@ export default function Dashboard() {
             <div className="flex-1 flex flex-col">
                 <main className="flex-1 p-6 overflow-y-auto space-y-6">
                     {isAdmin ? (
-                        // Admin view: Report summary
                         reportLoading ? (
                             <div className="flex justify-center py-10">
                                 <Spin />
@@ -534,7 +524,6 @@ export default function Dashboard() {
                             </div>
                         )
                     ) : (
-                        // Non-admin view: Show welcome, date/time, and quotes
                         <div className="space-y-6">
                             {/* Welcome Card */}
                             <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">

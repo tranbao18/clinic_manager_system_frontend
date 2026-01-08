@@ -1,23 +1,21 @@
-// app/api/patients/route.ts
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = "http://127.0.0.1:5050/api/patients";
 
-// 📦 GET - Lấy danh sách bệnh nhân
 export async function GET(req: Request) {
     try {
         const { searchParams } = new URL(req.url);
         const disabled = searchParams.get("disabled");
-        
-        const headers = await getAuthHeaderServer(); // ✅ lấy token từ session
-        
-        // Tạo URL với query params nếu có
+
+        const headers = await getAuthHeaderServer();
+
         let url = API_URL;
         if (disabled === "true") {
             url += `?disabled=true`;
         }
-        
+
         const res = await fetch(url, {
             cache: "no-store",
             headers,
@@ -34,16 +32,14 @@ export async function GET(req: Request) {
 
         const data = await res.json();
 
-        // ✅ đảm bảo trả về mảng
         let list = Array.isArray(data) ? data : data.patients || [];
-        
-        // Filter disabled items ở frontend nếu backend không hỗ trợ query params
+
         if (disabled === "true") {
             list = list.filter((item: any) => item.disabled === true);
         } else if (disabled === "false") {
             list = list.filter((item: any) => item.disabled !== true);
         }
-        
+
         return NextResponse.json(list);
     } catch (err: any) {
         console.error("GET /api/patients exception:", err);
@@ -53,8 +49,7 @@ export async function GET(req: Request) {
         );
     }
 }
-
-// 🧩 POST - Thêm bệnh nhân mới
+// TỰ VIẾT
 export async function POST(req: Request) {
     try {
         const headers = {
@@ -85,3 +80,4 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: err.message || "Lỗi hệ thống" }, { status: 500 });
     }
 }
+//

@@ -1,3 +1,4 @@
+// KẾ THỪA
 "use client";
 
 import { useEffect, useState } from "react";
@@ -28,7 +29,7 @@ export default function EditMedicinePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
-    // ✅ Chặn truy cập nếu không phải Admin hoặc Accountant
+    // TỰ VIẾT
     useEffect(() => {
         const fetchRole = async () => {
             try {
@@ -44,10 +45,9 @@ export default function EditMedicinePage() {
             }
         };
         fetchRole();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+    // 
 
-    // 📦 Lấy dữ liệu thuốc
     useEffect(() => {
         if (!id) return;
 
@@ -74,7 +74,6 @@ export default function EditMedicinePage() {
         fetchMedicine();
     }, [id, form, router]);
 
-    // 🧩 Cập nhật thông tin
     const handleUpdate = async (values: UpdateMedicineData) => {
         try {
             setSaving(true);
@@ -88,16 +87,14 @@ export default function EditMedicinePage() {
                 price: values.price,
             };
 
-            // Chỉ gửi các trường đã thay đổi
             const updatedData: UpdateMedicineData = {};
             if (payload.name && payload.name !== medicine?.name) {
                 updatedData.name = payload.name;
             }
-            // So sánh mảng category
-            const currentCategories = Array.isArray(medicine?.category) 
-                ? medicine.category 
+            const currentCategories = Array.isArray(medicine?.category)
+                ? medicine.category
                 : (medicine?.category ? [medicine.category] : []);
-            const categoriesEqual = 
+            const categoriesEqual =
                 categoryArray.length === currentCategories.length &&
                 categoryArray.every((cat, idx) => cat === currentCategories[idx]);
             if (!categoriesEqual) {
@@ -137,7 +134,7 @@ export default function EditMedicinePage() {
             </div>
         );
     }
-
+    // TỰ VIẾT
     return (
         <div className="p-6 max-w-3xl mx-auto">
             <div>
@@ -157,7 +154,6 @@ export default function EditMedicinePage() {
                     onFinish={handleUpdate}
                     className="mt-4"
                 >
-                    {/* Tên thuốc */}
                     <Form.Item
                         label="Tên thuốc"
                         name="name"
@@ -169,7 +165,6 @@ export default function EditMedicinePage() {
                         <Input placeholder="VD: Paracetamol 500mg" />
                     </Form.Item>
 
-                    {/* Danh mục & Đơn vị */}
                     <div className="grid grid-cols-2 gap-4">
                         <Form.Item
                             label="Danh mục"
@@ -215,7 +210,6 @@ export default function EditMedicinePage() {
                         </Form.Item>
                     </div>
 
-                    {/* Giá */}
                     <Form.Item
                         label="Giá (VND)"
                         name="price"
@@ -239,7 +233,6 @@ export default function EditMedicinePage() {
                         />
                     </Form.Item>
 
-                    {/* Thông tin bổ sung */}
                     <div className="mt-4 p-4 bg-gray-50 rounded-lg">
                         <p className="text-sm text-gray-600">
                             <strong>Mã thuốc:</strong> {medicine._id}
@@ -254,7 +247,6 @@ export default function EditMedicinePage() {
                         </p>
                     </div>
 
-                    {/* Nút hành động */}
                     <div className="flex justify-end gap-3 mt-6">
                         <Button onClick={() => router.back()}>Hủy</Button>
                         <Button
@@ -270,5 +262,6 @@ export default function EditMedicinePage() {
             </Card>
         </div>
     );
+    // 
 }
 

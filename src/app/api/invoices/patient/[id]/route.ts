@@ -1,10 +1,8 @@
-// src/app/api/invoices/patient/[id]/route.ts
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
-// 🔍 GET - Lấy hóa đơn theo patient_id
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -40,7 +38,6 @@ export async function GET(
         url,
       });
 
-      // Nếu là lỗi 401/403, trả về mảng rỗng
       if (res.status === 401 || res.status === 403) {
         console.warn("⚠️ Không có quyền truy cập invoices, trả về mảng rỗng");
         return NextResponse.json([]);
@@ -53,7 +50,6 @@ export async function GET(
     }
 
     const data = await res.json();
-    // Backend có thể trả về object hoặc array
     return NextResponse.json(Array.isArray(data) ? data : (data ? [data] : []));
   } catch (err: any) {
     console.error("GET /api/invoices/patient/[id] exception:", err);

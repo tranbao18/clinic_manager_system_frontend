@@ -1,4 +1,3 @@
-// src/app/api/medicine-imports/update-quantities/route.ts
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 

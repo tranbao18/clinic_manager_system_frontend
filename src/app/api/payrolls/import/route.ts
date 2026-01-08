@@ -1,11 +1,9 @@
-// src/app/api/payrolls/import/route.ts
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 const PAYROLLS_IMPORT_URL = `${API_URL}/api/payrolls/import`;
 
-// 📤 POST - Import bảng lương từ file Excel/CSV
 export async function POST(req: Request) {
     try {
         const formData = await req.formData();
@@ -18,7 +16,6 @@ export async function POST(req: Request) {
             );
         }
 
-        // Validate file type
         const allowedTypes = [
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
             "application/vnd.ms-excel", // .xls
@@ -43,7 +40,6 @@ export async function POST(req: Request) {
             );
         }
 
-        // Validate file size (10MB)
         if (file.size > 10 * 1024 * 1024) {
             return NextResponse.json(
                 { error: "File quá lớn. Kích thước tối đa là 10MB" },
@@ -55,7 +51,6 @@ export async function POST(req: Request) {
         const uploadFormData = new FormData();
         uploadFormData.append("file", file);
 
-        // Chỉ thêm Authorization header nếu có token
         const headers: HeadersInit = {};
         if (authHeaders.Authorization) {
             headers.Authorization = authHeaders.Authorization;

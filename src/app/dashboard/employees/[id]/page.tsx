@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -72,6 +73,7 @@ export default function EmployeeDetailPage() {
   const [payrollHistory, setPayrollHistory] = useState<Payroll[]>([]);
   const [loadingPayroll, setLoadingPayroll] = useState(false);
 
+  // TỰ VIẾT
   const formattedDate = (dateString?: string) => {
     if (!dateString) return "-";
     const d = new Date(dateString);
@@ -102,24 +104,21 @@ export default function EmployeeDetailPage() {
     if (gender === "Female") return "Nữ";
     return gender;
   };
+  // 
 
-  // 🔹 Fetch data
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
 
-        // 1️⃣ Lấy thông tin nhân viên (luôn tồn tại)
         const empData = await EmployeesService.getById(id as string);
         setEmployee(empData);
 
-        // 2️⃣ Lấy thông tin tài khoản (có thể null)
         const data = await AuthService.getEmployeeById(id as string);
         console.log("📦 Account data from API:", data);
         console.log("📦 User object:", data?.user);
         setAccount(data?.user || null);
 
-        // 3️⃣ Gán giá trị cho form
         form.setFieldsValue({
           fullname: empData.fullname,
           gender: empData.gender,
@@ -132,11 +131,9 @@ export default function EmployeeDetailPage() {
           basic_salary: empData.basic_salary,
         });
 
-        // 4️⃣ Lấy lịch sử lương
         try {
           setLoadingPayroll(true);
           const payrolls = await PayrollService.getByEmployeeId(id as string);
-          // Sắp xếp theo ngày thanh toán giảm dần (mới nhất trước)
           payrolls.sort((a: Payroll, b: Payroll) =>
             new Date(b.paydate).getTime() - new Date(a.paydate).getTime()
           );
@@ -160,19 +157,12 @@ export default function EmployeeDetailPage() {
   const canChangePassword = !!account && isAdmin;
   const canResetPassword = !!account && isAdmin;
 
-  // Debug log
+  // TỰ VIẾT
   useEffect(() => {
     const accountId = account?._id || account?.id;
-    console.log("🔍 Debug reset password conditions:", {
-      account,
-      accountId,
-      currentUser,
-      isAdmin,
-      canResetPassword,
-    });
-  }, [account, currentUser, isAdmin, canResetPassword]);
 
-  // 🔹 Lưu cập nhật
+  }, [account, currentUser, isAdmin, canResetPassword]);
+  // 
   const handleSave = async (values: {
     fullname: string;
     gender: string;
@@ -188,7 +178,6 @@ export default function EmployeeDetailPage() {
       setSaving(true);
       if (!employee?._id) return;
 
-      // Chuyển đổi dayjs object thành ISO string nếu có
       const payload = {
         ...values,
         dob: values.dob ? dayjs(values.dob).toISOString() : undefined,
@@ -204,6 +193,7 @@ export default function EmployeeDetailPage() {
       setSaving(false);
     }
   };
+
 
   const handleChangePasswordSubmit = async (
     values: ChangePasswordFormValues
@@ -232,24 +222,21 @@ export default function EmployeeDetailPage() {
   const accountId = account?._id || account?.id;
 
   const handleResetPassword = async () => {
-    console.log("🟢 Reset password handler called");
     if (!accountId) {
-      console.error("❌ No accountId found");
+      console.error("No accountId found");
       message.error("Không tìm thấy tài khoản để reset");
       return;
     }
 
     try {
       setResettingPassword(true);
-      console.log("🟢 Resetting password for user ID:", accountId);
       const result = await AuthService.resetPassword(accountId);
-      console.log("🟢 Reset password result:", result);
       message.success(
         result.message || "Reset mật khẩu thành công. Mật khẩu mới đã được gửi qua email."
       );
       setIsResetPasswordModalOpen(false);
     } catch (error: any) {
-      console.error("🔴 Reset password error:", error);
+      console.error("Reset password error:", error);
       const errorMessage = error.message || "Không thể reset mật khẩu";
       message.error(errorMessage);
     } finally {
@@ -258,19 +245,12 @@ export default function EmployeeDetailPage() {
   };
 
   const confirmResetPassword = () => {
-    console.log("🔵 confirmResetPassword called");
-    console.log("🔵 account:", account);
-    console.log("🔵 accountId:", accountId);
-    console.log("🔵 isAdmin:", isAdmin);
-    console.log("🔵 canResetPassword:", canResetPassword);
 
     if (!accountId) {
-      console.error("❌ No accountId found");
+      console.error(" No accountId found");
       message.error("Không tìm thấy tài khoản để reset");
       return;
     }
-
-    console.log("🔵 Opening reset password modal");
     setIsResetPasswordModalOpen(true);
   };
 
@@ -280,7 +260,7 @@ export default function EmployeeDetailPage() {
         Không tìm thấy thông tin nhân viên
       </div>
     );
-
+  // TỰ VIẾT
   return (
     <Layout style={{ minHeight: "100vh" }}>
       <Content className="m-4 p-4 bg-white rounded shadow relative">
@@ -310,7 +290,6 @@ export default function EmployeeDetailPage() {
             </div>
           </div>
 
-          {/* 🔹 Thông tin nhân viên */}
           <Card title="Thông tin nhân viên" className="mb-6">
             <div style={{ display: !editMode ? "block" : "none" }}>
               <Descriptions bordered column={2} size="middle">
@@ -438,7 +417,6 @@ export default function EmployeeDetailPage() {
             </Form>
           </Card>
 
-          {/* 🔹 Thông tin tài khoản */}
           <Card title="Thông tin tài khoản đăng nhập">
             {account ? (
               <Descriptions bordered size="middle" column={2}>
@@ -571,7 +549,6 @@ export default function EmployeeDetailPage() {
             </Card>
           )}
 
-          {/* 🔹 Lịch sử lương */}
           <Card title="Lịch sử lương" className="mt-6">
             <Spin spinning={loadingPayroll}>
               {payrollHistory.length === 0 ? (
@@ -631,4 +608,5 @@ export default function EmployeeDetailPage() {
       </Content>
     </Layout>
   );
+  // 
 }

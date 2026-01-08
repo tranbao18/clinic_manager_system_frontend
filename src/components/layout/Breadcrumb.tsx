@@ -1,3 +1,4 @@
+// TỰ VIẾT
 import Link from "next/link"
 import { SlashIcon } from "lucide-react"
 import { usePathname } from "next/navigation"
@@ -26,7 +27,6 @@ export function BreadcrumbWithCustomSeparator() {
 
     const pathSegments = pathname.split("/").filter(Boolean)
 
-    // Tạo từng breadcrumb từ path segments
     const crumbs = pathSegments.map((segment, index) => {
         const href = "/" + pathSegments.slice(0, index + 1).join("/")
         return {

@@ -25,10 +25,8 @@ export default function NewEmployeePage() {
   const [position, setPosition] = useState<string>("");
   const router = useRouter();
 
-  // 🔹 Danh sách chức vụ
-  const positions = ["Bác sĩ", "Y tá", "Lễ tân", "Kế toán", "Admin"];
+  const positions = ["Bác sĩ", "Y tá", "Lễ tân", "Kế toán", "Dược sĩ", "Admin"];
 
-  // 🔹 Danh sách chuyên khoa
   const specializations = [
     "Nội tổng hợp",
     "Nhi khoa",
@@ -38,34 +36,59 @@ export default function NewEmployeePage() {
     "Tai mũi họng",
   ];
 
-  // 🔹 Mapping giới tính
+  // TỰ VIẾT
   const mapGenderToApiValue = (gender: string) => {
     if (gender === "Nam") return "Male";
     if (gender === "Nữ") return "Female";
     return gender;
   };
+  //
 
-  // 🔹 Mapping chức vụ sang role
+  // TỰ VIẾT
   function mapPositionToRole(position: string) {
     const mapping: Record<string, string> = {
       "Bác sĩ": "Doctor",
       "Y tá": "Nurse",
       "Lễ tân": "Receptionist",
       "Kế toán": "Accountant",
+      "Dược sĩ": "Pharmacist",
       Admin: "Admin",
     };
     return mapping[position] || "Receptionist";
   }
+  // 
+  // TỰ VIẾT
+  const validateEmailDuplicate = async (email: string) => {
+    try {
+      const response = await EmployeesService.getAll();
+      const employees = response.data || response;
+      const emailExists = employees.some(
+        (employee: any) => employee.email?.toLowerCase() === email.toLowerCase()
+      );
 
-  // ✅ Gộp lại: tạo account trước → rồi tạo employee
+      if (emailExists) {
+        throw new Error("Email này đã được sử dụng bởi nhân viên khác");
+      }
+    } catch (error: any) {
+      console.error("Email validation error:", error);
+      if (error.message.includes("đã được sử dụng")) {
+        throw error;
+      }
+      console.warn("Không thể kiểm tra email trùng lặp:", error.message);
+    }
+  };
+  //
+
   const onFinish = async (values: any) => {
     try {
       setLoading(true);
 
-      // 1️⃣ Map role từ chức vụ
+      if (values.email && values.email.trim()) {
+        await validateEmailDuplicate(values.email.trim());
+      }
+
       const role = mapPositionToRole(values.position);
 
-      // 2️⃣ Tạo dữ liệu account (truyền qua /api/auth/register)
       const accountPayload = {
         role,
         employee: {
@@ -80,7 +103,6 @@ export default function NewEmployeePage() {
         },
       };
 
-      // 3️⃣ Gọi API tạo account
       const accountRes = await AuthService.registerAccountForEmployee(
         accountPayload.role,
         accountPayload.employee
@@ -90,7 +112,6 @@ export default function NewEmployeePage() {
         throw new Error("Không nhận được ID người dùng sau khi tạo tài khoản");
       }
 
-      // Kiểm tra xem nhân viên có email không
       const employeeEmail = values.email;
       const hasEmail = employeeEmail && employeeEmail.trim() !== "";
 
@@ -137,7 +158,28 @@ export default function NewEmployeePage() {
       router.push("/dashboard/employees");
     } catch (error: any) {
       console.error("❌ Error:", error);
-      message.error(error.message || "Lỗi khi tạo nhân viên");
+      const errMsg = (error && error.message) || String(error || "");
+
+      if (
+        errMsg.includes("Email này đã được sử dụng") ||
+        errMsg.includes("duplicate key") ||
+        errMsg.includes("E11000") ||
+        errMsg.toLowerCase().includes("email")
+      ) {
+        try {
+          form.setFields([
+            {
+              name: "email",
+              errors: ["Email này đã được sử dụng bởi nhân viên khác"],
+            },
+          ]);
+        } catch (setErr) {
+          console.warn("Không thể set field error:", setErr);
+        }
+        message.error("Email đã tồn tại. Vui lòng sử dụng email khác.");
+      } else {
+        message.error(errMsg || "Lỗi khi tạo nhân viên");
+      }
     } finally {
       setLoading(false);
     }
@@ -199,8 +241,15 @@ export default function NewEmployeePage() {
               rules={[
                 { required: true, message: "Vui lòng nhập email" },
                 { type: "email", message: "Email không hợp lệ" },
+                {
+                  validator: async (_, value) => {
+                    if (value && value.trim()) {
+                      await validateEmailDuplicate(value.trim());
+                    }
+                  },
+                },
               ]}
-              help="📧 Email này sẽ nhận thông tin tài khoản (username và password) sau khi tạo nhân viên"
+              extra="📧 Email này sẽ nhận thông tin tài khoản (username và password) sau khi tạo nhân viên"
             >
               <Input placeholder="VD: name@clinic.com" />
             </Form.Item>

@@ -1,4 +1,3 @@
-// src/lib/services/authService.ts
 import { getAuthHeaderClient } from "@/lib/authHeaderClient";
 const BASE_URL = "/api/auth";
 
@@ -23,9 +22,16 @@ const AuthService = {
     });
 
     if (!res.ok) {
-      const text = await res.text();
-      console.error("❌ Server error:", text);
-      throw new Error(text || "Lỗi khi tạo tài khoản");
+      let errorMessage = "Lỗi khi tạo tài khoản";
+      try {
+        const errorData = await res.json();
+        errorMessage = errorData.error || errorData.message || errorMessage;
+      } catch {
+        const text = await res.text();
+        console.error("❌ Server error:", text);
+        errorMessage = text || errorMessage;
+      }
+      throw new Error(errorMessage);
     }
 
     return res.json();
@@ -42,7 +48,6 @@ const AuthService = {
     if (!res.ok)
       throw new Error(data.error || "Tên đăng nhập hoặc mật khẩu sai");
 
-    // Lưu token vào sessionStorage thay vì localStorage
     sessionStorage.setItem("token", data.token);
     sessionStorage.setItem("user", JSON.stringify(data.user));
 
@@ -70,7 +75,7 @@ const AuthService = {
       if (authHeaders.Authorization) {
         headers.Authorization = authHeaders.Authorization;
       }
-      
+
       const res = await fetch(`${BASE_URL}/employee/${employeeId}`, {
         method: "GET",
         headers,
@@ -78,7 +83,6 @@ const AuthService = {
       });
 
       if (res.status === 404) {
-        // chỉ có user chưa tồn tại, vẫn trả employee=null
         return { employee: null, user: null };
       }
 
@@ -99,14 +103,13 @@ const AuthService = {
       if (authHeaders.Authorization) {
         headers.Authorization = authHeaders.Authorization;
       }
-      
+
       const res = await fetch(`${BASE_URL}/logout`, {
         method: "POST",
         headers,
         credentials: "include",
       });
 
-      // Xóa token và user từ cả localStorage và sessionStorage
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       sessionStorage.removeItem("token");
@@ -120,7 +123,6 @@ const AuthService = {
       const data = await res.json();
       return data;
     } catch (err: unknown) {
-      // Vẫn xóa storage ngay cả khi có lỗi
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       sessionStorage.removeItem("token");
@@ -189,7 +191,6 @@ const AuthService = {
       return data;
     } catch (error: any) {
       console.error("Reset password service error:", error);
-      // Nếu error đã có message, throw lại; nếu không, tạo error mới
       if (error.message) {
         throw error;
       }

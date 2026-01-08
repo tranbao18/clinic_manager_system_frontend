@@ -58,6 +58,7 @@ export default function InvoicesPage() {
     const [role, setRole] = useState<string>("");
     const router = useRouter();
 
+    // TỰ VIẾT
     const fetchInvoices = async () => {
         try {
             setLoading(true);
@@ -88,6 +89,7 @@ export default function InvoicesPage() {
         };
         fetchRole();
     }, []);
+    // 
 
     const normalizeText = (str: string) =>
         str
@@ -103,11 +105,11 @@ export default function InvoicesPage() {
 
         if (search) {
             filtered = filtered.filter((item) => {
-                const patientName = typeof item.patient_id === 'object' 
-                    ? item.patient_id.fullname || '' 
+                const patientName = typeof item.patient_id === 'object'
+                    ? item.patient_id.fullname || ''
                     : '';
-                const appointmentDate = typeof item.appointment_id === 'object' 
-                    ? item.appointment_id.appointment_date || '' 
+                const appointmentDate = typeof item.appointment_id === 'object'
+                    ? item.appointment_id.appointment_date || ''
                     : '';
                 return (
                     normalizeText(patientName).includes(search) ||
@@ -124,6 +126,7 @@ export default function InvoicesPage() {
         setFilteredInvoices(filtered);
     };
 
+    // TỰ VIẾT
     const handleDelete = async (id: string) => {
         try {
             await deleteInvoice(id);
@@ -133,6 +136,7 @@ export default function InvoicesPage() {
             message.error(error.message || "Không thể xóa hóa đơn");
         }
     };
+    // 
 
     const columns: ColumnsType<Invoice> = [
         {
@@ -154,7 +158,7 @@ export default function InvoicesPage() {
             key: "appointment_date",
             render: (_, record) => {
                 const appointment = typeof record.appointment_id === 'object' ? record.appointment_id : null;
-                return appointment?.appointment_date 
+                return appointment?.appointment_date
                     ? dayjs(appointment.appointment_date).format("DD/MM/YYYY")
                     : "N/A";
             },
@@ -219,6 +223,7 @@ export default function InvoicesPage() {
         },
     ];
 
+    // TỰ VIẾT
     return (
         <div style={{ padding: "24px" }}>
             <div style={{ marginBottom: "16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -275,5 +280,6 @@ export default function InvoicesPage() {
             />
         </div>
     );
+    // 
 }
 

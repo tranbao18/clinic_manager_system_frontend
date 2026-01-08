@@ -1,23 +1,18 @@
-// src/lib/services/usersService.ts
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 import { getAuthHeaderClient } from "@/lib/authHeaderClient";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 const API_URL = `${BASE_URL}/api/users`;
 
-// ✅ Auto chọn header phù hợp (server hoặc client)
 async function getAuthHeaders() {
   if (typeof window === "undefined") {
-    // SSR (Next.js server component)
     return await getAuthHeaderServer();
   } else {
-    // Client (browser)
     return getAuthHeaderClient();
   }
 }
 
 const UsersService = {
-  // src/lib/services/usersService.ts
   async getByUserId(userId: string) {
     try {
       const headers = {
@@ -42,7 +37,6 @@ const UsersService = {
         throw new Error("Không thể lấy thông tin user");
       }
 
-      // ✅ Backend trả về { user: {...}, employee: {...} }
       const { user, employee } = await resUser.json();
 
       return { user, employee };
@@ -91,7 +85,6 @@ const UsersService = {
     if (!response.ok) throw new Error("Không thể cập nhật tài khoản");
     return response.json();
   },
-  // Update own account (employee fields) via auth/account endpoint
   async updateAccount(userId: string, employeeData: any) {
     const headers = await getAuthHeaders();
     const response = await fetch(`${BASE_URL}/api/auth/account/${userId}`, {

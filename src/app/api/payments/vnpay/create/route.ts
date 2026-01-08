@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
-// Sử dụng NEXT_PUBLIC_BACKEND_URL để nhất quán với các file khác
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || process.env.BACKEND_URL || "http://localhost:5050";
+
 
 export async function POST(req: Request) {
     try {
@@ -12,7 +12,6 @@ export async function POST(req: Request) {
             ...(authHeaders.Authorization && { Authorization: authHeaders.Authorization }),
         };
 
-        // Debug: Log config và auth
         console.log('🔧 Backend URL:', BACKEND_URL);
         console.log('🔐 Auth headers:', {
             hasAuth: !!authHeaders.Authorization,
@@ -32,13 +31,11 @@ export async function POST(req: Request) {
         });
 
         if (!res.ok) {
-            // Đọc text trước, sau đó parse JSON nếu có thể
             const text = await res.text();
             let errorData;
             try {
                 errorData = JSON.parse(text);
             } catch {
-                // Nếu không parse được JSON, có thể là HTML error page
                 errorData = {
                     error: text.substring(0, 200) || "Lỗi không xác định từ backend",
                     isHtml: text.includes('<html') || text.includes('<!DOCTYPE')
@@ -54,7 +51,6 @@ export async function POST(req: Request) {
                 responsePreview: text.substring(0, 500) // Preview response để debug
             });
 
-            // Xử lý lỗi 403 (Forbidden) - không có quyền
             if (res.status === 403) {
                 return NextResponse.json(
                     {
@@ -65,7 +61,6 @@ export async function POST(req: Request) {
                 );
             }
 
-            // Xử lý lỗi 401 (Unauthorized) - chưa đăng nhập
             if (res.status === 401) {
                 return NextResponse.json(
                     {
@@ -85,7 +80,6 @@ export async function POST(req: Request) {
             );
         }
 
-        // Đọc text và parse JSON
         const text = await res.text();
         let data;
         try {

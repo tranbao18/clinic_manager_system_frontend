@@ -1,17 +1,19 @@
-// src/app/api/notifications/unread-count/route.ts
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
-// 🔢 GET - Lấy số lượng thông báo chưa đọc
 export async function GET(req: Request) {
   try {
     const authHeaders = await getAuthHeaderServer();
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
-    if (authHeaders.Authorization) {
+    const incomingAuth = req.headers.get("authorization") || req.headers.get("Authorization");
+    if (incomingAuth) {
+      headers.Authorization = incomingAuth;
+    } else if (authHeaders.Authorization) {
       headers.Authorization = authHeaders.Authorization;
     }
 
@@ -23,7 +25,6 @@ export async function GET(req: Request) {
     });
 
     if (!res.ok) {
-      // Trả về 0 nếu có lỗi
       return NextResponse.json({ count: 0 });
     }
 

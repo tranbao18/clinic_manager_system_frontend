@@ -1,10 +1,9 @@
-// src/app/api/notifications/route.ts
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
-// 📋 GET - Lấy danh sách thông báo
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -14,7 +13,12 @@ export async function GET(req: Request) {
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
-    if (authHeaders.Authorization) {
+    // Prefer Authorization sent from client (e.g. fetch with Authorization header),
+    // fallback to server-side session token.
+    const incomingAuth = req.headers.get("authorization") || req.headers.get("Authorization");
+    if (incomingAuth) {
+      headers.Authorization = incomingAuth;
+    } else if (authHeaders.Authorization) {
       headers.Authorization = authHeaders.Authorization;
     }
 

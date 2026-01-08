@@ -33,6 +33,7 @@ export default function DisabledMedicalRecordsPage() {
     const [searchText, setSearchText] = useState("");
     const router = useRouter();
 
+    // TỰ VIẾT
     const fetchMedicalRecords = async () => {
         try {
             setLoading(true);
@@ -50,6 +51,7 @@ export default function DisabledMedicalRecordsPage() {
     useEffect(() => {
         fetchMedicalRecords();
     }, []);
+    // 
 
     const normalizeText = (str: string) =>
         str
@@ -84,6 +86,7 @@ export default function DisabledMedicalRecordsPage() {
         }
     };
 
+    // TỰ VIẾT
     const handleRestore = async (_id: string) => {
         try {
             await restoreMedicalRecord(_id);
@@ -93,8 +96,8 @@ export default function DisabledMedicalRecordsPage() {
             message.error("Khôi phục thất bại");
         }
     };
+    // 
 
-    // Permanent delete and bulk permanent delete are disabled for deleted medical records list.
 
     const formatDate = (date: string) =>
         date ? dayjs(date).format("DD/MM/YYYY HH:mm") : "—";
@@ -150,6 +153,7 @@ export default function DisabledMedicalRecordsPage() {
         },
     ];
 
+    // TỰ VIẾT
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-4">
@@ -231,5 +235,6 @@ export default function DisabledMedicalRecordsPage() {
             )}
         </div>
     );
+    // 
 }
 

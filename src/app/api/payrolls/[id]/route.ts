@@ -1,3 +1,4 @@
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
@@ -27,7 +28,6 @@ export async function PUT(
     const body = await req.json();
     const headers = await getAuthHeaderServer();
 
-    // Lấy query params từ URL để kiểm tra sendEmail
     const { searchParams } = new URL(req.url);
     const sendEmail = searchParams.get("sendEmail");
 

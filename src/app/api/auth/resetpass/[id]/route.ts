@@ -3,19 +3,17 @@ import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/resetpass`;
 
+// TỰ VIẾT
 export async function PATCH(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await context.params;
-    console.log("API route: Resetting password for user ID:", id);
-    
+
     const headers = await getAuthHeaderServer();
-    console.log("API route: Auth headers present:", !!headers.Authorization);
 
     const backendUrl = `${API_URL}/${id}`;
-    console.log("API route: Calling backend:", backendUrl);
 
     const res = await fetch(backendUrl, {
       method: "PATCH",
@@ -53,4 +51,4 @@ export async function PATCH(
     );
   }
 }
-
+//

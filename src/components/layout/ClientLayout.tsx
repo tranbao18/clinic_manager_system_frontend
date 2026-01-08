@@ -1,3 +1,4 @@
+// KẾ THỪA
 "use client";
 
 import { useEffect, useState } from "react";
@@ -12,7 +13,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
     const isAuthPage = pathname.startsWith("/auth");
 
     if (isAuthPage) {
-        // Trả về body hợp lệ
         return (
             <body className="min-h-screen flex items-center justify-center bg-gray-100">
                 {children}
@@ -20,7 +20,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         );
     }
 
-    // Simple role-based guard mapping theo prefix route
     useEffect(() => {
         const checkAccess = async () => {
             try {
@@ -58,7 +57,6 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
             }
         };
         checkAccess();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pathname]);
 
     return (

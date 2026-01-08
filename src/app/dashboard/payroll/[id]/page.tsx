@@ -31,7 +31,6 @@ export default function PayrollDetailPage() {
   const [editMode, setEditMode] = useState(false);
   const [sendEmail, setSendEmail] = useState(true);
 
-  // ✅ Chặn truy cập nếu không phải Admin hoặc Accountant
   useEffect(() => {
     const fetchRole = async () => {
       try {
@@ -47,7 +46,6 @@ export default function PayrollDetailPage() {
       }
     };
     fetchRole();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const formatCurrency = (amount: number) => {
@@ -60,6 +58,7 @@ export default function PayrollDetailPage() {
     return date.toLocaleDateString("vi-VN");
   };
 
+  // TỰ VIẾT
   useEffect(() => {
     const fetchPayroll = async () => {
       try {
@@ -84,6 +83,7 @@ export default function PayrollDetailPage() {
 
     if (id) fetchPayroll();
   }, [id, form, router]);
+  // 
 
   const calculateNetSalary = () => {
     const basicSalary = form.getFieldValue("basic_salary") || 0;
@@ -97,8 +97,6 @@ export default function PayrollDetailPage() {
     try {
       setSaving(true);
 
-      // Ensure we send net_salary and basic_salary to backend so DB stays consistent.
-      // Use form values if available, otherwise fallback to current payroll values.
       const basicSalaryValue = form.getFieldValue("basic_salary") ?? (payroll?.basic_salary ?? 0);
       const bonusValue = values.bonus ?? form.getFieldValue("bonus") ?? (payroll?.bonus ?? 0);
       const deductionsValue = values.deductions ?? form.getFieldValue("deductions") ?? (payroll?.deductions ?? 0);
@@ -124,7 +122,6 @@ export default function PayrollDetailPage() {
       }
 
       setEditMode(false);
-      // Refresh data để lấy emailSent mới nhất từ backend
       const updated = await PayrollService.getById(id as string);
       setPayroll(updated);
       form.setFieldsValue({
@@ -141,6 +138,7 @@ export default function PayrollDetailPage() {
     }
   };
 
+  // TỰ VIẾT
   const getEmployeeName = () => {
     if (!payroll) return "N/A";
     if (typeof payroll.employee_id === "object" && payroll.employee_id) {
@@ -326,5 +324,6 @@ export default function PayrollDetailPage() {
       </Content>
     </Layout>
   );
+  // 
 }
 

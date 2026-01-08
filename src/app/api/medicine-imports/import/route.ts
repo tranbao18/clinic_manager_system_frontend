@@ -1,11 +1,10 @@
-// src/app/api/medicine-imports/import/route.ts
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 const MEDICINE_IMPORTS_IMPORT_URL = `${API_URL}/api/medicine-imports/import`;
 
-// 📤 POST - Import nhập thuốc từ file Excel/CSV
+
 export async function POST(req: Request) {
     try {
         const formData = await req.formData();
@@ -18,7 +17,6 @@ export async function POST(req: Request) {
             );
         }
 
-        // Validate file type
         const allowedTypes = [
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
             "application/vnd.ms-excel", // .xls
@@ -26,7 +24,7 @@ export async function POST(req: Request) {
         ];
         const allowedExtensions = [".xlsx", ".xls", ".csv"];
         const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf("."));
-        
+
         const isValidType =
             allowedTypes.includes(file.type) ||
             file.name.endsWith(".csv") ||
@@ -43,7 +41,6 @@ export async function POST(req: Request) {
             );
         }
 
-        // Validate file size (10MB)
         if (file.size > 10 * 1024 * 1024) {
             return NextResponse.json(
                 { error: "File quá lớn. Kích thước tối đa là 10MB" },
@@ -55,7 +52,6 @@ export async function POST(req: Request) {
         const uploadFormData = new FormData();
         uploadFormData.append("file", file);
 
-        // Chỉ thêm Authorization header nếu có token
         const headers: HeadersInit = {};
         if (authHeaders.Authorization) {
             headers.Authorization = authHeaders.Authorization;
@@ -97,7 +93,7 @@ export async function POST(req: Request) {
                 { status: 500 }
             );
         }
-        
+
         return NextResponse.json(data);
     } catch (err: unknown) {
         const errorMessage = err instanceof Error ? err.message : "Lỗi hệ thống";

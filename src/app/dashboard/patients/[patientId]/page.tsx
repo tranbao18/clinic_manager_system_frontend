@@ -44,14 +44,12 @@ import {
 } from "@/lib/services/invoiceService";
 import { getAppointments, Appointment, updateAppointment } from "@/lib/services/appointmentsService";
 
-// 🔹 Hàm chuyển đổi giới tính theo backend
 const mapGenderToApiValue = (gender: string) => {
     if (gender === "Nam") return "Male";
     if (gender === "Nữ") return "Female";
     return gender;
 };
 
-// 🔹 Hàm chuyển đổi giới tính từ backend sang hiển thị
 const mapGenderFromApiValue = (gender: string) => {
     if (gender === "Male") return "Nam";
     if (gender === "Female") return "Nữ";
@@ -68,7 +66,6 @@ export default function PatientDetailPage() {
     const [saving, setSaving] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
 
-    // Medical Records state
     const [medicalRecords, setMedicalRecords] = useState<MedicalRecord[]>([]);
     const [loadingRecords, setLoadingRecords] = useState(false);
     const [medicines, setMedicines] = useState<Medicine[]>([]);
@@ -78,16 +75,14 @@ export default function PatientDetailPage() {
     const [savingRecord, setSavingRecord] = useState(false);
     const [deletingRecordId, setDeletingRecordId] = useState<string | null>(null);
 
-    // Appointments state
     const [appointments, setAppointments] = useState<Appointment[]>([]);
 
-    // Invoices state
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [creatingInvoice, setCreatingInvoice] = useState<string | null>(null);
     const [invoiceSuccessModalVisible, setInvoiceSuccessModalVisible] = useState(false);
     const [createdInvoice, setCreatedInvoice] = useState<Invoice | null>(null);
 
-    // 📦 Lấy dữ liệu bệnh nhân
+    // TỰ VIẾT
     useEffect(() => {
         if (!patientId) return;
 
@@ -101,7 +96,6 @@ export default function PatientDetailPage() {
                 if (!res.ok)
                     throw new Error(data.error || "Không thể lấy thông tin bệnh nhân");
 
-                // Map giới tính từ API về dạng hiển thị
                 const mappedData = {
                     ...data,
                     gender: mapGenderFromApiValue(data.gender),
@@ -120,14 +114,13 @@ export default function PatientDetailPage() {
         fetchPatient();
     }, [patientId]);
 
-    // Set form values khi vào chế độ edit
+
     useEffect(() => {
         if (isEditing && patient) {
             form.setFieldsValue(patient);
         }
     }, [isEditing, patient, form]);
 
-    // 📦 Lấy danh sách hồ sơ y tế
     useEffect(() => {
         if (!patientId) return;
 
@@ -146,15 +139,14 @@ export default function PatientDetailPage() {
 
         fetchMedicalRecords();
     }, [patientId]);
+    // 
 
-    // 📦 Lấy danh sách appointments của patient
     useEffect(() => {
         if (!patientId) return;
 
         const fetchAppointments = async () => {
             try {
                 const allAppointments = await getAppointments();
-                // Filter appointments của patient này (xử lý cả trường hợp patient_id là object)
                 const patientAppointments = allAppointments.filter(
                     (apt: Appointment) => {
                         const aptPatientId = typeof (apt.patient_id as any) === 'object' && (apt.patient_id as any)?._id
@@ -164,15 +156,6 @@ export default function PatientDetailPage() {
                     }
                 );
                 setAppointments(patientAppointments);
-                console.log('📅 Appointments loaded:', {
-                    total: allAppointments.length,
-                    patientAppointments: patientAppointments.length,
-                    appointments: patientAppointments.map((a: Appointment) => ({
-                        _id: a._id,
-                        status: a.status,
-                        date: a.appointment_date
-                    }))
-                });
             } catch (err) {
                 console.error("Error fetching appointments:", err);
                 setAppointments([]);
@@ -182,7 +165,7 @@ export default function PatientDetailPage() {
         fetchAppointments();
     }, [patientId]);
 
-    // 📦 Lấy danh sách hóa đơn
+    // TỰ VIẾT
     useEffect(() => {
         if (!patientId) return;
 
@@ -192,7 +175,6 @@ export default function PatientDetailPage() {
                 setInvoices(invoiceList || []);
             } catch (err) {
                 console.error("Error fetching invoices:", err);
-                // Không hiển thị error message vì getInvoicesByPatientId đã return [] khi có lỗi
                 setInvoices([]);
             }
         };
@@ -200,7 +182,6 @@ export default function PatientDetailPage() {
         fetchInvoices();
     }, [patientId]);
 
-    // 📦 Lấy danh sách thuốc
     useEffect(() => {
         const fetchMedicines = async () => {
             try {
@@ -214,7 +195,7 @@ export default function PatientDetailPage() {
         fetchMedicines();
     }, []);
 
-    // 📦 Lấy thông tin user hiện tại
+
     useEffect(() => {
         const fetchCurrentUser = async () => {
             try {
@@ -233,17 +214,15 @@ export default function PatientDetailPage() {
 
         fetchCurrentUser();
     }, []);
+    // 
 
-    // Kiểm tra quyền: Receptionist và Nurse chỉ được xem, không được thêm/sửa/xóa
     const userRole = currentUser?.role?.toLowerCase() || "";
     const canManageMedicalRecords = userRole === "admin" || userRole === "doctor";
 
-    // 🧩 Cập nhật thông tin
     const handleUpdate = async (values: Partial<Patient>) => {
         try {
             setSaving(true);
 
-            // Chuyển đổi giới tính sang dạng backend chấp nhận
             const payload = {
                 ...patient,
                 ...values,
@@ -253,7 +232,6 @@ export default function PatientDetailPage() {
 
             const updated = await updatePatient(patientId, payload);
 
-            // Map ngược lại khi hiển thị
             const displayData = {
                 ...updated,
                 gender: mapGenderFromApiValue(updated.gender),
@@ -292,24 +270,20 @@ export default function PatientDetailPage() {
     const formatDateTime = (date: string) =>
         date ? dayjs(date).format("DD/MM/YYYY HH:mm") : "—";
 
-    // 🧩 Xử lý tạo/sửa hồ sơ y tế
     const handleMedicalRecordSubmit = async (values: any) => {
         try {
             setSavingRecord(true);
 
-            // Kiểm tra doctor_id
             const doctorId = currentUser?.employee_id || currentUser?._id;
             if (!doctorId) {
                 message.error("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
                 return;
             }
 
-            // Lọc prescriptions hợp lệ (có đầy đủ thông tin)
             const validPrescriptions = (values.prescriptions || []).filter(
                 (p: any) => p.medicine_id && p.quantity && p.dosage
             );
 
-            // Kiểm tra trùng thuốc trong toa (bổ sung validation server-side trước khi gửi)
             const medIdCounts: Record<string, number> = {};
             for (const p of validPrescriptions) {
                 const mid = String(p.medicine_id);
@@ -322,25 +296,20 @@ export default function PatientDetailPage() {
                 return;
             }
 
-            // Tạo payload, chỉ bao gồm các trường có giá trị
             const payload: any = {
                 patient_id: patientId,
                 doctor_id: doctorId,
                 diagnosis: values.diagnosis,
             };
 
-            // Chỉ thêm các trường optional nếu có giá trị
             if (values.treatment) payload.treatment = values.treatment;
             if (values.notes) payload.notes = values.notes;
             if (validPrescriptions.length > 0) payload.prescriptions = validPrescriptions;
 
-            // Tự động link với appointment gần nhất nếu không có appointment_id
             if (!editingRecord && !values.appointment_id) {
-                // Tìm appointment gần nhất của patient này (ưu tiên Completed, sau đó là Scheduled/Confirmed)
                 const validStatuses = ['Completed', 'Scheduled', 'Confirmed', 'In Progress'];
                 const availableAppointments = appointments
                     .filter((apt: Appointment) => {
-                        // Lọc các appointment có status hợp lệ và chưa có medical record
                         if (!validStatuses.includes(apt.status)) return false;
                         const hasMedicalRecord = medicalRecords.some(
                             (mr: MedicalRecord) => {
@@ -353,7 +322,6 @@ export default function PatientDetailPage() {
                         return !hasMedicalRecord;
                     })
                     .sort((a: Appointment, b: Appointment) => {
-                        // Ưu tiên Completed, sau đó sắp xếp theo ngày (mới nhất trước)
                         if (a.status === 'Completed' && b.status !== 'Completed') return -1;
                         if (a.status !== 'Completed' && b.status === 'Completed') return 1;
                         return new Date(b.appointment_date).getTime() - new Date(a.appointment_date).getTime();
@@ -371,34 +339,14 @@ export default function PatientDetailPage() {
 
                 if (availableAppointments.length > 0) {
                     const latestAppointment = availableAppointments[0];
-                    payload.appointment_id = latestAppointment._id;
-                    console.log('✅ Tự động link với appointment:', {
-                        _id: latestAppointment._id,
-                        status: latestAppointment.status,
-                        date: latestAppointment.appointment_date
-                    });
-                } else {
-                    console.log('⚠️ Không tìm thấy appointment hợp lệ để link. Có thể cần tạo appointment hoặc cập nhật status.');
                 }
             } else if (values.appointment_id) {
-                // Nếu có chọn appointment trong form
                 payload.appointment_id = values.appointment_id;
-                console.log('✅ Sử dụng appointment được chọn:', values.appointment_id);
             } else if (editingRecord && editingRecord.appointment_id) {
-                // Giữ nguyên appointment_id khi edit
                 payload.appointment_id = typeof editingRecord.appointment_id === 'object'
                     ? editingRecord.appointment_id._id
                     : editingRecord.appointment_id;
-                console.log('✅ Giữ nguyên appointment_id khi edit:', payload.appointment_id);
             }
-
-            // Debug: Log payload trước khi gửi
-            console.log('📤 Payload tạo/cập nhật medical record:', {
-                hasAppointmentId: !!payload.appointment_id,
-                appointment_id: payload.appointment_id,
-                hasPrescriptions: !!(payload.prescriptions && payload.prescriptions.length > 0),
-                prescriptionsCount: payload.prescriptions?.length || 0
-            });
 
             if (editingRecord) {
                 await updateMedicalRecord(editingRecord._id, payload);
@@ -408,41 +356,22 @@ export default function PatientDetailPage() {
                 message.success("Tạo hồ sơ y tế thành công!");
             }
 
-            // Nếu medical record được link tới một appointment thì cập nhật trạng thái appointment sang Completed
             if (payload.appointment_id) {
                 try {
                     await updateAppointment(payload.appointment_id, { status: "Completed" });
-                    console.log("✅ Cập nhật appointment sang Completed:", payload.appointment_id);
                 } catch (err) {
                     console.error("Không thể cập nhật trạng thái appointment:", err);
                 }
             }
 
-            // Reload danh sách
             const records = await getMedicalRecordsByPatientId(patientId);
             setMedicalRecords(records);
 
-            // Debug: Log medical records sau khi reload
-            console.log('📋 Medical Records sau khi tạo/cập nhật:', records.map(r => ({
-                _id: r._id,
-                appointment_id: r.appointment_id,
-                hasPrescriptions: !!(r.prescriptions && r.prescriptions.length > 0),
-                prescriptionsCount: r.prescriptions?.length || 0
-            })));
-
-            // Reload appointments để cập nhật danh sách
             const allAppointments = await getAppointments();
             const patientAppointments = allAppointments.filter(
                 (apt: Appointment) => apt.patient_id === patientId
             );
             setAppointments(patientAppointments);
-
-            // Debug: Log appointments
-            console.log('📅 Appointments của patient:', patientAppointments.map(a => ({
-                _id: a._id,
-                status: a.status,
-                appointment_date: a.appointment_date
-            })));
 
             setIsMedicalRecordModalVisible(false);
             setEditingRecord(null);
@@ -455,7 +384,6 @@ export default function PatientDetailPage() {
         }
     };
 
-    // 🧩 Mở modal tạo mới
     const handleAddMedicalRecord = () => {
         setEditingRecord(null);
         medicalRecordForm.resetFields();
@@ -465,7 +393,6 @@ export default function PatientDetailPage() {
         setIsMedicalRecordModalVisible(true);
     };
 
-    // 🧩 Mở modal chỉnh sửa
     const handleEditMedicalRecord = (record: MedicalRecord) => {
         setEditingRecord(record);
         medicalRecordForm.setFieldsValue({
@@ -483,25 +410,20 @@ export default function PatientDetailPage() {
         setIsMedicalRecordModalVisible(true);
     };
 
-    // 🧩 Tạo hóa đơn từ hồ sơ y tế
     const handleCreateInvoice = async (medicalRecordId: string) => {
         try {
             setCreatingInvoice(medicalRecordId);
             const invoice = await createInvoiceFromMedicalRecord({ medicalRecordId });
 
-            // Reload invoices
             const invoiceList = await getInvoicesByPatientId(patientId!);
             setInvoices(invoiceList);
 
-            // Hiển thị modal thông báo thay vì redirect
             setCreatedInvoice(invoice);
             setInvoiceSuccessModalVisible(true);
         } catch (error: any) {
             console.error(error);
-            // Kiểm tra nếu backend trả về invoice_id khi invoice đã tồn tại
             if (error.message?.includes("đã tồn tại") || error.message?.includes("already exists")) {
                 message.warning("Hóa đơn đã tồn tại cho lịch hẹn này");
-                // Reload invoices để cập nhật danh sách
                 const invoiceList = await getInvoicesByPatientId(patientId!);
                 setInvoices(invoiceList);
             } else {
@@ -512,7 +434,6 @@ export default function PatientDetailPage() {
         }
     };
 
-    // 🧩 Kiểm tra xem đã có invoice cho medical record chưa
     const getInvoiceForMedicalRecord = (record: MedicalRecord): Invoice | undefined => {
         if (!record.appointment_id) return undefined;
         const appointmentId = typeof record.appointment_id === 'object'
@@ -526,7 +447,6 @@ export default function PatientDetailPage() {
         });
     };
 
-    // 🧩 Xóa hồ sơ y tế
     const handleDeleteMedicalRecord = async (id: string) => {
         try {
             setDeletingRecordId(id);
@@ -543,7 +463,6 @@ export default function PatientDetailPage() {
         }
     };
 
-    // 🧩 In toa thuốc
     const handlePrintPrescription = (record: MedicalRecord) => {
         try {
             printPrescription(record, patient, formatDateTime);
@@ -663,7 +582,6 @@ export default function PatientDetailPage() {
                                 {medicalRecords.map((record) => {
                                     const existingInvoice = getInvoiceForMedicalRecord(record);
                                     const hasPrescriptions = record.prescriptions && record.prescriptions.length > 0;
-                                    // Kiểm tra appointment_id - có thể là string hoặc object
                                     const appointmentIdValue = typeof record.appointment_id === 'object'
                                         ? record.appointment_id?._id
                                         : record.appointment_id;
@@ -977,20 +895,17 @@ export default function PatientDetailPage() {
                                 style={{ width: "100%" }}
                             >
                                 {appointments
-                                    // Hiển thị tất cả appointments, ưu tiên Completed, Scheduled, Confirmed, In Progress
                                     .filter((apt: Appointment) => {
                                         const validStatuses = ['Completed', 'Scheduled', 'Confirmed', 'In Progress'];
                                         return validStatuses.includes(apt.status);
                                     })
                                     .sort((a: Appointment, b: Appointment) => {
-                                        // Sắp xếp theo ngày từ cũ -> mới
                                         const timeA = new Date(a.appointment_date).getTime();
                                         const timeB = new Date(b.appointment_date).getTime();
                                         return timeA - timeB;
                                     })
                                     .map((apt: Appointment) => (
                                         (() => {
-                                            // Disable các lịch hẹn đã có hồ sơ y tế
                                             const hasMedicalRecord = medicalRecords.some(
                                                 (mr: MedicalRecord) => {
                                                     const mrAppointmentId = typeof mr.appointment_id === 'object'
@@ -1043,14 +958,12 @@ export default function PatientDetailPage() {
                             const prevPrescriptions = prevValues.prescriptions || [];
                             const curPrescriptions = curValues.prescriptions || [];
                             if (prevPrescriptions.length !== curPrescriptions.length) return true;
-                            // Kiểm tra xem có thay đổi nào trong prescriptions không
                             return JSON.stringify(prevPrescriptions) !== JSON.stringify(curPrescriptions);
                         }}>
                             {() => {
                                 const formValues = medicalRecordForm.getFieldsValue();
                                 const allPrescriptions = formValues.prescriptions || [];
 
-                                // Tính tổng tiền tất cả thuốc
                                 const totalAmount = allPrescriptions.reduce((sum: number, p: any) => {
                                     if (!p?.medicine_id || !p?.quantity) return sum;
                                     const med = medicines.find(m => m._id === p.medicine_id);
@@ -1108,18 +1021,15 @@ export default function PatientDetailPage() {
                                                                             <Form.Item
                                                                                 {...field}
                                                                                 name={[field.name, "medicine_id"]}
-                                                                                // Thêm validator để không cho chọn trùng thuốc trong cùng một toa
                                                                                 rules={[
                                                                                     { required: true, message: "Chọn thuốc" },
                                                                                     {
                                                                                         validator: async (_rule, value) => {
-                                                                                            // Nếu chưa chọn thì bỏ qua (required sẽ bắt)
                                                                                             if (!value) return Promise.resolve();
                                                                                             try {
                                                                                                 const formValues = medicalRecordForm.getFieldsValue();
                                                                                                 const prescriptions = formValues.prescriptions || [];
                                                                                                 const currentValue = String(value);
-                                                                                                // Đếm số lần medicine_id xuất hiện
                                                                                                 const occurrences = prescriptions.reduce((acc: number, p: any) => {
                                                                                                     if (!p || !p.medicine_id) return acc;
                                                                                                     return acc + (String(p.medicine_id) === currentValue ? 1 : 0);

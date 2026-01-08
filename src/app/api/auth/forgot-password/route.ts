@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 
+// TỰ VIẾT
 export async function POST(req: NextRequest) {
   try {
     const { username, email } = await req.json();
@@ -11,7 +12,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return NextResponse.json(
@@ -20,7 +20,6 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Forward request to backend API
     const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
     const backendResponse = await fetch(`${backendUrl}/api/auth/forgot-password`, {
       method: 'POST',
@@ -51,3 +50,4 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+//

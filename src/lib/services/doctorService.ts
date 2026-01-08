@@ -11,19 +11,16 @@ export interface Doctor {
 }
 
 
-// Lấy danh sách bác sĩ
 export async function getDoctors(): Promise<Doctor[]> {
     const res = await fetch("/api/doctors", { cache: "no-store" });
     return res.json();
 }
 
-// Lấy chi tiết bác sĩ
 export async function getDoctorById(id: string): Promise<Doctor> {
     const res = await fetch(`/api/doctors/${id}`, { cache: "no-store" });
     return res.json();
 }
 
-// Tạo bác sĩ mới
 export async function createDoctor(data: Partial<Doctor>): Promise<Doctor> {
     const res = await fetch("/api/doctors", {
         method: "POST",
@@ -33,7 +30,6 @@ export async function createDoctor(data: Partial<Doctor>): Promise<Doctor> {
     return res.json();
 }
 
-// Cập nhật bác sĩ (PATCH)
 export async function updateDoctor(
     id: string,
     data: Partial<Doctor>
@@ -46,7 +42,6 @@ export async function updateDoctor(
     return res.json();
 }
 
-// Xóa bác sĩ
 export async function deleteDoctor(id: string): Promise<void> {
     await fetch(`/api/doctors/${id}`, { method: "DELETE" });
 }

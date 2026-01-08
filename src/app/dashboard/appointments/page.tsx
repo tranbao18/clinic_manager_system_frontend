@@ -47,8 +47,32 @@ export default function AppointmentsClient({
     const [userEmployeeId, setUserEmployeeId] = useState<string | null>(null);
     const [canManage, setCanManage] = useState<boolean>(false);
     const router = useRouter();
+    const normalizeId = (val: any): string | null => {
+        if (val === undefined || val === null) return null;
+        if (typeof val === "string") return val;
+        if (typeof val === "object") {
+            if (val._id) return String(val._id);
+            if (val.toString) return String(val.toString());
+        }
+        return String(val);
+    };
+    const resolvePatientNameFromAppointment = (appt: any, patientsList: Patient[]) => {
+        if (!appt || appt.patient_id === undefined || appt.patient_id === null) return "Không rõ";
+        const pid = appt.patient_id;
+        if (typeof pid === "object") {
+            if (pid.fullname) return pid.fullname;
+            const idFromObj = pid._id ? String(pid._id) : (pid.toString ? String(pid.toString()) : null);
+            if (idFromObj) {
+                const found = patientsList.find((p) => String(p._id) === idFromObj);
+                if (found) return found.fullname;
+            }
+            return "Không rõ";
+        }
+        const found = patientsList.find((p) => String(p._id) === String(pid));
+        return found ? found.fullname : "Không rõ";
+    };
 
-    // Fetch user info và set permissions
+    // TỰ VIẾT
     useEffect(() => {
         const fetchUserInfo = async () => {
             try {
@@ -60,165 +84,150 @@ export default function AppointmentsClient({
 
                     setUserRole(role);
                     setUserEmployeeId(employeeId);
-                    // Chỉ Admin và Receptionist được quản lý appointments
                     setCanManage(role === "Admin" || role === "Receptionist");
+
+                    // Redirect pharmacist về trang phù hợp nếu truy cập trực tiếp URL
+                    if (role === "pharmacist") {
+                        router.push("/dashboard/medicines");
+                        return;
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching user info:", error);
             }
         };
         fetchUserInfo();
-    }, []);
+    }, [router]);
+    //
 
-    // Fetch doctors và patients khi component mount
+    // TỰ VIẾT
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                // Fetch doctors từ employees (filter position = "Bác sĩ")
-                let doctorsList: Doctor[] = [];
-                let allEmployeesData: any[] = [];
-                const employeesRes = await fetch("/api/employees", { cache: "no-store" });
-                if (employeesRes.ok) {
-                    const employeesData = await employeesRes.json();
-                    allEmployeesData = Array.isArray(employeesData) ? employeesData : [];
-                    doctorsList = allEmployeesData
-                        .filter((emp: any) => emp.position === "Bác sĩ")
-                        .map((emp: any) => ({
-                            _id: String(emp._id),
-                            fullname: emp.fullname,
-                            position: emp.position,
+        // Chỉ fetch data nếu user có quyền truy cập
+        if (userRole && userRole !== "pharmacist") {
+            const fetchData = async () => {
+                try {
+                    let doctorsList: Doctor[] = [];
+                    let allEmployeesData: any[] = [];
+                    const employeesRes = await fetch("/api/employees", { cache: "no-store" });
+                    if (employeesRes.ok) {
+                        const employeesData = await employeesRes.json();
+                        allEmployeesData = Array.isArray(employeesData) ? employeesData : [];
+                        doctorsList = allEmployeesData
+                            .filter((emp: any) => emp.position === "Bác sĩ")
+                            .map((emp: any) => ({
+                                _id: String(emp._id),
+                                fullname: emp.fullname,
+                                position: emp.position,
+                            }));
+                        setDoctors(doctorsList);
+                    }
+
+                    let mappedPatients: Patient[] = [];
+                    try {
+                        const patientsList = await getPatients();
+                        mappedPatients = patientsList.map((p: any) => ({
+                            _id: String(p._id),
+                            fullname: p.fullname,
                         }));
-                    setDoctors(doctorsList);
-                }
+                        setPatients(mappedPatients);
+                    } catch (error) {
+                        console.error("Error fetching patients:", error);
+                    }
 
-                // Fetch patients (luôn fetch để hiển thị tên trong appointments)
-                let mappedPatients: Patient[] = [];
-                try {
-                    const patientsList = await getPatients();
-                    mappedPatients = patientsList.map((p: any) => ({
-                        _id: String(p._id),
-                        fullname: p.fullname,
-                    }));
-                    setPatients(mappedPatients);
-                } catch (error) {
-                    console.error("Error fetching patients:", error);
-                }
+                    // Chỉ fetch appointments nếu user có quyền truy cập
+                    if (userRole === "Admin" || userRole === "Receptionist" || userRole === "Doctor" || userRole === "Accountant") {
+                        const appointmentsRes = await fetch("/api/appointments", { cache: "no-store" });
+                        if (appointmentsRes.ok) {
+                            const appointmentsData = await appointmentsRes.json();
 
-                // Fetch appointments để hiển thị ngay
-                try {
-                    const appointmentsRes = await fetch("/api/appointments", { cache: "no-store" });
-                    if (appointmentsRes.ok) {
-                        const appointmentsData = await appointmentsRes.json();
+                            const mapApiToUiStatus = (s: string) => {
+                                if (s === "warning") return "Scheduled";
+                                if (s === "success") return "Completed";
+                                if (s === "error") return "Cancelled";
+                                if (s === "Scheduled" || s === "Completed" || s === "Cancelled") return s;
+                                return s;
+                            };
 
-                        // Map status từ API về UI values (API có thể trả về "warning"/"success"/"error" hoặc "Scheduled"/"Completed"/"Cancelled")
-                        const mapApiToUiStatus = (s: string) => {
-                            if (s === "warning") return "Scheduled";
-                            if (s === "success") return "Completed";
-                            if (s === "error") return "Cancelled";
-                            // Nếu API đã trả về đúng format thì giữ nguyên
-                            if (s === "Scheduled" || s === "Completed" || s === "Cancelled") return s;
-                            return s;
-                        };
+                            const findDoctor = (doctorId: string | null): Doctor | null => {
+                                if (!doctorId) return null;
+                                const normalizedDoctorId = String(doctorId);
 
-                        // Helper function to find doctor, với fallback từ allEmployeesData nếu cần
-                        const findDoctor = (doctorId: string | null): Doctor | null => {
-                            if (!doctorId) return null;
-                            const normalizedDoctorId = String(doctorId);
-
-                            // Tìm trong doctorsList trước
-                            let doctor = doctorsList.find((d: Doctor) => {
-                                return String(d._id) === normalizedDoctorId;
-                            });
-
-                            // Nếu không tìm thấy, thử tìm trong allEmployeesData (có thể doctor chưa được filter vào doctorsList)
-                            if (!doctor) {
-                                const employee = allEmployeesData.find((emp: any) => {
-                                    return String(emp._id) === normalizedDoctorId;
+                                let doctor = doctorsList.find((d: Doctor) => {
+                                    return String(d._id) === normalizedDoctorId;
                                 });
 
-                                if (employee) {
-                                    doctor = {
-                                        _id: String(employee._id),
-                                        fullname: employee.fullname,
-                                        position: employee.position || "",
-                                    };
-                                    // Thêm vào doctorsList nếu là bác sĩ
-                                    if (employee.position === "Bác sĩ") {
-                                        doctorsList.push(doctor);
+                                if (!doctor) {
+                                    const employee = allEmployeesData.find((emp: any) => {
+                                        return String(emp._id) === normalizedDoctorId;
+                                    });
+
+                                    if (employee) {
+                                        doctor = {
+                                            _id: String(employee._id),
+                                            fullname: employee.fullname,
+                                            position: employee.position || "",
+                                        };
+                                        if (employee.position === "Bác sĩ") {
+                                            doctorsList.push(doctor);
+                                        }
                                     }
+                                }
+
+                                return doctor || null;
+                            };
+
+                            let mappedAppointments = appointmentsData.map((a: {
+                                _id: string;
+                                doctor_id?: string;
+                                patient_id?: string;
+                                appointment_date: string;
+                                status: string;
+                                reason?: string;
+                                created_at?: string;
+                            }) => {
+                                const appointmentDoctorId = normalizeId(a.doctor_id);
+                                const appointmentPatientId = normalizeId(a.patient_id);
+
+                                const doctor = findDoctor(appointmentDoctorId);
+                                const patientName = resolvePatientNameFromAppointment(a, mappedPatients);
+
+                                return {
+                                    id: a._id,
+                                    doctor_id: appointmentDoctorId || undefined,
+                                    patient_id: appointmentPatientId || undefined,
+                                    doctorName: doctor ? doctor.fullname : "Không rõ",
+                                    patientName: patientName,
+                                    appointmentDate: a.appointment_date,
+                                    status: mapApiToUiStatus(a.status),
+                                    reason: a.reason,
+                                    createdAt: a.created_at,
+                                };
+                            });
+
+                            if (!canManage) {
+                                if (userEmployeeId) {
+                                    const normalizedUserEmployeeId = String(userEmployeeId);
+                                    mappedAppointments = mappedAppointments.filter((a: Appointment) => {
+                                        const appointmentDoctorId = normalizeId(a.doctor_id);
+                                        return appointmentDoctorId === normalizedUserEmployeeId;
+                                    });
+                                } else {
+                                    mappedAppointments = [];
                                 }
                             }
 
-                            return doctor || null;
-                        };
-
-                        let mappedAppointments = appointmentsData.map((a: {
-                            _id: string;
-                            doctor_id?: string;
-                            patient_id?: string;
-                            appointment_date: string;
-                            status: string;
-                            reason?: string;
-                            created_at?: string;
-                        }) => {
-                            // Normalize IDs to strings for comparison
-                            const appointmentDoctorId = a.doctor_id ? String(a.doctor_id) : null;
-                            const appointmentPatientId = a.patient_id ? String(a.patient_id) : null;
-
-                            const doctor = findDoctor(appointmentDoctorId);
-                            const patient = mappedPatients.find((p: Patient) => {
-                                const patientId = String(p._id);
-                                return patientId === appointmentPatientId;
-                            });
-
-                            return {
-                                id: a._id,
-                                doctor_id: appointmentDoctorId || undefined,
-                                patient_id: appointmentPatientId || undefined,
-                                doctorName: doctor ? doctor.fullname : "Không rõ",
-                                patientName: patient ? patient.fullname : "Không rõ",
-                                appointmentDate: a.appointment_date,
-                                status: mapApiToUiStatus(a.status),
-                                reason: a.reason,
-                                createdAt: a.created_at,
-                            };
-                        });
-
-                        // Filter appointments dựa trên role
-                        // Nếu không phải Admin hoặc Receptionist, chỉ hiển thị appointments của chính mình
-                        // Nếu không có employee_id và không phải Admin/Receptionist, không hiển thị gì
-                        if (!canManage) {
-                            if (userEmployeeId) {
-                                const normalizedUserEmployeeId = String(userEmployeeId);
-                                mappedAppointments = mappedAppointments.filter((a: Appointment) => {
-                                    const appointmentDoctorId = a.doctor_id ? String(a.doctor_id) : null;
-                                    return appointmentDoctorId === normalizedUserEmployeeId;
-                                });
-                            } else {
-                                // Không có employee_id và không phải Admin/Receptionist -> không hiển thị appointments
-                                mappedAppointments = [];
-                            }
+                            setAppointments(mappedAppointments);
                         }
-
-                        setAppointments(mappedAppointments);
                     }
                 } catch (error) {
                     console.error("Error fetching appointments:", error);
                 }
-            } catch (error) {
-                console.error("Error fetching doctors/patients:", error);
             }
-        };
-
-        // Chỉ fetch khi đã có user info
-        if (userRole || userEmployeeId !== null) {
-            fetchData();
         }
     }, [canManage, userRole, userEmployeeId]);
 
     const handleRefresh = async () => {
         try {
-            // Fetch tất cả data cùng lúc
             const [appointmentsRes, employeesRes, patientsRes] = await Promise.all([
                 fetch("/api/appointments", { cache: "no-store" }),
                 fetch("/api/employees", { cache: "no-store" }),
@@ -229,7 +238,6 @@ export default function AppointmentsClient({
 
             const appointmentsData = await appointmentsRes.json();
 
-            // Parse employees data một lần
             let employeesData: any[] = [];
             if (employeesRes.ok) {
                 employeesData = await employeesRes.json();
@@ -245,14 +253,12 @@ export default function AppointmentsClient({
                 setDoctors(doctorsList);
             }
 
-            // Update patients
             const mappedPatients = patientsRes.map((p: any) => ({
                 _id: String(p._id),
                 fullname: p.fullname,
             }));
             setPatients(mappedPatients);
 
-            // Map status từ API về UI values
             const mapApiToUiStatus = (s: string) => {
                 if (s === "warning") return "Scheduled";
                 if (s === "success") return "Completed";
@@ -260,12 +266,10 @@ export default function AppointmentsClient({
                 return s;
             };
 
-            // Helper function to find doctor
             const findDoctorInRefresh = (doctorId: string | null): Doctor | null => {
                 if (!doctorId) return null;
                 const normalizedDoctorId = String(doctorId);
 
-                // Tìm trong currentDoctors trước
                 const currentDoctors = Array.isArray(employeesData)
                     ? employeesData
                         .filter((emp: any) => emp.position === "Bác sĩ")
@@ -280,7 +284,6 @@ export default function AppointmentsClient({
                     return String(d._id) === normalizedDoctorId;
                 });
 
-                // Nếu không tìm thấy, thử tìm trong toàn bộ employeesData
                 if (!doctor) {
                     const employee = employeesData.find((emp: any) => {
                         return String(emp._id) === normalizedDoctorId;
@@ -307,22 +310,18 @@ export default function AppointmentsClient({
                 reason?: string;
                 created_at?: string;
             }) => {
-                // Normalize IDs to strings for comparison
-                const appointmentDoctorId = a.doctor_id ? String(a.doctor_id) : null;
-                const appointmentPatientId = a.patient_id ? String(a.patient_id) : null;
+                const appointmentDoctorId = normalizeId(a.doctor_id);
+                const appointmentPatientId = normalizeId(a.patient_id);
 
                 const doctor = findDoctorInRefresh(appointmentDoctorId);
-                const patient = mappedPatients.find((p: Patient) => {
-                    const patientId = String(p._id);
-                    return patientId === appointmentPatientId;
-                });
+                const patientName = resolvePatientNameFromAppointment(a, mappedPatients);
 
                 return {
                     id: a._id,
                     doctor_id: appointmentDoctorId || undefined,
                     patient_id: appointmentPatientId || undefined,
                     doctorName: doctor ? doctor.fullname : "Không rõ",
-                    patientName: patient ? patient.fullname : "Không rõ",
+                    patientName: patientName,
                     appointmentDate: a.appointment_date,
                     status: mapApiToUiStatus(a.status),
                     reason: a.reason,
@@ -330,18 +329,14 @@ export default function AppointmentsClient({
                 };
             });
 
-            // Filter appointments dựa trên role
-            // Nếu không phải Admin hoặc Receptionist, chỉ hiển thị appointments của chính mình
-            // Nếu không có employee_id và không phải Admin/Receptionist, không hiển thị gì
             if (!canManage) {
                 if (userEmployeeId) {
                     const normalizedUserEmployeeId = String(userEmployeeId);
                     mappedAppointments = mappedAppointments.filter((a: Appointment) => {
-                        const appointmentDoctorId = a.doctor_id ? String(a.doctor_id) : null;
+                        const appointmentDoctorId = normalizeId(a.doctor_id);
                         return appointmentDoctorId === normalizedUserEmployeeId;
                     });
                 } else {
-                    // Không có employee_id và không phải Admin/Receptionist -> không hiển thị appointments
                     mappedAppointments = [];
                 }
             }
@@ -349,41 +344,36 @@ export default function AppointmentsClient({
             setAppointments(mappedAppointments);
         } catch (error) {
             console.error("Refresh error:", error);
-            // Fallback: reload page
             window.location.reload();
         }
     };
 
-    // Refresh doctors và patients khi cần
-    const refreshDoctorsAndPatients = async () => {
-        try {
-            // Refresh doctors
-            const employeesRes = await fetch("/api/employees", { cache: "no-store" });
-            if (employeesRes.ok) {
-                const employeesData = await employeesRes.json();
-                const doctorsList = Array.isArray(employeesData)
-                    ? employeesData
-                        .filter((emp: any) => emp.position === "Bác sĩ")
-                        .map((emp: any) => ({
-                            _id: String(emp._id),
-                            fullname: emp.fullname,
-                            position: emp.position,
-                        }))
-                    : [];
-                setDoctors(doctorsList);
-            }
+    useEffect(() => {
+        if (typeof window === "undefined") return;
+        const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+        if (!token) return;
 
-            // Refresh patients
-            const patientsList = await getPatients();
-            const mappedPatients = patientsList.map((p: any) => ({
-                _id: String(p._id),
-                fullname: p.fullname,
-            }));
-            setPatients(mappedPatients);
-        } catch (error) {
-            console.error("Error refreshing doctors/patients:", error);
-        }
-    };
+        const es = new EventSource(`/api/notifications/stream?token=${encodeURIComponent(token)}`);
+        es.onmessage = (e) => {
+            try {
+                const notif = JSON.parse(e.data);
+                if (notif && notif.related_type === "appointment") {
+                    handleRefresh();
+                }
+            } catch (err) {
+                console.error("SSE parse error:", err);
+            }
+        };
+        es.onerror = (err) => {
+            console.warn("SSE error:", err);
+        };
+
+        return () => {
+            es.close();
+        };
+    }, [userRole, userEmployeeId]);
+
+
 
     return (
         <div>

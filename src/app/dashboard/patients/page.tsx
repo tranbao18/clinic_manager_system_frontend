@@ -34,6 +34,7 @@ const mapGenderFromApiValue = (gender: string) => {
     return gender;
 };
 
+
 export default function PatientsPage() {
     const [patients, setPatients] = useState<Patient[]>([]);
     const [filteredPatients, setFilteredPatients] = useState<Patient[]>([]);
@@ -43,13 +44,13 @@ export default function PatientsPage() {
     const [role, setRole] = useState<string>("");
     const router = useRouter();
 
+    // TỰ VIẾT
     const fetchPatients = async () => {
         try {
             setLoading(true);
             const res = await fetch("/api/patients", { cache: "no-store" });
             const data = await res.json();
 
-            // ✅ Kiểm tra nếu API trả về object { patients: [...] }
             const list = Array.isArray(data) ? data : data.patients || [];
 
             const mappedList = list.map((patient: any) => ({
@@ -70,7 +71,9 @@ export default function PatientsPage() {
     useEffect(() => {
         fetchPatients();
     }, []);
+    // 
 
+    // TỰ VIẾT
     useEffect(() => {
         const fetchRole = async () => {
             try {
@@ -83,7 +86,9 @@ export default function PatientsPage() {
         };
         fetchRole();
     }, []);
+    //
 
+    // TỰ VIẾT
     const normalizeText = (str: string) =>
         str
             .normalize("NFD")
@@ -91,7 +96,9 @@ export default function PatientsPage() {
             .replace(/[^a-zA-Z0-9\s]/g, "")
             .toLowerCase()
             .trim();
+    //
 
+    // TỰ VIẾT
     const handleFilter = (text: string, gender: string | null) => {
         let filtered = [...patients];
         const search = normalizeText(text);
@@ -108,17 +115,23 @@ export default function PatientsPage() {
 
         setFilteredPatients(filtered);
     };
+    //
 
+    // TỰ VIẾT
     const onSearch = (value: string) => {
         setSearchText(value);
         handleFilter(value, genderFilter);
     };
+    //
 
+    // TỰ VIẾT
     const onGenderChange = (value: string | null) => {
         setGenderFilter(value);
         handleFilter(searchText, value);
     };
+    //
 
+    // TỰ VIẾT
     const handleDelete = async (_id: string) => {
         try {
             await deletePatient(_id);
@@ -128,6 +141,7 @@ export default function PatientsPage() {
             message.error("Xóa thất bại");
         }
     };
+    //
 
     const canDelete = role === "admin";
     const canCreate = role === "receptionist";
@@ -178,7 +192,7 @@ export default function PatientsPage() {
             ),
         },
     ];
-
+    // TỰ VIẾT
     return (
         <div className="p-6">
             <h1 className="text-2xl font-bold mb-4">Danh sách bệnh nhân</h1>
@@ -233,4 +247,5 @@ export default function PatientsPage() {
             )}
         </div>
     );
+    // 
 }

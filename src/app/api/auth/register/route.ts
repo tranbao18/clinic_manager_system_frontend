@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+// TỰ VIẾT
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -11,14 +12,12 @@ export async function POST(req: Request) {
 
     const text = await response.text();
 
-    // ✅ Bắt lỗi nếu backend trả về HTML (ví dụ 404 hoặc 500)
     if (!response.ok) {
       let message = text;
       try {
         const json = JSON.parse(text);
         message = json.error || message;
       } catch {
-        // nếu là HTML (<!DOCTYPE html>), trả nguyên text
       }
       return NextResponse.json({ error: message }, { status: response.status });
     }
@@ -30,3 +29,4 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+//

@@ -1,4 +1,4 @@
-// src/lib/session.ts
+// KẾ THỪA
 import { IronSessionOptions } from "iron-session";
 
 export interface SessionData {

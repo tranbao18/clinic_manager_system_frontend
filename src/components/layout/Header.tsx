@@ -1,3 +1,4 @@
+// KẾ THỪA
 "use client";
 
 import { Layout } from "antd";
@@ -21,13 +22,12 @@ export default function Header() {
   const [user, setUser] = useState<{ username?: string } | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // ✅ Chỉ fetch profile, không auto-clear token khi khởi động
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const res = await fetch("/api/users/me", {
           credentials: "include",
-          cache: "no-store", // ✅ Tắt cache ở phía client luôn
+          cache: "no-store",
         });
         if (!res.ok) throw new Error("Không thể lấy thông tin user");
         const data = await res.json();
@@ -44,10 +44,8 @@ export default function Header() {
 
   const handleLogout = async () => {
     try {
-      // Gọi AuthService logout để xóa token ở backend và frontend
       await AuthService.logout();
 
-      // Xóa session (thông qua /api/logout route)
       await fetch("/auth/logout", {
         method: "POST",
         credentials: "include",
@@ -56,7 +54,6 @@ export default function Header() {
       router.push("/auth/login");
     } catch (err) {
       console.error("Logout failed", err);
-      // Vẫn chuyển đến trang login dù có lỗi
       router.push("/auth/login");
     }
   };
@@ -82,7 +79,6 @@ export default function Header() {
             </div>
           </DropdownMenuTrigger>
           <DropdownMenuContent>
-            {/* ✅ Click chuyển đến trang Profile */}
             <DropdownMenuItem onClick={() => router.push("/dashboard/profile")}>
               Profile
             </DropdownMenuItem>

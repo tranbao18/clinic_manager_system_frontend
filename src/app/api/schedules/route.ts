@@ -1,4 +1,4 @@
-// src/app/api/schedules/route.ts
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
@@ -6,7 +6,6 @@ const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL
     ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/schedules`
     : "http://127.0.0.1:5050/api/schedules";
 
-// GET /api/schedules - Lấy danh sách lịch trực
 export async function GET(req: Request) {
     try {
         const authHeaders = await getAuthHeaderServer();
@@ -36,7 +35,6 @@ export async function GET(req: Request) {
         return NextResponse.json(data);
     } catch (err: any) {
         console.error("GET /api/schedules exception:", err);
-        // Kiểm tra nếu là lỗi kết nối
         if (err.code === 'ECONNREFUSED' || err.message?.includes('fetch failed')) {
             return NextResponse.json(
                 { error: "Không thể kết nối đến server backend. Vui lòng kiểm tra xem backend đã chạy chưa." },
@@ -50,7 +48,6 @@ export async function GET(req: Request) {
     }
 }
 
-// POST /api/schedules - Tạo/cập nhật lịch trực (chỉ Admin)
 export async function POST(req: Request) {
     try {
         const authHeaders = await getAuthHeaderServer();
@@ -82,7 +79,6 @@ export async function POST(req: Request) {
         return NextResponse.json(data);
     } catch (err: any) {
         console.error("POST /api/schedules exception:", err);
-        // Kiểm tra nếu là lỗi kết nối
         if (err.code === 'ECONNREFUSED' || err.message?.includes('fetch failed')) {
             return NextResponse.json(
                 { error: "Không thể kết nối đến server backend. Vui lòng kiểm tra xem backend đã chạy chưa." },

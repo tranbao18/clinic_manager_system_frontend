@@ -1,10 +1,10 @@
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 const MEDICINE_IMPORTS_URL = `${API_URL}/api/medicine-imports`;
 
-// 🔍 GET - Lấy chi tiết nhập thuốc
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await context.params;
@@ -29,7 +29,6 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
     }
 }
 
-// ✏️ PUT - Cập nhật nhập thuốc
 export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await context.params;
@@ -63,7 +62,6 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
     }
 }
 
-// ❌ DELETE - Xóa nhập thuốc
 export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await context.params;

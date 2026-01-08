@@ -1,10 +1,8 @@
-// src/app/api/invoices/[id]/route.ts
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
-// 🔍 GET - Lấy chi tiết hóa đơn
 export async function GET(
   req: Request,
   { params }: { params: { id: string } }
@@ -39,7 +37,6 @@ export async function GET(
   }
 }
 
-// ✏️ PUT - Cập nhật hóa đơn
 export async function PUT(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -80,7 +77,6 @@ export async function PUT(
   }
 }
 
-// ❌ DELETE - Xóa hóa đơn
 export async function DELETE(
   req: Request,
   { params }: { params: { id: string } }

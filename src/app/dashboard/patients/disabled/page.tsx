@@ -34,6 +34,7 @@ export default function DisabledPatientsPage() {
     const [searchText, setSearchText] = useState("");
     const router = useRouter();
 
+    // TỰ VIẾT
     const fetchPatients = async () => {
         try {
             setLoading(true);
@@ -57,7 +58,7 @@ export default function DisabledPatientsPage() {
     useEffect(() => {
         fetchPatients();
     }, []);
-
+    // 
     const normalizeText = (str: string) =>
         str
             .normalize("NFD")
@@ -66,6 +67,7 @@ export default function DisabledPatientsPage() {
             .toLowerCase()
             .trim();
 
+    // TỰ VIẾT
     const onSearch = (value: string) => {
         setSearchText(value);
         const search = normalizeText(value);
@@ -103,7 +105,7 @@ export default function DisabledPatientsPage() {
             setDeletingPatientId(null);
         }
     };
-
+    // 
     const handleBulkPermanentDelete = async () => {
         if (!selectedRowKeys || selectedRowKeys.length === 0) return;
         const ids = selectedRowKeys.map(k => String(k));
@@ -188,7 +190,7 @@ export default function DisabledPatientsPage() {
             ),
         },
     ];
-
+    // TỰ VIẾT
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-4">
@@ -253,5 +255,6 @@ export default function DisabledPatientsPage() {
             )}
         </div>
     );
+    // 
 }
 

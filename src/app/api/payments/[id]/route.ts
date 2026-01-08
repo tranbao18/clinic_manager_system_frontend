@@ -1,10 +1,8 @@
-// src/app/api/payments/[id]/route.ts
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
-// 🔍 GET - Lấy chi tiết thanh toán
 export async function GET(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -13,7 +11,7 @@ export async function GET(
         const { id } = await params;
         const headers = await getAuthHeaderServer();
         const url = `${API_URL}/api/payments/${id}`;
-        
+
         const res = await fetch(url, {
             cache: "no-store",
             headers,
@@ -39,7 +37,6 @@ export async function GET(
     }
 }
 
-// ✏️ PUT - Cập nhật thanh toán
 export async function PUT(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -53,7 +50,7 @@ export async function PUT(
 
         const body = await req.json();
         const url = `${API_URL}/api/payments/${id}`;
-        
+
         const res = await fetch(url, {
             method: "PUT",
             headers,
@@ -80,7 +77,6 @@ export async function PUT(
     }
 }
 
-// ❌ DELETE - Xóa thanh toán
 export async function DELETE(
     req: Request,
     { params }: { params: Promise<{ id: string }> }
@@ -89,7 +85,7 @@ export async function DELETE(
         const { id } = await params;
         const headers = await getAuthHeaderServer();
         const url = `${API_URL}/api/payments/${id}`;
-        
+
         const res = await fetch(url, {
             method: "DELETE",
             headers,

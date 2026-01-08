@@ -1,4 +1,4 @@
-// src/app/page.tsx
+// TỰ VIẾT
 export default function HomePage() {
   return (
     <main>

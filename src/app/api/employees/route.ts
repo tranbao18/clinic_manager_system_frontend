@@ -1,15 +1,15 @@
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/employees`;
 
-// ✅ Hàm parse JSON an toàn
 async function safeJsonParse(res: Response) {
   const text = await res.text();
   try {
     return JSON.parse(text);
   } catch (err) {
-    console.error("❌ Response không phải JSON:", text);
+    console.error(" Response không phải JSON:", text);
     throw new Error(`Response từ backend không hợp lệ: ${res.url}`);
   }
 }
@@ -18,15 +18,14 @@ export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
     const disabled = searchParams.get("disabled");
-    
+
     const headers = await getAuthHeaderServer();
-    
-    // Tạo URL với query params nếu có
+
     let url = API_URL;
     if (disabled === "true") {
       url += `?disabled=true`;
     }
-    
+
     const res = await fetch(url, {
       headers: { ...headers, "Content-Type": "application/json" },
       cache: "no-store",
@@ -34,20 +33,19 @@ export async function GET(req: Request) {
 
     if (!res.ok) {
       const text = await res.text();
-      console.error("❌ Backend GET error:", text);
+      console.error("Backend GET error:", text);
       return NextResponse.json({ error: text }, { status: res.status });
     }
 
     const data = await safeJsonParse(res);
     let list = Array.isArray(data) ? data : [];
-    
-    // Filter disabled items ở frontend nếu backend không hỗ trợ query params
+
     if (disabled === "true") {
       list = list.filter((item: any) => item.disabled === true);
     } else if (disabled === "false") {
       list = list.filter((item: any) => item.disabled !== true);
     }
-    
+
     return NextResponse.json(list, { status: 200 });
   } catch (error: any) {
     console.error("GET /api/employees error:", error);
@@ -68,7 +66,7 @@ export async function POST(req: Request) {
 
     if (!res.ok) {
       const text = await res.text();
-      console.error("❌ Backend POST error:", text);
+      console.error(" Backend POST error:", text);
       return NextResponse.json({ error: text }, { status: res.status });
     }
 

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useState } from "react";
@@ -37,14 +38,12 @@ interface ScheduleDetail extends ScheduleItem {
 
 const weekdays = ["T2", "T3", "T4", "T5", "T6", "T7", "CN"];
 
-// Format date từ YYYY-mm-dd sang d/m/Y
 function formatDateDisplay(dateStr: string): string {
     if (!dateStr) return "";
     const [year, month, day] = dateStr.split("-");
     return `${day}/${month}/${year}`;
 }
 
-// Format date từ Date object sang YYYY-mm-dd
 function formatDateInput(date: Date): string {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -52,7 +51,6 @@ function formatDateInput(date: Date): string {
     return `${year}-${month}-${day}`;
 }
 
-// Convert d/m/Y sang YYYY-mm-dd
 function parseDateDisplay(dateStr: string): string {
     if (!dateStr) return "";
     const parts = dateStr.split("/");
@@ -63,10 +61,8 @@ function parseDateDisplay(dateStr: string): string {
     return dateStr;
 }
 
-// Format time từ HH:mm sang hiển thị (HH:mm)
 function formatTimeDisplay(timeStr: string): string {
     if (!timeStr) return "";
-    // Đảm bảo format luôn là HH:mm
     const [hours, minutes] = timeStr.split(":");
     return `${hours.padStart(2, "0")}:${minutes || "00"}`;
 }
@@ -105,7 +101,6 @@ export default function SchedulesPage() {
     const [role, setRole] = useState<string>("");
     const [loading, setLoading] = useState(true);
 
-    // Dialog states
     const [openDetailDialog, setOpenDetailDialog] = useState(false);
     const [openFormDialog, setOpenFormDialog] = useState(false);
     const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -115,7 +110,6 @@ export default function SchedulesPage() {
     const [selectedSchedules, setSelectedSchedules] = useState<ScheduleDetail[]>([]);
     const [editingScheduleDetail, setEditingScheduleDetail] = useState<ScheduleDetail | null>(null);
 
-    // Form states
     const [formEmployeeId, setFormEmployeeId] = useState<string>("");
     const [formDate, setFormDate] = useState<string>(""); // Lưu dạng YYYY-mm-dd
     const [formDateDisplay, setFormDateDisplay] = useState<string>(""); // Hiển thị dạng d/m/Y
@@ -125,13 +119,11 @@ export default function SchedulesPage() {
     const [datePickerMonth, setDatePickerMonth] = useState(today.getMonth());
     const [datePickerYear, setDatePickerYear] = useState(today.getFullYear());
 
-    // Helper function để show notification
     const showNotification = (type: "success" | "error" | "warning", message: string) => {
         setNotificationMessage({ type, message });
         setOpenNotificationDialog(true);
     };
 
-    // Fetch user role
     useEffect(() => {
         const fetchRole = async () => {
             try {
@@ -145,7 +137,6 @@ export default function SchedulesPage() {
         fetchRole();
     }, []);
 
-    // Fetch schedules
     useEffect(() => {
         const fetchSchedules = async () => {
             try {
@@ -161,7 +152,6 @@ export default function SchedulesPage() {
         fetchSchedules();
     }, []);
 
-    // Fetch appointments to determine completed appointments on dates
     useEffect(() => {
         const fetchAppointments = async () => {
             try {
@@ -175,7 +165,6 @@ export default function SchedulesPage() {
         fetchAppointments();
     }, []);
 
-    // Fetch employees (for Admin only)
     useEffect(() => {
         const fetchEmployees = async () => {
             if (role === "admin") {
@@ -190,7 +179,6 @@ export default function SchedulesPage() {
         fetchEmployees();
     }, [role]);
 
-    // Close date picker when clicking outside
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as HTMLElement;
@@ -207,16 +195,13 @@ export default function SchedulesPage() {
         }
     }, [openDatePicker]);
 
-    // Get schedules for a specific date - Fix: dùng local date string
     const getSchedulesByDate = (date: Date): ScheduleDetail[] => {
-        // Convert date to YYYY-mm-dd format (local timezone)
         const dateStr = formatDateInput(date);
         const details: ScheduleDetail[] = [];
 
         schedules.forEach((schedule) => {
             if (!schedule.shift_schedule || !Array.isArray(schedule.shift_schedule)) return;
 
-            // Ưu tiên lấy position từ schedule data (từ API), fallback sang employees array nếu có
             let position = schedule.employee_position;
             if (!position && role === "admin") {
                 const employee = employees.find(emp => emp._id === schedule.employee_id);
@@ -266,7 +251,6 @@ export default function SchedulesPage() {
         setFormDateDisplay(formatDateDisplay(scheduleDetail.date));
         setFormStart(scheduleDetail.start);
         setFormEnd(scheduleDetail.end);
-        // Set date picker to selected date
         const selectedDate = parseDateDisplay(formatDateDisplay(scheduleDetail.date));
         if (selectedDate) {
             const [year, month] = selectedDate.split("-").map(Number);
@@ -297,7 +281,6 @@ export default function SchedulesPage() {
         const startTotal = startHours * 60 + startMinutes;
         const endTotal = endHours * 60 + endMinutes;
 
-        // Check if end is after start (handle overnight shifts)
         let diff = endTotal - startTotal;
         if (diff < 0) diff += 24 * 60; // Add 24 hours if overnight
 
@@ -311,7 +294,6 @@ export default function SchedulesPage() {
                 return;
             }
 
-            // Convert formDateDisplay (d/m/Y) sang formDate (YYYY-mm-dd) nếu có
             let dateToSave = formDate;
             if (!dateToSave && formDateDisplay) {
                 dateToSave = parseDateDisplay(formDateDisplay);
@@ -328,19 +310,17 @@ export default function SchedulesPage() {
             }
 
             const scheduleItem: ScheduleItem = {
-                date: dateToSave, // Đã là YYYY-mm-dd format
+                date: dateToSave,
                 start: formStart,
                 end: formEnd,
             };
 
-            // Get existing schedule for this employee
             const existingSchedule = schedules.find(s => s.employee_id === formEmployeeId);
             let newSchedule: ScheduleItem[] = [];
 
             if (existingSchedule && Array.isArray(existingSchedule.shift_schedule)) {
                 newSchedule = [...existingSchedule.shift_schedule];
 
-                // If editing, remove old item
                 if (editingScheduleDetail && editingScheduleDetail.employee_id === formEmployeeId) {
                     newSchedule = newSchedule.filter(
                         item => !(item.date === editingScheduleDetail.date &&
@@ -349,7 +329,6 @@ export default function SchedulesPage() {
                     );
                 }
 
-                // Add or update item
                 const existingIndex = newSchedule.findIndex(item => item.date === dateToSave);
                 if (existingIndex >= 0) {
                     newSchedule[existingIndex] = scheduleItem;
@@ -369,7 +348,6 @@ export default function SchedulesPage() {
                 });
             }
 
-            // Refresh schedules
             const data = await SchedulesService.getAll();
             setSchedules(Array.isArray(data) ? data : [data]);
             setOpenFormDialog(false);
@@ -396,15 +374,12 @@ export default function SchedulesPage() {
                 );
 
                 if (newSchedule.length === 0) {
-                    // If no schedules left, delete the entire schedule
                     await SchedulesService.delete(editingScheduleDetail.employee_id);
                 } else {
-                    // Update with remaining schedules
                     await SchedulesService.update(editingScheduleDetail.employee_id, newSchedule);
                 }
             }
 
-            // Refresh schedules
             const data = await SchedulesService.getAll();
             setSchedules(Array.isArray(data) ? data : [data]);
             setOpenDeleteDialog(false);
@@ -557,7 +532,6 @@ export default function SchedulesPage() {
                                         <div className="space-y-1 mt-1">
                                             {daySchedules.length > 0 ? (
                                                 daySchedules.map((s, i) => {
-                                                    // Kiểm tra nếu có appointment của bác sĩ (employee_id) vào ngày này và trạng thái Completed
                                                     const hasCompletedAppointment = appointments.some((apt) => {
                                                         try {
                                                             const aptDate = new Date(apt.appointment_date);
@@ -891,3 +865,4 @@ export default function SchedulesPage() {
         </div>
     );
 }
+

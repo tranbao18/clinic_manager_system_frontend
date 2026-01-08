@@ -1,10 +1,10 @@
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 const APPOINTMENTS_URL = `${API_URL}/api/appointments`;
 
-// 🔍 GET - Lấy chi tiết lịch hẹn
 export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await context.params;
@@ -28,7 +28,6 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
     }
 }
 
-// ✏️ PUT - Cập nhật lịch hẹn
 export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await context.params;
@@ -62,7 +61,6 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
     }
 }
 
-// ❌ DELETE - Xóa lịch hẹn
 export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await context.params;

@@ -31,6 +31,7 @@ interface Employee {
   created_at: string;
 }
 
+
 export default function EmployeesPage() {
   const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
   const [role, setRole] = useState<string>("");
@@ -38,7 +39,7 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
-  // 🔹 Loại bỏ dấu tiếng Việt
+  // TỰ VIẾT
   function removeVietnameseTones(str: string): string {
     return str
       .normalize("NFD")
@@ -46,7 +47,9 @@ export default function EmployeesPage() {
       .replace(/đ/g, "d")
       .replace(/Đ/g, "D");
   }
+  //
 
+  // TỰ VIẾT
   const onSearch = (value: string) => {
     if (!value.trim()) {
       setEmployees(allEmployees);
@@ -58,8 +61,9 @@ export default function EmployeesPage() {
       setEmployees(filtered);
     }
   };
+  //
 
-  // 🔹 Lọc theo chức vụ
+  // TỰ VIẾT
   const onFilterByRole = (value: string | null) => {
     if (!value) {
       setEmployees(allEmployees);
@@ -70,14 +74,14 @@ export default function EmployeesPage() {
       setEmployees(filtered);
     }
   };
+  //
 
-  // 🔹 Xóa nhân viên
+  // TỰ VIẾT
   const handleDelete = async (id: string) => {
     try {
       await EmployeesService.deleteEmployee(id);
       message.success("Xóa nhân viên thành công");
 
-      // Cập nhật state ngay lập tức để UI phản hồi ngay
       setAllEmployees((prev) => prev.filter((e) => e._id !== id));
       setEmployees((prev) => prev.filter((e) => e._id !== id));
     } catch (err: any) {
@@ -85,6 +89,7 @@ export default function EmployeesPage() {
       message.error(err.message || "Lỗi khi xóa nhân viên");
     }
   };
+  //
 
   const mapGenderToApiValue = (gender: string) => {
     if (gender === "Male") return "Nam";
@@ -106,7 +111,6 @@ export default function EmployeesPage() {
 
   const canDelete = role === "admin";
 
-  // 🔹 Cấu hình bảng
   const columns: ColumnsType<Employee> = [
     { title: "Họ tên", dataIndex: "fullname" },
     { title: "Giới tính", dataIndex: "gender" },
@@ -150,7 +154,6 @@ export default function EmployeesPage() {
     },
   ];
 
-  // 🔹 Lấy danh sách nhân viên
   useEffect(() => {
     const fetchEmployees = async () => {
       try {
@@ -243,3 +246,4 @@ export default function EmployeesPage() {
     </Layout>
   );
 }
+//

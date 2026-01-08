@@ -28,6 +28,7 @@ interface Employee {
   basic_salary?: number;
 }
 
+// TỰ VIẾT
 export default function NewPayrollPage() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -35,7 +36,6 @@ export default function NewPayrollPage() {
   const [loadingEmployees, setLoadingEmployees] = useState(true);
   const router = useRouter();
 
-  // ✅ Chặn truy cập nếu không phải Admin hoặc Accountant
   useEffect(() => {
     const fetchRole = async () => {
       try {
@@ -51,7 +51,6 @@ export default function NewPayrollPage() {
       }
     };
     fetchRole();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -69,7 +68,6 @@ export default function NewPayrollPage() {
     fetchEmployees();
   }, []);
 
-  // Tự động điền lương cơ bản khi chọn nhân viên
   const handleEmployeeChange = (employeeId: string) => {
     const selectedEmployee = employees.find((emp) => emp._id === employeeId);
     if (selectedEmployee && (selectedEmployee as any).basic_salary) {
@@ -243,4 +241,5 @@ export default function NewPayrollPage() {
     </Layout>
   );
 }
+//
 

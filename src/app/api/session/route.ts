@@ -3,7 +3,7 @@ import { getIronSession } from "iron-session";
 import { cookies } from "next/headers";
 import { sessionOptions, SessionData } from "@/lib/session";
 
-// GET /api/session
+// TỰ VIẾT
 export async function GET() {
     const cookieStore = await cookies();
     const session = await getIronSession<SessionData>(cookieStore, sessionOptions);
@@ -14,3 +14,4 @@ export async function GET() {
 
     return NextResponse.json({ user: session.user }, { status: 200 });
 }
+//

@@ -40,6 +40,7 @@ import {
 const { Title, Text } = Typography;
 const { Option } = Select;
 
+// TỰ VIẾT
 const getStatusColor = (status: string) => {
     switch (status) {
         case "Paid":
@@ -65,6 +66,7 @@ const getStatusText = (status: string) => {
             return status;
     }
 };
+// 
 
 export default function InvoiceDetailPage() {
     const { id } = useParams<{ id: string }>();
@@ -79,7 +81,7 @@ export default function InvoiceDetailPage() {
     const [processingVNPay, setProcessingVNPay] = useState(false);
     const [role, setRole] = useState<string>("");
 
-    // ✅ Kiểm tra quyền truy cập
+    // TỰ VIẾT
     useEffect(() => {
         const fetchRole = async () => {
             try {
@@ -96,7 +98,6 @@ export default function InvoiceDetailPage() {
             }
         };
         fetchRole();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const fetchInvoice = async () => {
@@ -126,20 +127,18 @@ export default function InvoiceDetailPage() {
             setLoadingPayments(false);
         }
     };
+    // 
 
     useEffect(() => {
         fetchInvoice();
         fetchPayments();
 
-        // Kiểm tra nếu có payment result từ VNPay return
         const urlParams = new URLSearchParams(window.location.search);
         const paymentResult = urlParams.get('payment');
 
-        // Kiểm tra nếu có VNPay params trực tiếp (trường hợp VNPay redirect về frontend)
         const hasVNPayParams = urlParams.has('vnp_ResponseCode') || urlParams.has('vnp_TxnRef');
 
         if (hasVNPayParams && !paymentResult) {
-            // Nếu có VNPay params nhưng chưa được xử lý, forward đến backend
             const vnpParams = new URLSearchParams();
             urlParams.forEach((value, key) => {
                 if (key.startsWith('vnp_')) {
@@ -149,7 +148,6 @@ export default function InvoiceDetailPage() {
 
             const invoiceId = urlParams.get('vnp_TxnRef') || id;
             if (invoiceId) {
-                // Forward đến backend return handler
                 window.location.href = `/api/payments/vnpay/return?${vnpParams.toString()}`;
                 return;
             }
@@ -159,12 +157,10 @@ export default function InvoiceDetailPage() {
             message.success('Thanh toán VNPay thành công!');
             fetchInvoice();
             fetchPayments();
-            // Xóa query param
             window.history.replaceState({}, '', window.location.pathname);
         } else if (paymentResult === 'failed') {
             const errorMsg = urlParams.get('message') || 'Thanh toán thất bại';
             message.error(errorMsg);
-            // Xóa query param
             window.history.replaceState({}, '', window.location.pathname);
         }
     }, [id]);
@@ -172,7 +168,6 @@ export default function InvoiceDetailPage() {
     const handleCreatePayment = async (values: any) => {
         if (!id) return;
 
-        // Nếu chọn VNPay, xử lý riêng
         if (values.method === 'VNPay') {
             setIsPaymentModalVisible(false);
             paymentForm.resetFields();
@@ -180,7 +175,6 @@ export default function InvoiceDetailPage() {
             return;
         }
 
-        // Nếu chọn tiền mặt, tạo payment như bình thường
         try {
             setCreatingPayment(true);
             await createPayment({
@@ -193,7 +187,7 @@ export default function InvoiceDetailPage() {
             setIsPaymentModalVisible(false);
             paymentForm.resetFields();
             await fetchPayments();
-            await fetchInvoice(); // Refresh để cập nhật status
+            await fetchInvoice();
         } catch (error: any) {
             message.error(error.message || "Không thể tạo thanh toán");
         } finally {
@@ -201,12 +195,13 @@ export default function InvoiceDetailPage() {
         }
     };
 
+    // TỰ VIẾT
     const handleDeletePayment = async (paymentId: string) => {
         try {
             await deletePayment(paymentId);
             message.success("Xóa thanh toán thành công");
             await fetchPayments();
-            await fetchInvoice(); // Refresh để cập nhật status
+            await fetchInvoice();
         } catch (error: any) {
             message.error(error.message || "Không thể xóa thanh toán");
         }
@@ -222,22 +217,20 @@ export default function InvoiceDetailPage() {
             message.error(error.message || "Không thể cập nhật trạng thái");
         }
     };
+    // 
 
     const handleVNPayPayment = async () => {
         if (!id) return;
         try {
             setProcessingVNPay(true);
-            console.log('🔄 Đang tạo VNPay URL cho invoice:', id);
             const result = await createVNPayUrl({ invoice_id: id });
-            console.log('✅ VNPay URL đã được tạo:', result.paymentUrl);
-            // Redirect đến VNPay
             if (result.paymentUrl) {
                 window.location.href = result.paymentUrl;
             } else {
                 throw new Error('Không nhận được payment URL từ server');
             }
         } catch (error: any) {
-            console.error('❌ Lỗi khi tạo VNPay URL:', error);
+            console.error(' Lỗi khi tạo VNPay URL:', error);
             message.error(error.message || "Không thể tạo URL thanh toán VNPay");
             setProcessingVNPay(false);
         }
@@ -302,26 +295,14 @@ export default function InvoiceDetailPage() {
         );
     }
 
-    // Xử lý patient_id - có thể là object (populated) hoặc string
     const patient = typeof invoice.patient_id === 'object' && invoice.patient_id !== null
         ? invoice.patient_id
         : null;
 
-    // Xử lý appointment_id - có thể là object (populated) hoặc string
     const appointment = typeof invoice.appointment_id === 'object' && invoice.appointment_id !== null
         ? invoice.appointment_id
         : null;
 
-    // Debug log để kiểm tra (có thể xóa sau khi test xong)
-    // console.log('📋 Invoice data:', {
-    //     invoice_id: invoice._id,
-    //     patient_id_type: typeof invoice.patient_id,
-    //     patient_id: invoice.patient_id,
-    //     patient: patient,
-    //     appointment_id_type: typeof invoice.appointment_id,
-    //     appointment_id: invoice.appointment_id,
-    //     appointment: appointment,
-    // });
 
     return (
         <div style={{ padding: "24px" }}>
@@ -463,7 +444,6 @@ export default function InvoiceDetailPage() {
                         <Select
                             placeholder="Chọn phương thức"
                             onChange={(value) => {
-                                // Nếu chọn VNPay, ẩn các field khác
                                 if (value === 'VNPay') {
                                     paymentForm.setFieldsValue({ amount: remaining, date: dayjs() });
                                 }
@@ -480,7 +460,6 @@ export default function InvoiceDetailPage() {
                     >
                         {({ getFieldValue }) => {
                             const method = getFieldValue('method');
-                            // Chỉ hiển thị form nhập tiền và ngày nếu chọn tiền mặt
                             if (method !== 'Cash') {
                                 return null;
                             }

@@ -1,3 +1,4 @@
+// KẾ THỪA
 "use client";
 
 import { useState, useEffect, useRef } from "react";
@@ -22,8 +23,8 @@ export default function NotificationBell() {
   const [open, setOpen] = useState(false);
   const router = useRouter();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
-  // Fetch notifications và unread count
   const fetchNotifications = async () => {
     try {
       setLoading(true);
@@ -40,11 +41,9 @@ export default function NotificationBell() {
     }
   };
 
-  // Polling để cập nhật thông báo mỗi 30 giây
   useEffect(() => {
     fetchNotifications();
 
-    // Polling mỗi 30 giây
     intervalRef.current = setInterval(() => {
       fetchNotifications();
     }, 30000);
@@ -56,15 +55,54 @@ export default function NotificationBell() {
     };
   }, []);
 
-  // Khi mở dropdown, refresh notifications
   useEffect(() => {
     if (open) {
       fetchNotifications();
     }
   }, [open]);
 
+  // SSE: Real-time notifications
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const token = sessionStorage.getItem("token") || localStorage.getItem("token");
+    if (!token) return;
+
+    const es = new EventSource(`/api/notifications/stream?token=${encodeURIComponent(token)}`);
+    eventSourceRef.current = es;
+
+    es.onmessage = (e) => {
+      try {
+        const notif = JSON.parse(e.data);
+        console.log('Received notification via SSE:', notif);
+
+        // Immediately update unread count (notification is always unread when broadcast)
+        setUnreadCount(prev => prev + 1);
+
+        // Add notification to the list immediately (at the top)
+        setNotifications(prev => [notif, ...prev]);
+
+        // Optional: Still refresh from server after a short delay to ensure sync
+        setTimeout(() => {
+          fetchNotifications();
+        }, 1000);
+      } catch (err) {
+        console.error("SSE parse error:", err);
+      }
+    };
+
+    es.onerror = (err) => {
+      // EventSource will auto-reconnect; log errors for debugging
+      console.warn("SSE error:", err);
+    };
+
+    return () => {
+      es.close();
+      eventSourceRef.current = null;
+    };
+  }, []);
+
   const handleNotificationClick = async (notification: Notification) => {
-    // Đánh dấu đã đọc nếu chưa đọc
     if (!notification.read) {
       try {
         await markAsRead(notification._id);
@@ -79,13 +117,11 @@ export default function NotificationBell() {
       }
     }
 
-    // Navigate dựa trên related_type và related_id
     if (notification.related_type && notification.related_id) {
       setOpen(false);
       if (notification.related_type === "appointment") {
         router.push(`/dashboard/appointments`);
       } else if (notification.related_type === "medical_record") {
-        // Tìm patient_id từ medical record
         router.push(`/dashboard/patients`);
       } else if (notification.related_type === "invoice") {
         router.push(`/dashboard/invoices/${notification.related_id}`);
@@ -115,6 +151,8 @@ export default function NotificationBell() {
         return "💰";
       case "payment_created":
         return "💳";
+      case "schedule_updated":
+        return "📌";
       default:
         return "🔔";
     }
@@ -231,7 +269,7 @@ export default function NotificationBell() {
       open={open}
       onOpenChange={setOpen}
       placement="bottomRight"
-      overlayStyle={{ width: "400px", maxHeight: "500px", overflowY: "auto" }}
+      overlayStyle={{ width: "400px", maxHeight: "100vh", overflowY: "auto" }}
     >
       <div
         style={{

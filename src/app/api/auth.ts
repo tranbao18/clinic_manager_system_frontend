@@ -1,3 +1,4 @@
+// KẾ THỪA
 export type User = {
     id: string;
     username: string;
@@ -5,7 +6,6 @@ export type User = {
     role?: string;
 };
 
-// ✅ Hàm login sẽ gọi API Next.js để set session
 export async function login(username: string, passwordHash: string): Promise<User | null> {
     try {
         const res = await fetch("/api/auth/login", {

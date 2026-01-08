@@ -1,10 +1,8 @@
-// src/app/api/invoices/from-medical-record/[medicalRecordId]/route.ts
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
-// ➕ POST - Tạo hóa đơn từ hồ sơ y tế
 export async function POST(
   req: Request,
   { params }: { params: Promise<{ medicalRecordId: string }> }

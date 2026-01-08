@@ -1,4 +1,4 @@
- "use client";
+"use client";
 
 import { useEffect, useState } from "react";
 import {
@@ -75,6 +75,7 @@ export default function DisabledInvoicesPage() {
         }
     };
 
+    // TỰ VIẾT
     const handleRestore = async (id: string) => {
         try {
             await restoreInvoice(id);
@@ -99,6 +100,7 @@ export default function DisabledInvoicesPage() {
             setDeletingInvoiceId(null);
         }
     };
+    // 
 
     const handleBulkPermanentDelete = async () => {
         if (!selectedRowKeys || selectedRowKeys.length === 0) return;
@@ -194,7 +196,7 @@ export default function DisabledInvoicesPage() {
             ),
         },
     ];
-
+    // TỰ VIẾT
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-4">
@@ -259,6 +261,7 @@ export default function DisabledInvoicesPage() {
             )}
         </div>
     );
+    // 
 }
 
 

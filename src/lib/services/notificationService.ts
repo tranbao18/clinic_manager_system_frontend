@@ -1,10 +1,8 @@
-// lib/services/notificationService.ts
-
 export interface Notification {
   _id: string;
   recipient_id: string;
   recipient_role: string;
-  type: 'appointment_created' | 'medical_record_created' | 'invoice_created' | 'payment_created' | 'appointment_completed';
+  type: 'appointment_created' | 'medical_record_created' | 'invoice_created' | 'payment_created' | 'appointment_completed' | 'schedule_updated';
   title: string;
   message: string;
   related_id?: string;
@@ -18,16 +16,24 @@ export interface NotificationCount {
   count: number;
 }
 
-// 📋 Lấy danh sách thông báo
 export async function getNotifications(read?: boolean): Promise<Notification[]> {
   const params = new URLSearchParams();
   if (read !== undefined) {
     params.append('read', read.toString());
   }
 
+  const token = typeof window !== "undefined" ? (sessionStorage.getItem("token") || localStorage.getItem("token")) : null;
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  // Debug: log token presence and request URL
+  try {
+    console.debug('🔍 [notificationService] getNotifications', { tokenPresent: !!token, url: `/api/notifications?${params.toString()}` });
+  } catch (e) { }
+
   const res = await fetch(`/api/notifications?${params.toString()}`, {
     cache: "no-store",
     credentials: "include",
+    headers,
   });
 
   if (!res.ok) {
@@ -38,11 +44,19 @@ export async function getNotifications(read?: boolean): Promise<Notification[]> 
   return res.json();
 }
 
-// 🔢 Lấy số lượng thông báo chưa đọc
 export async function getUnreadCount(): Promise<number> {
+  const token = typeof window !== "undefined" ? (sessionStorage.getItem("token") || localStorage.getItem("token")) : null;
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
+  try {
+    console.debug('🔍 [notificationService] getUnreadCount', { tokenPresent: !!token, url: "/api/notifications/unread-count" });
+  } catch (e) { }
+
   const res = await fetch("/api/notifications/unread-count", {
     cache: "no-store",
     credentials: "include",
+    headers,
   });
 
   if (!res.ok) {
@@ -53,11 +67,14 @@ export async function getUnreadCount(): Promise<number> {
   return data.count || 0;
 }
 
-// ✅ Đánh dấu thông báo là đã đọc
 export async function markAsRead(notificationId: string): Promise<Notification> {
+  const token = typeof window !== "undefined" ? (sessionStorage.getItem("token") || localStorage.getItem("token")) : null;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   const res = await fetch(`/api/notifications/${notificationId}/read`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers,
     credentials: "include",
   });
 
@@ -69,11 +86,14 @@ export async function markAsRead(notificationId: string): Promise<Notification> 
   return res.json();
 }
 
-// ✅ Đánh dấu tất cả thông báo là đã đọc
 export async function markAllAsRead(): Promise<void> {
+  const token = typeof window !== "undefined" ? (sessionStorage.getItem("token") || localStorage.getItem("token")) : null;
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   const res = await fetch("/api/notifications/read-all", {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers,
     credentials: "include",
   });
 
@@ -83,11 +103,15 @@ export async function markAllAsRead(): Promise<void> {
   }
 }
 
-// 🗑️ Xóa thông báo
 export async function deleteNotification(notificationId: string): Promise<void> {
+  const token = typeof window !== "undefined" ? (sessionStorage.getItem("token") || localStorage.getItem("token")) : null;
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+
   const res = await fetch(`/api/notifications/${notificationId}`, {
     method: "DELETE",
     credentials: "include",
+    headers,
   });
 
   if (!res.ok) {

@@ -45,6 +45,7 @@ export default function MedicineImportsPage() {
     const [deleting, setDeleting] = useState(false);
     const router = useRouter();
 
+    // TỰ VIẾT
     const fetchImports = async () => {
         try {
             setLoading(true);
@@ -61,6 +62,7 @@ export default function MedicineImportsPage() {
     useEffect(() => {
         fetchImports();
     }, []);
+
 
     useEffect(() => {
         const fetchRole = async () => {
@@ -84,6 +86,7 @@ export default function MedicineImportsPage() {
             message.error("Xóa thất bại");
         }
     };
+    // 
 
     const handleBatchDelete = async () => {
         if (selectedRowKeys.length === 0) {
@@ -122,29 +125,19 @@ export default function MedicineImportsPage() {
     };
 
     const canDelete = role === "admin";
-    const canCreate = role === "admin" || role === "accountant";
-    const canImport = role === "admin" || role === "accountant";
+    const canCreate = role === "admin" || role === "accountant" || role === "pharmacist";
+    const canImport = role === "admin" || role === "accountant" || role === "pharmacist";
 
-    // Xử lý import file
     const handleImport = async () => {
-        console.log("🚀 handleImport được gọi", { fileListLength: fileList.length });
 
         if (fileList.length === 0) {
-            console.warn("⚠️ Không có file được chọn");
+            console.warn(" Không có file được chọn");
             message.warning("Vui lòng chọn file để import");
             return;
         }
 
-        // Lấy file từ fileList - thử originFileObj trước, nếu không có thì lấy file trực tiếp
         const fileItem = fileList[0];
         const file = fileItem?.originFileObj || fileItem;
-
-        console.log("📄 File info:", {
-            fileItem,
-            file: file ? { name: file.name, size: file.size, type: file.type } : null,
-            fileList: fileList,
-            hasOriginFileObj: !!fileItem?.originFileObj
-        });
 
         if (!file || !(file instanceof File)) {
             console.error("❌ File không hợp lệ hoặc không phải File object", { file, fileItem });
@@ -161,7 +154,6 @@ export default function MedicineImportsPage() {
 
             console.log("Đang gửi file import...", file.name, file.size);
 
-            // Branch endpoint depending on mode
             const endpoint =
                 importMode === "update"
                     ? "/api/medicine-imports/update-quantities"
@@ -174,14 +166,12 @@ export default function MedicineImportsPage() {
 
             console.log("Response status:", res.status, res.statusText);
 
-            // Read response as text first, attempt JSON parse, otherwise keep raw text
             const text = await res.text();
             console.log("Response text:", text);
             let data: any = {};
             try {
                 data = text ? JSON.parse(text) : {};
             } catch (parseError) {
-                // not valid JSON — keep raw text for debugging
                 data = { __raw: text };
                 console.warn("Response is not JSON:", parseError);
             }
@@ -237,12 +227,13 @@ export default function MedicineImportsPage() {
         }
     };
 
+    // TỰ VIẾT
     const handleImportModalClose = () => {
         setImportModalVisible(false);
         setFileList([]);
         setImportResult(null);
     };
-
+    // 
     const getMedicineName = (medicine: string | any) => {
         if (!medicine) return "N/A";
         if (typeof medicine === "string") return medicine;
@@ -300,7 +291,6 @@ export default function MedicineImportsPage() {
                 let color = "green";
                 if (percentage < 20) color = "red";
                 else if (percentage < 50) color = "orange";
-                // Hiển thị ít nhất 1 chữ số thập phân nếu phần trăm < 1%, hoặc làm tròn nếu >= 1%
                 const percentageDisplay = percentage < 1 && percentage > 0
                     ? percentage.toFixed(1)
                     : percentage.toFixed(0);
@@ -554,30 +544,22 @@ export default function MedicineImportsPage() {
                                 size: file.size
                             });
 
-                            // Kiểm tra extension
                             const fileName = file.name.toLowerCase();
                             const hasValidExtension =
                                 fileName.endsWith(".xlsx") ||
                                 fileName.endsWith(".xls") ||
                                 fileName.endsWith(".csv");
 
-                            // Kiểm tra MIME type
                             const isValidMimeType =
                                 file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
                                 file.type === "application/vnd.ms-excel" ||
                                 file.type === "text/csv" ||
-                                file.type === "application/octet-stream"; // Một số trình duyệt trả về type này cho .xlsx
+                                file.type === "application/octet-stream";
 
                             const isValidType = hasValidExtension || isValidMimeType;
 
-                            console.log("✅ Validation:", {
-                                hasValidExtension,
-                                isValidMimeType,
-                                isValidType
-                            });
-
                             if (!isValidType) {
-                                console.error("❌ File type không hợp lệ");
+                                console.error("File type không hợp lệ");
                                 message.error(
                                     "Chỉ chấp nhận file Excel (.xlsx, .xls) hoặc CSV (.csv)"
                                 );
@@ -585,22 +567,16 @@ export default function MedicineImportsPage() {
                             }
 
                             if (file.size > 10 * 1024 * 1024) {
-                                console.error("❌ File quá lớn");
+                                console.error(" File quá lớn");
                                 message.error("File quá lớn. Kích thước tối đa là 10MB");
                                 return false;
                             }
 
-                            console.log("✅ File hợp lệ, thêm vào fileList");
                             setFileList([file]);
-                            return false; // Ngăn tự động upload
+                            return false;
                         }}
                         onChange={(info) => {
-                            console.log("📝 Upload onChange:", {
-                                fileList: info.fileList,
-                                file: info.file,
-                                fileListLength: info.fileList.length
-                            });
-                            // Chỉ cập nhật nếu có file
+
                             if (info.fileList.length > 0) {
                                 setFileList(info.fileList);
                             }

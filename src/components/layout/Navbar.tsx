@@ -1,3 +1,4 @@
+// KẾ THỪA
 "use client";
 
 import { Layout, Menu } from "antd";
@@ -22,7 +23,6 @@ export default function Navbar() {
 
     const menuItems = getMenuByRole(role?.toLowerCase?.() || "");
 
-    // 🔹 Khi pathname đổi -> tìm item khớp sâu nhất
     useEffect(() => {
         if (menuItems.length > 0) {
             let bestMatch = null;
@@ -111,14 +111,12 @@ export default function Navbar() {
                 />
             </div>
 
-            {/* Footer / quick actions */}
             <div className="mt-auto px-4 py-4 border-t border-white/5">
                 {!collapsed ? (
                     <div className="flex items-center justify-between">
                         <div className="text-sm text-white/80">Phiên làm việc</div>
                         <button
                             onClick={() => {
-                                // quick logout: clear session and redirect to login
                                 try {
                                     localStorage.removeItem("token");
                                     sessionStorage.removeItem("token");

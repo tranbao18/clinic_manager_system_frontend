@@ -29,21 +29,18 @@ export default function NewMedicineImportPage() {
     const [employees, setEmployees] = useState<any[]>([]);
     const [currentUser, setCurrentUser] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    // keep this page focused on form import only
 
+    // TỰ VIẾT
     useEffect(() => {
         const fetchData = async () => {
             try {
                 setLoading(true);
-                // Lấy danh sách thuốc
                 const medicinesData = await getMedicines();
                 setMedicines(medicinesData);
 
-                // Lấy danh sách nhân viên
                 const employeesData = await EmployeesService.getAll();
                 setEmployees(employeesData);
 
-                // Lấy thông tin user hiện tại
                 const userRes = await fetch("/api/users/me", { cache: "no-store" });
                 if (userRes.ok) {
                     const userData = await userRes.json();
@@ -59,7 +56,6 @@ export default function NewMedicineImportPage() {
         fetchData();
     }, []);
 
-    // Set default imported_by khi có currentUser
     useEffect(() => {
         if (currentUser?.employee_id) {
             form.setFieldValue("imported_by", currentUser.employee_id);
@@ -92,8 +88,7 @@ export default function NewMedicineImportPage() {
             setSaving(false);
         }
     };
-
-    // form-only create page; bulk import handled from list page modal
+    // 
 
     if (loading) {
         return (
@@ -102,7 +97,7 @@ export default function NewMedicineImportPage() {
             </div>
         );
     }
-
+    // TỰ VIẾT
     return (
         <div className="p-6 max-w-3xl mx-auto">
             <Card
@@ -118,7 +113,6 @@ export default function NewMedicineImportPage() {
                         import_date: dayjs(),
                     }}
                 >
-                    {/* Chọn thuốc */}
                     <Form.Item
                         label="Thuốc"
                         name="medicine_id"
@@ -137,7 +131,6 @@ export default function NewMedicineImportPage() {
                         />
                     </Form.Item>
 
-                    {/* Nhà cung cấp & Mã lô */}
                     <div className="grid grid-cols-2 gap-4">
                         <Form.Item
                             label="Nhà cung cấp"
@@ -156,7 +149,6 @@ export default function NewMedicineImportPage() {
                         </Form.Item>
                     </div>
 
-                    {/* Số lượng & Giá nhập */}
                     <div className="grid grid-cols-2 gap-4">
                         <Form.Item
                             label="Số lượng"
@@ -202,7 +194,6 @@ export default function NewMedicineImportPage() {
                         </Form.Item>
                     </div>
 
-                    {/* Hạn sử dụng & Ngày nhập */}
                     <div className="grid grid-cols-2 gap-4">
                         <Form.Item
                             label="Hạn sử dụng"
@@ -230,7 +221,6 @@ export default function NewMedicineImportPage() {
                         </Form.Item>
                     </div>
 
-                    {/* Người nhập */}
                     <Form.Item
                         label="Người nhập"
                         name="imported_by"
@@ -249,7 +239,6 @@ export default function NewMedicineImportPage() {
                         />
                     </Form.Item>
 
-                    {/* Nút hành động */}
                     <div className="flex justify-end gap-3 mt-6">
                         <Button onClick={() => router.back()}>Hủy</Button>
                         <Button type="primary" htmlType="submit" loading={saving}>
@@ -260,5 +249,7 @@ export default function NewMedicineImportPage() {
             </Card>
         </div>
     );
+    // 
 }
+
 

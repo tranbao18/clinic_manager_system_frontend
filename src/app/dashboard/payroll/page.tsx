@@ -53,7 +53,7 @@ export default function PayrollPage() {
     const [role, setRole] = useState<string>("");
     const router = useRouter();
 
-    // Fetch user role
+    // TỰ VIÊTS
     useEffect(() => {
         const fetchRole = async () => {
             try {
@@ -76,13 +76,13 @@ export default function PayrollPage() {
         const date = new Date(dateString);
         return date.toLocaleDateString("vi-VN");
     };
+    // 
 
     const fetchPayrolls = async () => {
         try {
             setLoading(true);
             const data = await PayrollService.getAll();
 
-            // Populate employee info nếu chưa có
             const payrollsWithEmployee = await Promise.all(
                 data.map(async (p: Payroll) => {
                     let employeeName = "N/A";
@@ -92,7 +92,6 @@ export default function PayrollPage() {
                         employeeName = p.employee_id.fullname || "N/A";
                         employeeEmail = p.employee_id.email || "N/A";
                     } else if (typeof p.employee_id === "string") {
-                        // Nếu chỉ có ID, cần fetch employee info
                         try {
                             const empRes = await fetch(`/api/employees/${p.employee_id}`, {
                                 cache: "no-store",
@@ -112,7 +111,6 @@ export default function PayrollPage() {
                         key: p._id,
                         employeeName,
                         employeeEmail,
-                        // Đảm bảo emailSent được lấy từ backend (mặc định false nếu không có)
                         emailSent: p.emailSent ?? false,
                     };
                 })
@@ -132,7 +130,6 @@ export default function PayrollPage() {
         fetchPayrolls();
     }, []);
 
-    // Tự động xóa selection của các row không còn hiển thị sau khi filter
     useEffect(() => {
         const visibleKeys = filteredPayrolls.map((p) => p._id);
         setSelectedRowKeys((prevKeys) => {
@@ -145,6 +142,7 @@ export default function PayrollPage() {
         });
     }, [filteredPayrolls]);
 
+    // TỰ VIẾT
     const onSearch = (value: string) => {
         if (!value.trim()) {
             setFilteredPayrolls(payrolls);
@@ -168,29 +166,26 @@ export default function PayrollPage() {
             message.error("Lỗi khi xóa bảng lương: " + error.message);
         }
     };
+    // 
 
     const handleSendEmail = async (employeeId: string) => {
         const employeeIdStr = String(employeeId);
 
-        // Set loading state
         setSendingEmailIds((prev) => new Set(prev).add(employeeIdStr));
 
         try {
             const result = await PayrollService.sendPayrollToEmployee(employeeId);
 
-            // Hiển thị thông báo thành công
             message.success(
                 result.message || "Đã gửi email bảng lương thành công",
                 3
             );
 
-            // Refresh data để lấy emailSent từ backend
             await fetchPayrolls();
         } catch (error: any) {
             console.error("Error sending email:", error);
             message.error("Lỗi khi gửi email: " + (error.message || "Không xác định"), 5);
         } finally {
-            // Remove loading state
             setSendingEmailIds((prev) => {
                 const newSet = new Set(prev);
                 newSet.delete(employeeIdStr);
@@ -208,12 +203,10 @@ export default function PayrollPage() {
         try {
             setSendingEmail(true);
 
-            // Lấy employee_id từ các payroll đã chọn (từ filteredPayrolls để đảm bảo chỉ gửi cho các nhân viên đang hiển thị)
             const selectedPayrolls = filteredPayrolls.filter((p) =>
                 selectedRowKeys.includes(p._id)
             );
 
-            // Lọc các nhân viên có email hợp lệ
             const employeeIds = selectedPayrolls
                 .map((p) => {
                     if (typeof p.employee_id === "string") {
@@ -223,10 +216,8 @@ export default function PayrollPage() {
                 })
                 .filter((id) => id); // Loại bỏ các giá trị null/undefined
 
-            // Gửi email hàng loạt
             const result = await PayrollService.sendPayrollBulk(employeeIds);
 
-            // Xử lý kết quả
             if (result.results && Array.isArray(result.results)) {
                 const successResults = result.results.filter(
                     (r: any) => r.status === "success"
@@ -237,7 +228,6 @@ export default function PayrollPage() {
                 const successCount = successResults.length;
                 const failCount = failedResults.length;
 
-                // Refresh data để lấy emailSent từ backend
                 await fetchPayrolls();
 
                 if (failCount === 0) {
@@ -251,18 +241,15 @@ export default function PayrollPage() {
                         5
                     );
 
-                    // Hiển thị chi tiết lỗi
                     failedResults.forEach((r: any) => {
                         console.error(`Lỗi gửi email cho ${r.employeeId}:`, r.message);
                     });
                 }
             } else {
-                // Nếu không có results, refresh data để lấy emailSent từ backend
                 await fetchPayrolls();
                 message.success("Đã gửi email cho các nhân viên đã chọn", 3);
             }
 
-            // Xóa selection sau khi gửi thành công
             setSelectedRowKeys([]);
         } catch (error: any) {
             console.error("Error sending bulk email:", error);
@@ -590,14 +577,12 @@ export default function PayrollPage() {
                         <Upload
                             fileList={fileList}
                             beforeUpload={(file) => {
-                                // Kiểm tra extension
                                 const fileName = file.name.toLowerCase();
                                 const hasValidExtension =
                                     fileName.endsWith(".xlsx") ||
                                     fileName.endsWith(".xls") ||
                                     fileName.endsWith(".csv");
 
-                                // Kiểm tra MIME type
                                 const isValidMimeType =
                                     file.type === "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" ||
                                     file.type === "application/vnd.ms-excel" ||

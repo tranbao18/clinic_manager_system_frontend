@@ -1,17 +1,19 @@
-// src/app/api/notifications/read-all/route.ts
+// KẾ THỪA
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
 
-// ✅ PUT - Đánh dấu tất cả thông báo là đã đọc
 export async function PUT(req: Request) {
   try {
     const authHeaders = await getAuthHeaderServer();
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
-    if (authHeaders.Authorization) {
+    const incomingAuth = req.headers.get("authorization") || req.headers.get("Authorization");
+    if (incomingAuth) {
+      headers.Authorization = incomingAuth;
+    } else if (authHeaders.Authorization) {
       headers.Authorization = authHeaders.Authorization;
     }
 

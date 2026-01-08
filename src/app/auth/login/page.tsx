@@ -1,3 +1,4 @@
+// KẾ THỪA
 "use client";
 
 import { useState } from "react";
@@ -11,7 +12,6 @@ export default function LoginPage() {
   const router = useRouter();
   const [api, contextHolder] = notification.useNotification();
 
-  // Forgot password modal state
   const [forgotPasswordModalVisible, setForgotPasswordModalVisible] = useState(false);
   const [forgotUsername, setForgotUsername] = useState("");
   const [forgotEmail, setForgotEmail] = useState("");
@@ -28,7 +28,6 @@ export default function LoginPage() {
 
     setLoading(true);
     try {
-      // ✅ XÓA TOKEN CŨ TRƯỚC KHI LOGIN MỚI
       localStorage.removeItem("token");
       localStorage.removeItem("user");
       sessionStorage.removeItem("token");
@@ -50,7 +49,6 @@ export default function LoginPage() {
         return;
       }
 
-      // ✅ Lưu token & user MỚI vào sessionStorage (xóa khi đóng tab)
       sessionStorage.setItem("token", data.token);
       sessionStorage.setItem("user", JSON.stringify(data.user));
 
@@ -80,7 +78,6 @@ export default function LoginPage() {
       return;
     }
 
-    // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(forgotEmail)) {
       api.warning({
@@ -113,7 +110,6 @@ export default function LoginPage() {
         description: "Vui lòng kiểm tra hộp thư để nhận hướng dẫn khôi phục mật khẩu",
       });
 
-      // Close modal and reset form
       setForgotPasswordModalVisible(false);
       setForgotUsername("");
       setForgotEmail("");
@@ -244,7 +240,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Forgot Password Modal */}
+
       <Modal
         title={
           <div className="flex items-center gap-3">

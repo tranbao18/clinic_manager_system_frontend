@@ -200,6 +200,7 @@ export default function DisabledEmployeesPage() {
         },
     ];
 
+    // TỰ VIẾT
     return (
         <div className="p-6">
             <div className="flex justify-between items-center mb-4">
@@ -264,5 +265,6 @@ export default function DisabledEmployeesPage() {
             )}
         </div>
     );
+    // 
 }
 

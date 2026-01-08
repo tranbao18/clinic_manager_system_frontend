@@ -1,5 +1,3 @@
-// src/lib/services/invoiceService.ts
-
 export interface Invoice {
   _id: string;
   patient_id:
@@ -33,7 +31,6 @@ export interface CreateInvoiceFromMedicalRecordData {
   medicalRecordId: string;
 }
 
-// 📦 Lấy danh sách hóa đơn
 export async function getInvoices(filters?: {
   patient_id?: string;
   appointment_id?: string;
@@ -43,7 +40,6 @@ export async function getInvoices(filters?: {
     const res = await fetch("/api/invoices", { cache: "no-store" });
 
     if (!res.ok) {
-      // Đọc response body để lấy thông tin lỗi chi tiết
       let errorMessage = "Không thể lấy danh sách hóa đơn";
       try {
         const errorData = await res.json();
@@ -54,7 +50,6 @@ export async function getInvoices(filters?: {
           error: errorData,
         });
       } catch (e) {
-        // Nếu không parse được JSON, lấy text
         const errorText = await res.text();
         console.error("getInvoices API error (text):", {
           status: res.status,
@@ -63,20 +58,17 @@ export async function getInvoices(filters?: {
         });
         errorMessage = errorText || errorMessage;
       }
-      // Không throw error, chỉ log và return [] để không làm crash app
       console.warn("⚠️ Không thể lấy danh sách hóa đơn, trả về mảng rỗng");
       return [];
     }
 
     let invoices = await res.json();
 
-    // Đảm bảo invoices là array
     if (!Array.isArray(invoices)) {
       console.warn("⚠️ Response không phải array, trả về mảng rỗng");
       return [];
     }
 
-    // Filter ở client side vì backend không hỗ trợ filter
     if (filters) {
       if (filters.patient_id) {
         invoices = invoices.filter((inv: Invoice) => {
@@ -106,12 +98,10 @@ export async function getInvoices(filters?: {
     return invoices;
   } catch (error: any) {
     console.error("getInvoices exception:", error);
-    // Trả về mảng rỗng thay vì throw error để không làm crash app
     return [];
   }
 }
 
-// 🔍 Lấy chi tiết hóa đơn theo ID
 export async function getInvoiceById(id: string): Promise<Invoice> {
   try {
     const res = await fetch(`/api/invoices/${id}`, { cache: "no-store" });
@@ -131,16 +121,13 @@ export async function getInvoiceById(id: string): Promise<Invoice> {
   }
 }
 
-// 🔍 Lấy hóa đơn theo patient_id
 export async function getInvoicesByPatientId(
   patientId: string
 ): Promise<Invoice[]> {
   try {
-    // Sử dụng endpoint riêng cho patient_id (hỗ trợ Doctor role)
     const res = await fetch(`/api/invoices/patient/${patientId}`, { cache: "no-store" });
 
     if (!res.ok) {
-      // Nếu lỗi, trả về mảng rỗng thay vì throw error
       console.warn("getInvoicesByPatientId: Không thể lấy hóa đơn, trả về mảng rỗng");
       return [];
     }
@@ -153,12 +140,10 @@ export async function getInvoicesByPatientId(
   }
 }
 
-// 🔍 Lấy hóa đơn theo appointment_id
 export async function getInvoiceByAppointmentId(
   appointmentId: string
 ): Promise<Invoice[]> {
   try {
-    // Sử dụng GET /api/invoices với query param appointment_id
     return await getInvoices({ appointment_id: appointmentId });
   } catch (error: any) {
     console.error("getInvoiceByAppointmentId error:", error);
@@ -166,7 +151,6 @@ export async function getInvoiceByAppointmentId(
   }
 }
 
-// ➕ Tạo hóa đơn thủ công
 export async function createInvoice(data: CreateInvoiceData): Promise<Invoice> {
   const res = await fetch("/api/invoices", {
     method: "POST",
@@ -180,7 +164,6 @@ export async function createInvoice(data: CreateInvoiceData): Promise<Invoice> {
   return res.json();
 }
 
-// ➕ Tạo hóa đơn từ Medical Record (sử dụng endpoint backend)
 export async function createInvoiceFromMedicalRecord(
   data: CreateInvoiceFromMedicalRecordData
 ): Promise<Invoice> {
@@ -205,7 +188,6 @@ export async function createInvoiceFromMedicalRecord(
   }
 }
 
-// ✏️ Cập nhật hóa đơn
 export async function updateInvoice(
   id: string,
   data: Partial<CreateInvoiceData>
@@ -222,18 +204,14 @@ export async function updateInvoice(
   return res.json();
 }
 
-// 🔄 Cập nhật status tự động (dựa trên payments)
 export async function updateInvoiceStatus(id: string): Promise<Invoice> {
-  // Lấy invoice và payments để tính status
   const invoice = await getInvoiceById(id);
   const { getPaymentsByInvoiceId } = await import("./paymentService");
   const payments = await getPaymentsByInvoiceId(id);
 
-  // Tính tổng tiền đã thanh toán
   const paidAmount = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
   const totalAmount = invoice.total_amount || 0;
 
-  // Xác định status mới
   let newStatus: "Unpaid" | "Paid" | "Partial" = "Unpaid";
   if (paidAmount >= totalAmount) {
     newStatus = "Paid";
@@ -241,11 +219,9 @@ export async function updateInvoiceStatus(id: string): Promise<Invoice> {
     newStatus = "Partial";
   }
 
-  // Cập nhật status
   return await updateInvoice(id, { status: newStatus });
 }
 
-// ❌ Xóa hóa đơn (soft delete)
 export async function deleteInvoice(id: string, permanent = false): Promise<void> {
   const url = `/api/invoices/${id}` + (permanent ? "?hard=true" : "");
   const res = await fetch(url, { method: "DELETE" });
@@ -260,14 +236,12 @@ export async function deleteInvoice(id: string, permanent = false): Promise<void
   }
 }
 
-// 📦 Lấy danh sách hóa đơn đã xóa (disabled: true) - Admin only
 export async function getDisabledInvoices(): Promise<Invoice[]> {
   const res = await fetch("/api/invoices?disabled=true", { cache: "no-store" });
   if (!res.ok) throw new Error("Không thể lấy danh sách hóa đơn đã xóa");
   return res.json();
 }
 
-// ♻️ Khôi phục hóa đơn (Admin only) - use dedicated restore endpoint
 export async function restoreInvoice(id: string): Promise<Invoice> {
   const res = await fetch(`/api/invoices/${id}/restore`, {
     method: "PUT",
