@@ -30,11 +30,20 @@ export interface UpdateAppointmentData {
 
 export async function getAppointments(): Promise<Appointment[]> {
     try {
+        const headers = getAuthHeaderClient() as Record<string, string>;
+        try { console.debug("🔁 getAppointments headers:", headers); } catch (e) { }
+
         const res = await fetch("/api/appointments", {
             cache: "no-store",
-            headers: getAuthHeaderClient()
+            headers
         });
         if (!res.ok) {
+            // try to extract response body for better debugging
+            let bodyText = "";
+            try {
+                bodyText = await res.text();
+            } catch (e) { }
+            console.error("getAppointments failed:", { status: res.status, body: bodyText });
             throw new Error(`Failed to fetch appointments: ${res.status}`);
         }
         const data = await res.json();

@@ -45,12 +45,10 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const meRes = await fetch("/api/users/me", {
-          credentials: "include",
-          cache: "no-store",
-        });
-        if (!meRes.ok) throw new Error("Chưa đăng nhập");
-        const me = await meRes.json();
+        // Get user data from sessionStorage instead of API to maintain per-tab sessions
+        const userData = sessionStorage.getItem("user") || localStorage.getItem("user");
+        if (!userData) throw new Error("Chưa đăng nhập");
+        const me = JSON.parse(userData);
 
         const userId = me.id || me._id;
         if (!userId) throw new Error("Không tìm thấy ID người dùng");
@@ -278,15 +276,6 @@ export default function ProfilePage() {
 
         {canSelfChangePassword && (
           <>
-            <Divider className="border-gray-200 mt-6" />
-            <div className="text-center">
-              <Text className="block mb-3 text-gray-600">
-                Đổi mật khẩu đăng nhập của bạn
-              </Text>
-              <Button type="primary" onClick={() => setIsModalOpen(true)}>
-                Đổi mật khẩu
-              </Button>
-            </div>
             <Modal
               title="Đổi mật khẩu"
               open={isModalOpen}

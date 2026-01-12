@@ -1,4 +1,4 @@
-import { getAuthHeaderClient } from "@/lib/authHeaderClient";
+import { getAuthHeaderClient, clearAllTokens } from "@/lib/authHeaderClient";
 const BASE_URL = "/api/auth";
 
 const AuthService = {
@@ -110,23 +110,20 @@ const AuthService = {
         credentials: "include",
       });
 
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      sessionStorage.removeItem("token");
-      sessionStorage.removeItem("user");
-
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Lỗi khi đăng xuất");
       }
 
       const data = await res.json();
+
+      // Only clear tokens after successful logout
+      clearAllTokens();
+
       return data;
     } catch (err: unknown) {
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
-      sessionStorage.removeItem("token");
-      sessionStorage.removeItem("user");
+      // Clear tokens even on error to be safe
+      clearAllTokens();
       throw err;
     }
   },

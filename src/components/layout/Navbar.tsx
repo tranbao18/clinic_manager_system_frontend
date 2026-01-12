@@ -5,6 +5,7 @@ import { Layout, Menu } from "antd";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { getMenuByRole } from "@/lib/menu";
+import { clearAllTokens } from "@/lib/authHeaderClient";
 
 const { Sider } = Layout;
 
@@ -16,9 +17,23 @@ export default function Navbar() {
     const router = useRouter();
 
     useEffect(() => {
+        // Read role from sessionStorage/localStorage so each tab keeps its own session
+        try {
+            const userData = sessionStorage.getItem("user") || localStorage.getItem("user");
+            if (userData) {
+                const parsed = JSON.parse(userData);
+                setRole(parsed?.role || "");
+                return;
+            }
+        } catch (e) {
+            // ignore parse errors
+        }
+
+        // Fallback: try server session (shared) only if no client session found
         fetch("/api/session")
             .then((res) => res.json())
-            .then((data) => setRole(data?.user?.role || ""));
+            .then((data) => setRole(data?.user?.role || ""))
+            .catch(() => {});
     }, []);
 
     const menuItems = getMenuByRole(role?.toLowerCase?.() || "");
@@ -116,10 +131,15 @@ export default function Navbar() {
                     <div className="flex items-center justify-between">
                         <div className="text-sm text-white/80">Phiên làm việc</div>
                         <button
-                            onClick={() => {
+                        onClick={() => {
                                 try {
+                                    // Clear client-side tokens and user data for this tab
                                     localStorage.removeItem("token");
+                                    localStorage.removeItem("user");
                                     sessionStorage.removeItem("token");
+                                    sessionStorage.removeItem("user");
+                                    // Also clear any global token store if provided
+                                    try { clearAllTokens(); } catch (e) {}
                                 } catch (e) { }
                                 router.push("/auth/login");
                             }}
@@ -131,10 +151,13 @@ export default function Navbar() {
                 ) : (
                     <div className="flex items-center justify-center">
                         <button
-                            onClick={() => {
+                        onClick={() => {
                                 try {
                                     localStorage.removeItem("token");
+                                    localStorage.removeItem("user");
                                     sessionStorage.removeItem("token");
+                                    sessionStorage.removeItem("user");
+                                    try { clearAllTokens(); } catch (e) {}
                                 } catch (e) { }
                                 router.push("/auth/login");
                             }}

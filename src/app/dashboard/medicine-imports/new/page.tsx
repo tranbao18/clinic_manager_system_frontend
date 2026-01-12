@@ -41,9 +41,10 @@ export default function NewMedicineImportPage() {
                 const employeesData = await EmployeesService.getAll();
                 setEmployees(employeesData);
 
-                const userRes = await fetch("/api/users/me", { cache: "no-store" });
-                if (userRes.ok) {
-                    const userData = await userRes.json();
+                // Get user data from sessionStorage instead of API to maintain per-tab sessions
+                const userDataStr = sessionStorage.getItem("user") || localStorage.getItem("user");
+                if (userDataStr) {
+                    const userData = JSON.parse(userDataStr);
                     setCurrentUser(userData);
                 }
             } catch (error) {

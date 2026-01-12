@@ -16,6 +16,8 @@ export interface NotificationCount {
   count: number;
 }
 
+import { handleAuthRedirect } from "@/lib/authHeaderClient";
+
 export async function getNotifications(read?: boolean): Promise<Notification[]> {
   const params = new URLSearchParams();
   if (read !== undefined) {
@@ -37,6 +39,10 @@ export async function getNotifications(read?: boolean): Promise<Notification[]> 
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      handleAuthRedirect();
+      throw new Error("Phiên đăng nhập đã hết hạn");
+    }
     const error = await res.json().catch(() => ({ error: "Không thể lấy thông báo" }));
     throw new Error(error.error || "Không thể lấy thông báo");
   }
@@ -60,6 +66,10 @@ export async function getUnreadCount(): Promise<number> {
   });
 
   if (!res.ok) {
+    if (res.status === 401) {
+      handleAuthRedirect();
+      return 0;
+    }
     return 0; // Trả về 0 nếu có lỗi
   }
 

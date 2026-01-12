@@ -116,6 +116,7 @@ const getRandomFallbackQuote = () => {
 const roleNames: { [key: string]: string } = {
     doctor: "Bác sĩ",
     nurse: "Y tá",
+    pharmacist: "Dược sĩ",
     receptionist: "Lễ tân",
     accountant: "Kế toán",
     admin: "Quản trị viên",
@@ -160,20 +161,18 @@ export default function Dashboard() {
     const [totalValue, setTotalValue] = useState<number>(0);
     const [monthlyProfitLoss, setMonthlyProfitLoss] =
         useState<ProfitLossMonthlyResponse | null>(null);
+    const [lastQuoteFetch, setLastQuoteFetch] = useState<number>(0);
 
     useEffect(() => {
         const fetchUserData = async () => {
             try {
-                const meRes = await fetch("/api/users/me", {
-                    credentials: "include",
-                    cache: "no-store",
-                });
-
-                if (!meRes.ok) {
+                // Get user data from sessionStorage instead of API to maintain per-tab sessions
+                const userData = sessionStorage.getItem("user") || localStorage.getItem("user");
+                if (!userData) {
                     throw new Error("Chưa đăng nhập");
                 }
 
-                const me = await meRes.json();
+                const me = JSON.parse(userData);
                 const userRole = (me?.role || "").toLowerCase();
                 setRole(userRole);
 
@@ -210,7 +209,14 @@ export default function Dashboard() {
     }, []);
 
     // TỰ VIẾT
-    const fetchQuote = async () => {
+    const fetchQuote = async (retryCount = 0) => {
+        // Check if we fetched a quote recently (within last 4 minutes) to avoid unnecessary API calls
+        const now = Date.now();
+        if (now - lastQuoteFetch < 240000) { // 4 minutes in milliseconds
+            console.log("Skipping quote fetch - recently fetched, using current quote");
+            return;
+        }
+
         try {
             const controller = new AbortController();
             const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
@@ -222,6 +228,20 @@ export default function Dashboard() {
 
             clearTimeout(timeoutId);
             console.log("Quote API response status:", response.status);
+
+            // Handle rate limiting (429) with exponential backoff
+            if (response.status === 429) {
+                if (retryCount < 3) { // Max 3 retries
+                    const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s
+                    console.log(`Rate limited (429), retrying in ${delay}ms (attempt ${retryCount + 1}/3)`);
+                    setTimeout(() => fetchQuote(retryCount + 1), delay);
+                    return;
+                } else {
+                    console.log("Max retries reached for rate limited quote API, using fallback");
+                    setCurrentQuote(getRandomFallbackQuote());
+                    return;
+                }
+            }
 
             if (response.ok) {
                 const data = await response.json();
@@ -236,6 +256,7 @@ export default function Dashboard() {
                         text: data.text,
                         author: data.author,
                     });
+                    setLastQuoteFetch(Date.now()); // Update last fetch timestamp
                     return; // Thành công, không cần fallback
                 } else {
                     throw new Error("Invalid API response format");
@@ -258,7 +279,7 @@ export default function Dashboard() {
             fetchQuote();
             const quoteTimer = setInterval(() => {
                 fetchQuote();
-            }, 30000); // Update every 30 seconds
+            }, 300000); // Update every 5 minutes (300,000ms) to avoid rate limiting
 
             return () => clearInterval(quoteTimer);
         }

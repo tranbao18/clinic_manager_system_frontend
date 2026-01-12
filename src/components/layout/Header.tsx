@@ -25,12 +25,12 @@ export default function Header() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const res = await fetch("/api/users/me", {
-          credentials: "include",
-          cache: "no-store",
-        });
-        if (!res.ok) throw new Error("Không thể lấy thông tin user");
-        const data = await res.json();
+        // Get user data from sessionStorage instead of API to maintain per-tab sessions
+        const userData = sessionStorage.getItem("user") || localStorage.getItem("user");
+        if (!userData) {
+          throw new Error("Chưa đăng nhập");
+        }
+        const data = JSON.parse(userData);
         setUser(data);
       } catch (err) {
         console.error(err);

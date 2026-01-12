@@ -30,6 +30,7 @@ export interface CreateInvoiceData {
 export interface CreateInvoiceFromMedicalRecordData {
   medicalRecordId: string;
 }
+import { getAuthHeaderClient } from "@/lib/authHeaderClient";
 
 export async function getInvoices(filters?: {
   patient_id?: string;
@@ -168,17 +169,42 @@ export async function createInvoiceFromMedicalRecord(
   data: CreateInvoiceFromMedicalRecordData
 ): Promise<Invoice> {
   try {
-    const res = await fetch(
-      `/api/invoices/from-medical-record/${data.medicalRecordId}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+    // Include client-side Authorization header (if token stored in localStorage/sessionStorage)
+    const clientHeaders: Record<string, string> = { "Content-Type": "application/json" };
+    try {
+      const authHdr = getAuthHeaderClient();
+      if (authHdr && (authHdr as any).Authorization) {
+        clientHeaders.Authorization = (authHdr as any).Authorization;
       }
-    );
+    } catch {
+      // ignore if window not available or other errors
+    }
+
+    const res = await fetch(`/api/invoices/from-medical-record/${data.medicalRecordId}`, {
+      method: "POST",
+      headers: clientHeaders,
+    });
 
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.error || errorData.detail || "Không thể tạo hóa đơn từ hồ sơ y tế");
+      // Try to parse JSON error body, but fall back to plain text if parsing fails.
+      let errorDetail = "";
+      try {
+        const errorData = await res.json();
+        errorDetail = errorData.error || errorData.detail || JSON.stringify(errorData);
+      } catch (parseErr) {
+        // If JSON parsing fails, try to read as text
+        try {
+          const text = await res.text();
+          errorDetail = text || `HTTP ${res.status} ${res.statusText}`;
+        } catch {
+          errorDetail = `HTTP ${res.status} ${res.statusText}`;
+        }
+      }
+
+      const err = new Error(errorDetail || "Không thể tạo hóa đơn từ hồ sơ y tế");
+      // attach status for downstream handlers if needed
+      (err as any).status = res.status;
+      throw err;
     }
 
     return await res.json();

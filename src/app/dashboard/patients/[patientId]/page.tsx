@@ -199,12 +199,10 @@ export default function PatientDetailPage() {
     useEffect(() => {
         const fetchCurrentUser = async () => {
             try {
-                const res = await fetch("/api/users/me", {
-                    credentials: "include",
-                    cache: "no-store",
-                });
-                if (res.ok) {
-                    const data = await res.json();
+                // Get user data from sessionStorage instead of API to maintain per-tab sessions
+                const userData = sessionStorage.getItem("user") || localStorage.getItem("user");
+                if (userData) {
+                    const data = JSON.parse(userData);
                     setCurrentUser(data);
                 }
             } catch (err) {
@@ -274,7 +272,8 @@ export default function PatientDetailPage() {
         try {
             setSavingRecord(true);
 
-            const doctorId = currentUser?.employee_id || currentUser?._id;
+            const rawDoctorId = currentUser?.employee_id || currentUser?._id;
+            const doctorId = typeof rawDoctorId === "object" && rawDoctorId ? (rawDoctorId as any)._id : rawDoctorId;
             if (!doctorId) {
                 message.error("Không tìm thấy thông tin bác sĩ. Vui lòng đăng nhập lại.");
                 return;
@@ -297,10 +296,12 @@ export default function PatientDetailPage() {
             }
 
             const payload: any = {
-                patient_id: patientId,
+                patient_id: typeof patientId === "object" && patientId ? (patientId as any)._id : patientId,
                 doctor_id: doctorId,
                 diagnosis: values.diagnosis,
             };
+
+            console.debug("🔁 Creating medical record with payload:", payload);
 
             if (values.treatment) payload.treatment = values.treatment;
             if (values.notes) payload.notes = values.notes;

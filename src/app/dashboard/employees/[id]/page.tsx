@@ -85,9 +85,10 @@ export default function EmployeeDetailPage() {
   useEffect(() => {
     const fetchCurrentUser = async () => {
       try {
-        const res = await fetch("/api/users/me", { cache: "no-store" });
-        if (res.ok) {
-          const data = await res.json();
+        // Get user data from sessionStorage instead of API to maintain per-tab sessions
+        const userData = sessionStorage.getItem("user") || localStorage.getItem("user");
+        if (userData) {
+          const data = JSON.parse(userData);
           setCurrentUser(data);
         }
       } catch (error) {

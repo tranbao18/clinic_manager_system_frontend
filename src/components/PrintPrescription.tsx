@@ -73,11 +73,13 @@ export const printPrescription = (record: MedicalRecord, patient: Patient | null
         @media print {
             @page {
                 size: A4;
-                margin: 20mm;
+                margin: 12mm; /* reduced from 20mm to fit content on one page */
             }
-            body {
+            html, body {
+                height: 100%;
                 margin: 0;
                 padding: 0;
+                box-sizing: border-box;
             }
             .no-print {
                 display: none !important;
@@ -85,16 +87,16 @@ export const printPrescription = (record: MedicalRecord, patient: Patient | null
         }
         body {
             font-family: 'Times New Roman', serif;
-            font-size: 14px;
-            line-height: 1.6;
+            font-size: 13px; /* slightly smaller to help fit content */
+            line-height: 1.45;
             color: #000;
-            padding: 20px;
+            padding: 0; /* removed extra padding to maximize printable area */
         }
         .header {
             text-align: center;
-            margin-bottom: 30px;
+            margin-bottom: 18px; /* reduced spacing */
             border-bottom: 2px solid #000;
-            padding-bottom: 15px;
+            padding-bottom: 10px;
         }
         .clinic-name {
             font-size: 20px;
@@ -106,13 +108,13 @@ export const printPrescription = (record: MedicalRecord, patient: Patient | null
             margin-bottom: 5px;
         }
         .title {
-            font-size: 18px;
+            font-size: 17px;
             font-weight: bold;
             text-transform: uppercase;
-            margin-top: 20px;
+            margin-top: 10px;
         }
         .info-section {
-            margin: 20px 0;
+            margin: 10px 0;
         }
         .info-row {
             display: flex;
@@ -128,11 +130,12 @@ export const printPrescription = (record: MedicalRecord, patient: Patient | null
         table {
             width: 100%;
             border-collapse: collapse;
-            margin: 20px 0;
+            margin: 10px 0;
+            font-size: 13px;
         }
         th, td {
             border: 1px solid #000;
-            padding: 8px;
+            padding: 6px; /* reduced padding to save space */
             text-align: left;
         }
         th {
@@ -150,13 +153,13 @@ export const printPrescription = (record: MedicalRecord, patient: Patient | null
             text-align: right;
         }
         .total-section {
-            margin-top: 20px;
+            margin-top: 10px;
             text-align: right;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
         }
         .footer {
-            margin-top: 40px;
+            margin-top: 30px;
             display: flex;
             justify-content: space-between;
         }
@@ -166,7 +169,7 @@ export const printPrescription = (record: MedicalRecord, patient: Patient | null
         }
         .signature-line {
             border-top: 1px solid #000;
-            margin-top: 60px;
+            margin-top: 40px;
             padding-top: 5px;
         }
         .diagnosis {
