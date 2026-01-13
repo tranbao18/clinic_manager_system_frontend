@@ -19,7 +19,7 @@ export async function GET(
 
         const res = await fetch(url, {
             cache: "no-store",
-            headers,
+            headers: Object.keys(headers).length > 0 ? headers : undefined,
         });
 
         if (!res.ok) {

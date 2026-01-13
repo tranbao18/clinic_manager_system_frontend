@@ -16,7 +16,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
         const res = await fetch(`${API_URL}/api/medical-records/${id}`, {
             cache: "no-store",
-            headers,
+            headers: Object.keys(headers).length > 0 ? headers : undefined,
         });
 
         if (!res.ok) {
@@ -94,7 +94,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
         const res = await fetch(url, {
             method: "DELETE",
-            headers,
+            headers: Object.keys(headers).length > 0 ? headers : undefined,
         });
 
         if (!res.ok) {
