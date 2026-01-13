@@ -4,12 +4,9 @@ import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 const API_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function GET(req: NextRequest, context: any) {
   try {
-    const { id } = params;
+    const { id } = context.params;
     const headers = await getAuthHeaderServer();
     const url = `${API_URL}/api/invoices/${id}`;
 
@@ -20,7 +17,6 @@ export async function GET(
 
     if (!res.ok) {
       const text = await res.text();
-      console.error("External API (GET invoice) error:", res.status, text);
       return NextResponse.json(
         { error: "Không thể lấy thông tin hóa đơn", detail: text },
         { status: res.status }
@@ -30,7 +26,6 @@ export async function GET(
     const data = await res.json();
     return NextResponse.json(data);
   } catch (err: any) {
-    console.error("GET /api/invoices/[id] exception:", err);
     return NextResponse.json(
       { error: err.message || "Lỗi hệ thống" },
       { status: 500 }
