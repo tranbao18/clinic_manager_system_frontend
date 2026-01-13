@@ -7,11 +7,19 @@ const API_URL =
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const authHeaders = await getAuthHeaderServer();
+
+    // Get auth header from the incoming request first
+    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
     const headers: Record<string, string> = {};
 
-    if (authHeaders.Authorization) {
-      headers.Authorization = authHeaders.Authorization;
+    if (authHeader) {
+      headers.Authorization = authHeader;
+    } else {
+      // Fallback to getAuthHeaderServer for backward compatibility
+      const authHeaders = await getAuthHeaderServer();
+      if (authHeaders.Authorization) {
+        headers.Authorization = authHeaders.Authorization;
+      }
     }
 
     const url = `${API_URL}/api/invoices/${id}`;
@@ -43,13 +51,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
 
-    const authHeaders = await getAuthHeaderServer();
+    // Get auth header from the incoming request first
+    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
 
-    if (authHeaders.Authorization) {
-      headers.Authorization = authHeaders.Authorization;
+    if (authHeader) {
+      headers.Authorization = authHeader;
+    } else {
+      // Fallback to getAuthHeaderServer for backward compatibility
+      const authHeaders = await getAuthHeaderServer();
+      if (authHeaders.Authorization) {
+        headers.Authorization = authHeaders.Authorization;
+      }
     }
 
     const body = await req.json();
@@ -82,11 +97,19 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const authHeaders = await getAuthHeaderServer();
+
+    // Get auth header from the incoming request first
+    const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
     const headers: Record<string, string> = {};
 
-    if (authHeaders.Authorization) {
-      headers.Authorization = authHeaders.Authorization;
+    if (authHeader) {
+      headers.Authorization = authHeader;
+    } else {
+      // Fallback to getAuthHeaderServer for backward compatibility
+      const authHeaders = await getAuthHeaderServer();
+      if (authHeaders.Authorization) {
+        headers.Authorization = authHeaders.Authorization;
+      }
     }
 
     const url = `${API_URL}/api/invoices/${id}`;

@@ -7,10 +7,18 @@ const INVOICES_URL = `${API_URL}/api/invoices`;
 
 export async function GET(req: Request) {
     try {
-        const authHeaders = await getAuthHeaderServer();
+        // Get auth header from the incoming request first
+        const authHeader = (req as any).headers?.get?.("authorization") || (req as any).headers?.get?.("Authorization");
         const headers: Record<string, string> = {};
-        if (authHeaders.Authorization) {
-            headers.Authorization = authHeaders.Authorization;
+
+        if (authHeader) {
+            headers.Authorization = authHeader;
+        } else {
+            // Fallback to getAuthHeaderServer for backward compatibility
+            const authHeaders = await getAuthHeaderServer();
+            if (authHeaders.Authorization) {
+                headers.Authorization = authHeaders.Authorization;
+            }
         }
 
         const res = await fetch(INVOICES_URL, {
@@ -56,12 +64,20 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     try {
-        const authHeaders = await getAuthHeaderServer();
+        // Get auth header from the incoming request first
+        const authHeader = (req as any).headers?.get?.("authorization") || (req as any).headers?.get?.("Authorization");
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
         };
-        if (authHeaders.Authorization) {
-            headers.Authorization = authHeaders.Authorization;
+
+        if (authHeader) {
+            headers.Authorization = authHeader;
+        } else {
+            // Fallback to getAuthHeaderServer for backward compatibility
+            const authHeaders = await getAuthHeaderServer();
+            if (authHeaders.Authorization) {
+                headers.Authorization = authHeaders.Authorization;
+            }
         }
 
         const body = await req.json();
