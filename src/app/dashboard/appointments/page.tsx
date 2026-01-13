@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Button } from "antd";
 import CalendarLayout from "@/components/layout/CalendarLayout";
 import { getPatients } from "@/lib/services/patientsService";
 
@@ -216,7 +215,7 @@ export default function AppointmentsPage() {
                         }
                     }
                 } else {
-                    console.error("DEBUG: Failed to fetch user info, status:", userRes.status);
+                    console.error("DEBUG: Failed to fetch user info from localStorage");
                 }
             } catch (error) {
                 console.error("Error in fetchAllData:", error);
@@ -226,7 +225,7 @@ export default function AppointmentsPage() {
         fetchAllData();
     }, [router]);
 
-    const handleRefresh = async () => {
+    const handleRefresh = useCallback(async () => {
         try {
             const [appointmentsRes, employeesRes, patientsRes] = await Promise.all([
                 fetch("/api/appointments", { cache: "no-store" }),
@@ -347,7 +346,7 @@ export default function AppointmentsPage() {
             console.error("Refresh error:", error);
             window.location.reload();
         }
-    };
+    }, [userRole, doctors, userEmployeeId]);
 
     useEffect(() => {
         if (typeof window === "undefined") return;
@@ -372,7 +371,7 @@ export default function AppointmentsPage() {
         return () => {
             es.close();
         };
-    }, [userRole, userEmployeeId]);
+    }, [userRole, userEmployeeId, handleRefresh]);
 
 
 
