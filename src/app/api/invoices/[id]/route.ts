@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 
-export async function GET(req: NextRequest, context: any) {
+export async function GET(req: Request, context: any) {
   try {
     const { id } = context.params;
     const headers = await getAuthHeaderServer();
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest, context: any) {
   }
 }
 
-export async function PUT(req: NextRequest, context: any) {
+export async function PUT(req: Request, context: any) {
   try {
     const { id } = context.params;
 
@@ -69,7 +69,7 @@ export async function PUT(req: NextRequest, context: any) {
   }
 }
 
-export async function DELETE(req: NextRequest, context: any) {
+export async function DELETE(req: Request, context: any) {
   try {
     const { id } = context.params;
     const headers = await getAuthHeaderServer();
