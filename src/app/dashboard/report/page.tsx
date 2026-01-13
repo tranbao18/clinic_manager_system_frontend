@@ -58,11 +58,12 @@ export default function ReportsPage() {
                 const startDate = `${year}-01-01`;
                 const endDate = `${year}-12-31`;
 
+                const authHeaders = await getAuthHeaderClient();
                 const [invRes, qtyRes, valRes, plRes] = await Promise.all([
-                    fetch("/api/reports/medicine/inventory"),
-                    fetch("/api/reports/medicine/inventory/quantity"),
-                    fetch("/api/reports/medicine/inventory/value"),
-                    fetch(`/api/reports/profit-loss/monthly?startDate=${startDate}&endDate=${endDate}`),
+                    fetch("/api/reports/medicine/inventory", { headers: authHeaders }),
+                    fetch("/api/reports/medicine/inventory/quantity", { headers: authHeaders }),
+                    fetch("/api/reports/medicine/inventory/value", { headers: authHeaders }),
+                    fetch(`/api/reports/profit-loss/monthly?startDate=${startDate}&endDate=${endDate}`, { headers: authHeaders }),
                 ]);
 
                 const invData = await invRes.json();

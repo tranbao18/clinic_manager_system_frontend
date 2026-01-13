@@ -1,3 +1,5 @@
+import { getAuthHeaderClient } from "@/lib/authHeaderClient";
+
 export interface Payment {
     _id: string;
     invoice_id: string | {
@@ -31,6 +33,7 @@ export async function getPayments(filters?: {
     invoice_id?: string;
 }): Promise<Payment[]> {
     try {
+        const authHeaders = await getAuthHeaderClient();
         let url = "/api/payments";
         const params = new URLSearchParams();
 
@@ -40,7 +43,10 @@ export async function getPayments(filters?: {
             url += `?${params.toString()}`;
         }
 
-        const res = await fetch(url, { cache: "no-store" });
+        const res = await fetch(url, {
+            cache: "no-store",
+            headers: authHeaders
+        });
         if (!res.ok) throw new Error("Không thể lấy danh sách thanh toán");
         return res.json();
     } catch (error: any) {
@@ -50,21 +56,33 @@ export async function getPayments(filters?: {
 }
 
 export async function getPaymentById(id: string): Promise<Payment> {
-    const res = await fetch(`/api/payments/${id}`, { cache: "no-store" });
+    const authHeaders = await getAuthHeaderClient();
+    const res = await fetch(`/api/payments/${id}`, {
+        cache: "no-store",
+        headers: authHeaders
+    });
     if (!res.ok) throw new Error("Không thể lấy thông tin thanh toán");
     return res.json();
 }
 
 export async function getPaymentsByInvoiceId(invoiceId: string): Promise<Payment[]> {
-    const res = await fetch(`/api/payments/invoice/${invoiceId}`, { cache: "no-store" });
+    const authHeaders = await getAuthHeaderClient();
+    const res = await fetch(`/api/payments/invoice/${invoiceId}`, {
+        cache: "no-store",
+        headers: authHeaders
+    });
     if (!res.ok) throw new Error("Không thể lấy thanh toán của hóa đơn");
     return res.json();
 }
 
 export async function createPayment(data: CreatePaymentData): Promise<Payment> {
+    const authHeaders = await getAuthHeaderClient();
     const res = await fetch("/api/payments", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            ...authHeaders
+        },
         body: JSON.stringify(data),
     });
     if (!res.ok) {
@@ -78,9 +96,13 @@ export async function updatePayment(
     id: string,
     data: UpdatePaymentData
 ): Promise<Payment> {
+    const authHeaders = await getAuthHeaderClient();
     const res = await fetch(`/api/payments/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json",
+            ...authHeaders
+        },
         body: JSON.stringify(data),
     });
     if (!res.ok) {
@@ -91,7 +113,11 @@ export async function updatePayment(
 }
 
 export async function deletePayment(id: string): Promise<void> {
-    const res = await fetch(`/api/payments/${id}`, { method: "DELETE" });
+    const authHeaders = await getAuthHeaderClient();
+    const res = await fetch(`/api/payments/${id}`, {
+        method: "DELETE",
+        headers: authHeaders
+    });
     if (!res.ok) throw new Error("Không thể xóa thanh toán");
 }
 
@@ -108,9 +134,13 @@ export interface VNPayUrlResponse {
 
 export async function createVNPayUrl(data: CreateVNPayUrlData): Promise<VNPayUrlResponse> {
     try {
+        const authHeaders = await getAuthHeaderClient();
         const res = await fetch("/api/payments/vnpay/create", {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json",
+                ...authHeaders
+            },
             body: JSON.stringify(data),
         });
 
