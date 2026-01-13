@@ -1,13 +1,18 @@
 // KẾ THỪA
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 
-export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = await context.params;
-        const headers = await getAuthHeaderServer();
+        const { id } = await params;
+        const authHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {};
+
+        if (authHeaders.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+        }
 
         const res = await fetch(`${API_URL}/api/medical-records/${id}`, {
             cache: "no-store",
@@ -34,14 +39,18 @@ export async function GET(req: Request, context: { params: Promise<{ id: string 
     }
 }
 
-export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = await context.params;
+        const { id } = await params;
         const body = await req.json();
-        const headers = {
-            ...await getAuthHeaderServer(),
+        const authHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {
             "Content-Type": "application/json",
         };
+
+        if (authHeaders.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+        }
 
         const res = await fetch(`${API_URL}/api/medical-records/${id}`, {
             method: "PUT",
@@ -69,10 +78,15 @@ export async function PUT(req: Request, context: { params: Promise<{ id: string 
     }
 }
 
-export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = await context.params;
-        const headers = await getAuthHeaderServer();
+        const { id } = await params;
+        const authHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {};
+
+        if (authHeaders.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+        }
         const { searchParams } = new URL(req.url);
         const hard = searchParams.get("hard");
         let url = `${API_URL}/api/medical-records/${id}`;

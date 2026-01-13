@@ -1,17 +1,24 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/employees`;
 
 export async function GET(
-  req: Request,
-  context: { params: Promise<{ id: string }> }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
-  const headers = await getAuthHeaderServer();
+  const { id } = await params;
+  const authHeaders = await getAuthHeaderServer();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (authHeaders.Authorization) {
+    headers.Authorization = authHeaders.Authorization;
+  }
 
   const response = await fetch(`${API_URL}/${id}`, {
-    headers: { ...headers, "Content-Type": "application/json" },
+    headers,
     cache: "no-store",
   });
 
@@ -20,16 +27,23 @@ export async function GET(
 }
 
 export async function PUT(
-  req: Request,
-  context: { params: Promise<{ id: string }> }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params;
+  const { id } = await params;
   const body = await req.json();
-  const headers = await getAuthHeaderServer();
+  const authHeaders = await getAuthHeaderServer();
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+  };
+
+  if (authHeaders.Authorization) {
+    headers.Authorization = authHeaders.Authorization;
+  }
 
   const response = await fetch(`${API_URL}/${id}`, {
     method: "PUT",
-    headers: { ...headers, "Content-Type": "application/json" },
+    headers,
     body: JSON.stringify(body),
   });
 
@@ -38,12 +52,20 @@ export async function PUT(
 }
 
 export async function DELETE(
-  req: Request,
-  context: { params: Promise<{ id: string }> }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
-    const headers = await getAuthHeaderServer();
+    const { id } = await params;
+    const authHeaders = await getAuthHeaderServer();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (authHeaders.Authorization) {
+      headers.Authorization = authHeaders.Authorization;
+    }
+
     const { searchParams } = new URL(req.url);
     const hard = searchParams.get("hard");
     let url = `${API_URL}/${id}`;
@@ -51,7 +73,7 @@ export async function DELETE(
 
     const response = await fetch(url, {
       method: "DELETE",
-      headers: { ...headers, "Content-Type": "application/json" },
+      headers,
     });
 
     if (!response.ok) {

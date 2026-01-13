@@ -1,21 +1,26 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL_PATIENTS = "https://meppod.onrender.com/api/patients";
 
 // TỰ VIẾT
-export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = await context.params;
-        const headers = await getAuthHeaderServer();
+        const { id } = await params;
+        const authHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+        };
+
+        if (authHeaders.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+        }
+
         const backendUrl = `${API_URL_PATIENTS}/${id}/restore`;
 
         const res = await fetch(backendUrl, {
             method: "PUT",
-            headers: {
-                ...headers,
-                "Content-Type": "application/json",
-            },
+            headers,
         });
 
         console.log('🔍 Backend response status:', res.status);

@@ -1,19 +1,26 @@
 // KẾ THỪA
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/payrolls`;
 
 export async function POST(
-    req: Request,
-    context: { params: Promise<{ employee_id: string }> }
+    req: NextRequest,
+    { params }: { params: Promise<{ employee_id: string }> }
 ) {
-    const { employee_id } = await context.params;
-    const headers = await getAuthHeaderServer();
+    const { employee_id } = await params;
+    const authHeaders = await getAuthHeaderServer();
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+    };
+
+    if (authHeaders.Authorization) {
+        headers.Authorization = authHeaders.Authorization;
+    }
 
     const response = await fetch(`${API_URL}/send/${employee_id}`, {
         method: "POST",
-        headers: { ...headers, "Content-Type": "application/json" },
+        headers,
     });
 
     const data = await response.json();

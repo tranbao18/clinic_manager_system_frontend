@@ -1,26 +1,30 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/auth/resetpass`;
 
 // TỰ VIẾT
 export async function PATCH(
-  req: Request,
-  context: { params: Promise<{ id: string }> }
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params;
+    const { id } = await params;
 
-    const headers = await getAuthHeaderServer();
+    const authHeaders = await getAuthHeaderServer();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (authHeaders.Authorization) {
+      headers.Authorization = authHeaders.Authorization;
+    }
 
     const backendUrl = `${API_URL}/${id}`;
 
     const res = await fetch(backendUrl, {
       method: "PATCH",
-      headers: {
-        ...headers,
-        "Content-Type": "application/json",
-      },
+      headers,
     });
 
     const text = await res.text();

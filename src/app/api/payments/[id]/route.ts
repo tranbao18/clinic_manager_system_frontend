@@ -1,15 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 
 export async function GET(
-    req: Request,
+    req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id } = await params;
-        const headers = await getAuthHeaderServer();
+        const authHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {};
+
+        if (authHeaders.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+        }
         const url = `${API_URL}/api/payments/${id}`;
 
         const res = await fetch(url, {
@@ -38,15 +43,19 @@ export async function GET(
 }
 
 export async function PUT(
-    req: Request,
+    req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id } = await params;
-        const headers = {
-            ...await getAuthHeaderServer(),
+        const authHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {
             "Content-Type": "application/json",
         };
+
+        if (authHeaders.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+        }
 
         const body = await req.json();
         const url = `${API_URL}/api/payments/${id}`;
@@ -78,12 +87,17 @@ export async function PUT(
 }
 
 export async function DELETE(
-    req: Request,
+    req: NextRequest,
     { params }: { params: Promise<{ id: string }> }
 ) {
     try {
         const { id } = await params;
-        const headers = await getAuthHeaderServer();
+        const authHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {};
+
+        if (authHeaders.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+        }
         const url = `${API_URL}/api/payments/${id}`;
 
         const res = await fetch(url, {

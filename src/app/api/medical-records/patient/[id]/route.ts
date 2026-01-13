@@ -1,13 +1,18 @@
 // KẾ THỪA
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 
-export async function GET(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = await context.params;
-        const headers = await getAuthHeaderServer();
+        const { id } = await params;
+        const authHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {};
+
+        if (authHeaders.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+        }
 
         const res = await fetch(`${API_URL}/api/medical-records/patient/${id}`, {
             cache: "no-store",

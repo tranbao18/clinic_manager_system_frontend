@@ -1,15 +1,20 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5000";
 
 export async function GET(
-    req: Request,
+    req: NextRequest,
     { params }: { params: Promise<{ invoiceId: string }> }
 ) {
     try {
         const { invoiceId } = await params;
-        const headers = await getAuthHeaderServer();
+        const authHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {};
+
+        if (authHeaders.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+        }
         const url = `${API_URL}/api/payments/invoice/${invoiceId}`;
 
         const res = await fetch(url, {

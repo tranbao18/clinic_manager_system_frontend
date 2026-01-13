@@ -1,19 +1,23 @@
 // KẾ THỪA
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL 
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL
     ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/schedules`
     : "https://meppod.onrender.com/api/schedules";
 
 export async function GET(
-    req: Request,
-    context: { params: Promise<{ employee_id: string }> }
+    req: NextRequest,
+    { params }: { params: Promise<{ employee_id: string }> }
 ) {
     try {
-        const { employee_id } = await context.params;
-        const auth = await getAuthHeaderServer();
-        const headers: Record<string, string> = auth ? (auth as Record<string, string>) : {};
+        const { employee_id } = await params;
+        const authHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {};
+
+        if (authHeaders.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+        }
 
         const res = await fetch(`${API_URL}/${employee_id}`, {
             cache: "no-store",
@@ -46,21 +50,25 @@ export async function GET(
 }
 
 export async function PUT(
-    req: Request,
-    context: { params: Promise<{ employee_id: string }> }
+    req: NextRequest,
+    { params }: { params: Promise<{ employee_id: string }> }
 ) {
     try {
-        const { employee_id } = await context.params;
-        const auth = await getAuthHeaderServer();
-        const authHeaders: Record<string, string> = auth ? (auth as Record<string, string>) : {};
+        const { employee_id } = await params;
+        const authHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+        };
+
+        if (authHeaders.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+        }
+
         const body = await req.json();
 
         const res = await fetch(`${API_URL}/${employee_id}`, {
             method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                ...authHeaders,
-            },
+            headers,
             body: JSON.stringify(body),
             cache: "no-store",
         });
@@ -91,13 +99,17 @@ export async function PUT(
 }
 
 export async function DELETE(
-    req: Request,
-    context: { params: Promise<{ employee_id: string }> }
+    req: NextRequest,
+    { params }: { params: Promise<{ employee_id: string }> }
 ) {
     try {
-        const { employee_id } = await context.params;
-        const auth = await getAuthHeaderServer();
-        const headers: Record<string, string> = auth ? (auth as Record<string, string>) : {};
+        const { employee_id } = await params;
+        const authHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {};
+
+        if (authHeaders.Authorization) {
+            headers.Authorization = authHeaders.Authorization;
+        }
 
         const res = await fetch(`${API_URL}/${employee_id}`, {
             method: "DELETE",
