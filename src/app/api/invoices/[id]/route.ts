@@ -1,14 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
+const API_URL =
+  process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 
 export async function GET(
-  req: Request,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const headers = await getAuthHeaderServer();
     const url = `${API_URL}/api/invoices/${id}`;
 
@@ -38,11 +39,11 @@ export async function GET(
 }
 
 export async function PUT(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> }
+  req: NextRequest,
+  { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const headers = {
       ...(await getAuthHeaderServer()),
       "Content-Type": "application/json",
@@ -78,11 +79,11 @@ export async function PUT(
 }
 
 export async function DELETE(
-  req: Request,
+  req: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { id } = await params;
+    const { id } = params;
     const headers = await getAuthHeaderServer();
     const url = `${API_URL}/api/invoices/${id}`;
 
