@@ -33,12 +33,10 @@ export async function GET(req: NextRequest, context: any) {
   }
 }
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function PUT(req: NextRequest, context: any) {
   try {
-    const { id } = params;
+    const { id } = context.params;
+
     const headers = {
       ...(await getAuthHeaderServer()),
       "Content-Type": "application/json",
@@ -55,7 +53,6 @@ export async function PUT(
 
     if (!res.ok) {
       const text = await res.text();
-      console.error("External API (PUT invoice) error:", res.status, text);
       return NextResponse.json(
         { error: "Không thể cập nhật hóa đơn", detail: text },
         { status: res.status }
@@ -65,7 +62,6 @@ export async function PUT(
     const data = await res.json();
     return NextResponse.json(data);
   } catch (err: any) {
-    console.error("PUT /api/invoices/[id] exception:", err);
     return NextResponse.json(
       { error: err.message || "Lỗi hệ thống" },
       { status: 500 }
@@ -73,12 +69,9 @@ export async function PUT(
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function DELETE(req: NextRequest, context: any) {
   try {
-    const { id } = params;
+    const { id } = context.params;
     const headers = await getAuthHeaderServer();
     const url = `${API_URL}/api/invoices/${id}`;
 
@@ -89,7 +82,6 @@ export async function DELETE(
 
     if (!res.ok) {
       const text = await res.text();
-      console.error("External API (DELETE invoice) error:", res.status, text);
       return NextResponse.json(
         { error: "Không thể xóa hóa đơn", detail: text },
         { status: res.status }
@@ -98,7 +90,6 @@ export async function DELETE(
 
     return NextResponse.json({ message: "Deleted" });
   } catch (err: any) {
-    console.error("DELETE /api/invoices/[id] exception:", err);
     return NextResponse.json(
       { error: err.message || "Lỗi hệ thống" },
       { status: 500 }
