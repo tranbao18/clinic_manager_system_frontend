@@ -29,20 +29,10 @@ type Patient = {
     fullname: string;
 };
 
-type AppointmentsClientProps = {
-    initialAppointments: Appointment[];
-    doctors: Doctor[];
-    patients: Patient[];
-};
-
-export default function AppointmentsClient({
-    initialAppointments = [],
-    doctors: initialDoctors = [],
-    patients: initialPatients = [],
-}: AppointmentsClientProps) {
-    const [appointments, setAppointments] = useState<Appointment[]>(initialAppointments || []);
-    const [doctors, setDoctors] = useState<Doctor[]>(initialDoctors);
-    const [patients, setPatients] = useState<Patient[]>(initialPatients);
+export default function AppointmentsPage() {
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [doctors, setDoctors] = useState<Doctor[]>([]);
+    const [patients, setPatients] = useState<Patient[]>([]);
     const [userRole, setUserRole] = useState<string>("");
     const [userEmployeeId, setUserEmployeeId] = useState<string | null>(null);
     const [canManage, setCanManage] = useState<boolean>(false);
