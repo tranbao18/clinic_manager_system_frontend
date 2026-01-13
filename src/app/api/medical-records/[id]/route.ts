@@ -7,16 +7,16 @@ const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
-        const authHeaders = await getAuthHeaderServer();
+        const rawHeaders = await getAuthHeaderServer();
         const headers: Record<string, string> = {};
 
-        if (authHeaders.Authorization) {
-            headers.Authorization = authHeaders.Authorization;
+        if (rawHeaders?.Authorization) {
+            headers.Authorization = rawHeaders.Authorization;
         }
 
         const res = await fetch(`${API_URL}/api/medical-records/${id}`, {
             cache: "no-store",
-            headers: Object.keys(headers).length > 0 ? headers : undefined,
+            headers,
         });
 
         if (!res.ok) {
@@ -81,11 +81,11 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 export async function DELETE(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
         const { id } = await params;
-        const authHeaders = await getAuthHeaderServer();
+        const rawHeaders = await getAuthHeaderServer();
         const headers: Record<string, string> = {};
 
-        if (authHeaders.Authorization) {
-            headers.Authorization = authHeaders.Authorization;
+        if (rawHeaders?.Authorization) {
+            headers.Authorization = rawHeaders.Authorization;
         }
         const { searchParams } = new URL(req.url);
         const hard = searchParams.get("hard");
@@ -94,7 +94,7 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
 
         const res = await fetch(url, {
             method: "DELETE",
-            headers: Object.keys(headers).length > 0 ? headers : undefined,
+            headers,
         });
 
         if (!res.ok) {

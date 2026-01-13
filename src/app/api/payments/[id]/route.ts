@@ -9,17 +9,17 @@ export async function GET(
 ) {
     try {
         const { id } = await params;
-        const authHeaders = await getAuthHeaderServer();
+        const rawHeaders = await getAuthHeaderServer();
         const headers: Record<string, string> = {};
 
-        if (authHeaders.Authorization) {
-            headers.Authorization = authHeaders.Authorization;
+        if (rawHeaders?.Authorization) {
+            headers.Authorization = rawHeaders.Authorization;
         }
         const url = `${API_URL}/api/payments/${id}`;
 
         const res = await fetch(url, {
             cache: "no-store",
-            headers: Object.keys(headers).length > 0 ? headers : undefined,
+            headers,
         });
 
         if (!res.ok) {
@@ -92,17 +92,17 @@ export async function DELETE(
 ) {
     try {
         const { id } = await params;
-        const authHeaders = await getAuthHeaderServer();
+        const rawHeaders = await getAuthHeaderServer();
         const headers: Record<string, string> = {};
 
-        if (authHeaders.Authorization) {
-            headers.Authorization = authHeaders.Authorization;
+        if (rawHeaders?.Authorization) {
+            headers.Authorization = rawHeaders.Authorization;
         }
         const url = `${API_URL}/api/payments/${id}`;
 
         const res = await fetch(url, {
             method: "DELETE",
-            headers: Object.keys(headers).length > 0 ? headers : undefined,
+            headers,
         });
 
         if (!res.ok) {

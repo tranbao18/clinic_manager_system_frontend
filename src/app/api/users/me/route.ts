@@ -1,12 +1,12 @@
 import { getIronSession } from "iron-session";
 import { sessionOptions, SessionData } from "@/lib/session";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 
 // TỰ VIẾT
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   const res = new NextResponse();
   const session = await getIronSession<SessionData>(req, res, sessionOptions);
 
@@ -22,7 +22,12 @@ export async function GET(req: Request) {
 
   if (session.user._id) {
     try {
-      const headers = await getAuthHeaderServer();
+      const rawHeaders = await getAuthHeaderServer();
+      const headers: Record<string, string> = {};
+
+      if (rawHeaders?.Authorization) {
+        headers.Authorization = rawHeaders.Authorization;
+      }
       const backendRes = await fetch(
         `${API_URL}/api/users/${session.user._id}`,
         {
