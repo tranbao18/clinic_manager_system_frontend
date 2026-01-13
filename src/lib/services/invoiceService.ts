@@ -38,7 +38,11 @@ export async function getInvoices(filters?: {
   status?: string;
 }): Promise<Invoice[]> {
   try {
-    const res = await fetch("/api/invoices", { cache: "no-store" });
+    const authHeaders = await getAuthHeaderClient();
+    const res = await fetch("/api/invoices", {
+      cache: "no-store",
+      headers: authHeaders
+    });
 
     if (!res.ok) {
       let errorMessage = "Không thể lấy danh sách hóa đơn";
@@ -105,7 +109,11 @@ export async function getInvoices(filters?: {
 
 export async function getInvoiceById(id: string): Promise<Invoice> {
   try {
-    const res = await fetch(`/api/invoices/${id}`, { cache: "no-store" });
+    const authHeaders = await getAuthHeaderClient();
+    const res = await fetch(`/api/invoices/${id}`, {
+      cache: "no-store",
+      headers: authHeaders
+    });
 
     if (!res.ok) {
       let detail = "";
@@ -126,7 +134,11 @@ export async function getInvoicesByPatientId(
   patientId: string
 ): Promise<Invoice[]> {
   try {
-    const res = await fetch(`/api/invoices/patient/${patientId}`, { cache: "no-store" });
+    const authHeaders = await getAuthHeaderClient();
+    const res = await fetch(`/api/invoices/patient/${patientId}`, {
+      cache: "no-store",
+      headers: authHeaders
+    });
 
     if (!res.ok) {
       console.warn("getInvoicesByPatientId: Không thể lấy hóa đơn, trả về mảng rỗng");
@@ -153,9 +165,13 @@ export async function getInvoiceByAppointmentId(
 }
 
 export async function createInvoice(data: CreateInvoiceData): Promise<Invoice> {
+  const authHeaders = await getAuthHeaderClient();
   const res = await fetch("/api/invoices", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders
+    },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -218,9 +234,13 @@ export async function updateInvoice(
   id: string,
   data: Partial<CreateInvoiceData>
 ): Promise<Invoice> {
+  const authHeaders = await getAuthHeaderClient();
   const res = await fetch(`/api/invoices/${id}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders
+    },
     body: JSON.stringify(data),
   });
   if (!res.ok) {
@@ -249,8 +269,12 @@ export async function updateInvoiceStatus(id: string): Promise<Invoice> {
 }
 
 export async function deleteInvoice(id: string, permanent = false): Promise<void> {
+  const authHeaders = await getAuthHeaderClient();
   const url = `/api/invoices/${id}` + (permanent ? "?hard=true" : "");
-  const res = await fetch(url, { method: "DELETE" });
+  const res = await fetch(url, {
+    method: "DELETE",
+    headers: authHeaders
+  });
   if (!res.ok) {
     let detail = "";
     try {
@@ -263,15 +287,23 @@ export async function deleteInvoice(id: string, permanent = false): Promise<void
 }
 
 export async function getDisabledInvoices(): Promise<Invoice[]> {
-  const res = await fetch("/api/invoices?disabled=true", { cache: "no-store" });
+  const authHeaders = await getAuthHeaderClient();
+  const res = await fetch("/api/invoices?disabled=true", {
+    cache: "no-store",
+    headers: authHeaders
+  });
   if (!res.ok) throw new Error("Không thể lấy danh sách hóa đơn đã xóa");
   return res.json();
 }
 
 export async function restoreInvoice(id: string): Promise<Invoice> {
+  const authHeaders = await getAuthHeaderClient();
   const res = await fetch(`/api/invoices/${id}/restore`, {
     method: "PUT",
-    headers: { "Content-Type": "application/json" },
+    headers: {
+      "Content-Type": "application/json",
+      ...authHeaders
+    },
   });
   if (!res.ok) throw new Error("Không thể khôi phục hóa đơn");
   return res.json();
