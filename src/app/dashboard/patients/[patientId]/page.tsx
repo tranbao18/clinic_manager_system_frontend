@@ -198,7 +198,6 @@ export default function PatientDetailPage() {
     useEffect(() => {
         const fetchCurrentUser = async () => {
             try {
-                // Get user data from sessionStorage instead of API to maintain per-tab sessions
                 const userData = sessionStorage.getItem("user") || localStorage.getItem("user");
                 if (userData) {
                     const data = JSON.parse(userData);
@@ -215,6 +214,7 @@ export default function PatientDetailPage() {
 
     const userRole = currentUser?.role?.toLowerCase() || "";
     const canManageMedicalRecords = userRole === "admin" || userRole === "doctor";
+    const canPrintAndInvoice = userRole !== "receptionist";
 
     const handleUpdate = async (values: Partial<Patient>) => {
         try {
@@ -615,7 +615,7 @@ export default function PatientDetailPage() {
                                             className="border-l-4 border-green-500"
                                         >
                                             <div className="mb-4 flex justify-end gap-2">
-                                                {record.prescriptions && record.prescriptions.length > 0 && (
+                                                {record.prescriptions && record.prescriptions.length > 0 && canPrintAndInvoice && (
                                                     <Button
                                                         type="link"
                                                         icon={<PrinterOutlined />}
@@ -652,26 +652,28 @@ export default function PatientDetailPage() {
                                                         </Popconfirm>
                                                     </>
                                                 )}
-                                                <Button
-                                                    type="link"
-                                                    icon={<DollarOutlined />}
-                                                    loading={creatingInvoice === record._id}
-                                                    disabled={!canCreateInvoice || !!existingInvoice}
-                                                    onClick={() => canCreateInvoice && !existingInvoice && handleCreateInvoice(record._id)}
-                                                    title={
-                                                        existingInvoice
-                                                            ? "Hóa đơn đã được tạo"
-                                                            : !canCreateInvoice
-                                                                ? (!hasPrescriptions
-                                                                    ? "Cần có toa thuốc để tạo hóa đơn"
-                                                                    : !hasAppointment
-                                                                        ? "Cần có lịch hẹn để tạo hóa đơn"
-                                                                        : "Không thể tạo hóa đơn")
-                                                                : "Tạo hóa đơn từ hồ sơ y tế"
-                                                    }
-                                                >
-                                                    {existingInvoice ? "Đã tạo hóa đơn" : "Tạo Hóa đơn"}
-                                                </Button>
+                                                {canPrintAndInvoice && (
+                                                    <Button
+                                                        type="link"
+                                                        icon={<DollarOutlined />}
+                                                        loading={creatingInvoice === record._id}
+                                                        disabled={!canCreateInvoice || !!existingInvoice}
+                                                        onClick={() => canCreateInvoice && !existingInvoice && handleCreateInvoice(record._id)}
+                                                        title={
+                                                            existingInvoice
+                                                                ? "Hóa đơn đã được tạo"
+                                                                : !canCreateInvoice
+                                                                    ? (!hasPrescriptions
+                                                                        ? "Cần có toa thuốc để tạo hóa đơn"
+                                                                        : !hasAppointment
+                                                                            ? "Cần có lịch hẹn để tạo hóa đơn"
+                                                                            : "Không thể tạo hóa đơn")
+                                                                    : "Tạo hóa đơn từ hồ sơ y tế"
+                                                        }
+                                                    >
+                                                        {existingInvoice ? "Đã tạo hóa đơn" : "Tạo Hóa đơn"}
+                                                    </Button>
+                                                )}
                                             </div>
                                             <Descriptions column={2} size="small">
                                                 <Descriptions.Item label="Ngày tạo">
@@ -1011,11 +1013,11 @@ export default function PatientDetailPage() {
                                                     const medicineId = currentPrescription?.medicine_id;
                                                     const quantity = currentPrescription?.quantity;
 
-                                                                const selectedMedicine = medicines.find(m => m._id === medicineId);
-                                                                const unit = selectedMedicine?.unit || "—";
-                                                                const price = selectedMedicine?.price || 0;
-                                                                const stockQuantity = selectedMedicine?.total_remaining || 0;
-                                                                const totalPrice = (quantity && price) ? quantity * price : 0;
+                                                    const selectedMedicine = medicines.find(m => m._id === medicineId);
+                                                    const unit = selectedMedicine?.unit || "—";
+                                                    const price = selectedMedicine?.price || 0;
+                                                    const stockQuantity = selectedMedicine?.total_remaining || 0;
+                                                    const totalPrice = (quantity && price) ? quantity * price : 0;
 
                                                     return (
                                                         <Form.Item key={field.key} noStyle shouldUpdate={(prevValues, curValues) => {
@@ -1096,16 +1098,14 @@ export default function PatientDetailPage() {
                                                                             </div>
                                                                         </Col>
                                                                         <Col span={2}>
-                                                                            <div className={`text-center py-2 px-2 rounded-md border ${
-                                                                                stockQuantity > 10 ? 'bg-green-50 border-green-200' :
+                                                                            <div className={`text-center py-2 px-2 rounded-md border ${stockQuantity > 10 ? 'bg-green-50 border-green-200' :
                                                                                 stockQuantity > 0 ? 'bg-yellow-50 border-yellow-200' :
-                                                                                'bg-red-50 border-red-200'
-                                                                            }`}>
-                                                                                <span className={`text-sm font-medium ${
-                                                                                    stockQuantity > 10 ? 'text-green-700' :
-                                                                                    stockQuantity > 0 ? 'text-yellow-700' :
-                                                                                    'text-red-700'
+                                                                                    'bg-red-50 border-red-200'
                                                                                 }`}>
+                                                                                <span className={`text-sm font-medium ${stockQuantity > 10 ? 'text-green-700' :
+                                                                                    stockQuantity > 0 ? 'text-yellow-700' :
+                                                                                        'text-red-700'
+                                                                                    }`}>
                                                                                     {stockQuantity}
                                                                                 </span>
                                                                             </div>
