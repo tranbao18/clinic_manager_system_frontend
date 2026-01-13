@@ -109,21 +109,33 @@ export async function getInvoices(filters?: {
 
 export async function getInvoiceById(id: string): Promise<Invoice> {
   try {
+    console.log(`🔍 [getInvoiceById] Calling for invoice: ${id}`);
     const authHeaders = await getAuthHeaderClient();
+    console.log(`🔑 [getInvoiceById] Auth headers:`, Object.keys(authHeaders));
+
     const res = await fetch(`/api/invoices/${id}`, {
       cache: "no-store",
       headers: authHeaders
     });
 
+    console.log(`📊 [getInvoiceById] Next.js response status: ${res.status}`);
+
     if (!res.ok) {
       let detail = "";
       try {
-        detail = (await res.json()).error;
-      } catch { }
+        const errorData = await res.json();
+        detail = errorData.error || errorData.detail || JSON.stringify(errorData);
+        console.log(`❌ [getInvoiceById] Next.js error:`, detail);
+      } catch (e) {
+        detail = await res.text();
+        console.log(`❌ [getInvoiceById] Next.js error text:`, detail);
+      }
       throw new Error(detail || "Không thể lấy thông tin hóa đơn");
     }
 
-    return res.json();
+    const data = await res.json();
+    console.log(`✅ [getInvoiceById] Success, data keys:`, Object.keys(data));
+    return data;
   } catch (err: any) {
     console.error("getInvoiceById error:", err);
     throw err;

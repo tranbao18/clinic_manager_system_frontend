@@ -8,29 +8,44 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
 
+    console.log(`🔍 [GET /api/invoices/${id}] Incoming request`);
+
     // Get auth header from the incoming request first
     const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
     const headers: Record<string, string> = {};
 
+    console.log(`🔑 [GET /api/invoices/${id}] Auth header from request:`, authHeader ? 'Present' : 'Missing');
+
     if (authHeader) {
       headers.Authorization = authHeader;
+      console.log(`✅ [GET /api/invoices/${id}] Using auth header from request`);
     } else {
       // Fallback to getAuthHeaderServer for backward compatibility
+      console.log(`⚠️ [GET /api/invoices/${id}] No auth header in request, trying fallback`);
       const authHeaders = await getAuthHeaderServer();
       if (authHeaders.Authorization) {
         headers.Authorization = authHeaders.Authorization;
+        console.log(`✅ [GET /api/invoices/${id}] Using auth header from fallback`);
+      } else {
+        console.log(`❌ [GET /api/invoices/${id}] No auth header available`);
       }
     }
 
     const url = `${API_URL}/api/invoices/${id}`;
+
+    console.log(`🌐 [GET /api/invoices/${id}] Calling backend: ${url}`);
+    console.log(`🔑 [GET /api/invoices/${id}] Headers sent:`, headers);
 
     const res = await fetch(url, {
       cache: "no-store",
       headers,
     });
 
+    console.log(`📊 [GET /api/invoices/${id}] Backend response status: ${res.status}`);
+
     if (!res.ok) {
       const text = await res.text();
+      console.log(`❌ [GET /api/invoices/${id}] Backend error:`, text);
       return NextResponse.json(
         { error: "Không thể lấy thông tin hóa đơn", detail: text },
         { status: res.status }
@@ -38,6 +53,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     }
 
     const data = await res.json();
+    console.log(`✅ [GET /api/invoices/${id}] Success, data keys:`, Object.keys(data));
     return NextResponse.json(data);
   } catch (err: any) {
     return NextResponse.json(
