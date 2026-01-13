@@ -1,5 +1,5 @@
 // KẾ THỪA
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/payrolls`;
@@ -14,12 +14,17 @@ async function safeJsonParse(res: Response) {
     }
 }
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
     try {
-        const headers = await getAuthHeaderServer();
+        const rawHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {};
+
+        if (rawHeaders?.Authorization) {
+            headers.Authorization = rawHeaders.Authorization;
+        }
 
         const res = await fetch(API_URL, {
-            headers: { ...headers, "Content-Type": "application/json" },
+            headers,
             cache: "no-store",
         });
 
@@ -39,14 +44,21 @@ export async function GET(req: Request) {
     }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const headers = await getAuthHeaderServer();
+        const rawHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+        };
+
+        if (rawHeaders?.Authorization) {
+            headers.Authorization = rawHeaders.Authorization;
+        }
 
         const res = await fetch(API_URL, {
             method: "POST",
-            headers: { ...headers, "Content-Type": "application/json" },
+            headers,
             body: JSON.stringify(body),
         });
 

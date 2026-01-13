@@ -53,7 +53,7 @@ export default function AddPatientPage() {
     try {
       setSaving(true);
 
-      const formattedValues: Omit<Patient, "id"> = {
+      const formattedValues: Partial<Patient> = {
         fullname: values.fullname,
         dob: values.dob ? values.dob.toISOString() : null,
         gender: values.gender,

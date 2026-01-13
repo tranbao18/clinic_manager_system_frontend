@@ -1,4 +1,4 @@
-import { getAuthHeaderClient } from "@/lib/authHeaderClient";
+import { getSafeAuthHeaders } from "@/lib/authHeaderClient";
 
 const BASE_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com"}/api/employees`;
 
@@ -7,7 +7,7 @@ const EmployeesService = {
     try {
       const res = await fetch(BASE_URL, {
         cache: "no-store",
-        headers: getAuthHeaderClient(),
+        headers: getSafeAuthHeaders(),
       });
       if (!res.ok) throw new Error("Lỗi khi tải danh sách nhân viên");
       return await res.json();
@@ -21,7 +21,7 @@ const EmployeesService = {
     try {
       const res = await fetch(`${BASE_URL}/${id}`, {
         cache: "no-store",
-        headers: getAuthHeaderClient(),
+        headers: getSafeAuthHeaders(),
       });
       const text = await res.text();
       if (!res.ok) throw new Error(`Lỗi khi tải nhân viên: ${text}`);
@@ -38,7 +38,7 @@ const EmployeesService = {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          ...getAuthHeaderClient(),
+          ...getSafeAuthHeaders(),
         },
         body: JSON.stringify(data),
       });
@@ -68,7 +68,7 @@ const EmployeesService = {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          ...getAuthHeaderClient(),
+          ...getSafeAuthHeaders(),
         },
         body: JSON.stringify(data),
       });
@@ -86,7 +86,7 @@ const EmployeesService = {
       const url = `${BASE_URL}/${id}` + (permanent ? "?hard=true" : "");
       const res = await fetch(url, {
         method: "DELETE",
-        headers: getAuthHeaderClient(),
+        headers: getSafeAuthHeaders(),
       });
       const text = await res.text();
       if (!res.ok) throw new Error(`Lỗi khi xóa nhân viên: ${text}`);
@@ -101,7 +101,7 @@ const EmployeesService = {
     try {
       const res = await fetch(`${BASE_URL}?disabled=true`, {
         cache: "no-store",
-        headers: getAuthHeaderClient(),
+        headers: getSafeAuthHeaders(),
       });
       if (!res.ok) throw new Error("Lỗi khi tải danh sách nhân viên đã xóa");
       return await res.json();
@@ -117,7 +117,7 @@ const EmployeesService = {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          ...getAuthHeaderClient(),
+          ...getSafeAuthHeaders(),
         },
       });
       const text = await res.text();

@@ -1,16 +1,21 @@
 // KẾ THỪA
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 const MEDICINE_IMPORTS_URL = `${API_URL}/api/medicine-imports`;
 
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
     try {
         const { searchParams } = new URL(req.url);
         const disabled = searchParams.get("disabled");
-        
-        const headers = await getAuthHeaderServer();
+
+        const rawHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {};
+
+        if (rawHeaders?.Authorization) {
+            headers.Authorization = rawHeaders.Authorization;
+        }
         
         let url = MEDICINE_IMPORTS_URL;
         if (disabled === "true") {
@@ -51,12 +56,16 @@ export async function GET(req: Request) {
     }
 }
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
-        const headers = {
-            ...await getAuthHeaderServer(),
+        const rawHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {
             "Content-Type": "application/json",
         };
+
+        if (rawHeaders?.Authorization) {
+            headers.Authorization = rawHeaders.Authorization;
+        }
 
         const body = await req.json();
         const res = await fetch(MEDICINE_IMPORTS_URL, {

@@ -10,22 +10,16 @@ export interface CreateScheduleInput {
     shift_schedule: any;
 }
 
-async function getAuthHeaderClient() {
-    try {
-        const res = await fetch("/api/session", { cache: "no-store" });
-        const data = await res.json();
-        const token = data?.user?.token;
-        if (!token) return {};
-        return { Authorization: `Bearer ${token}` };
-    } catch {
-        return {};
-    }
+import { getSafeAuthHeaders } from "@/lib/authHeaderClient";
+
+async function getSafeHeaders() {
+    return getSafeAuthHeaders();
 }
 
 const SchedulesService = {
     async getAll(): Promise<ShiftSchedule[]> {
         try {
-            const headers = await getAuthHeaderClient();
+            const headers = await getSafeHeaders();
             const res = await fetch("/api/schedules", {
                 cache: "no-store",
                 headers,
@@ -45,7 +39,7 @@ const SchedulesService = {
 
     async getByEmployeeId(employee_id: string): Promise<ShiftSchedule | null> {
         try {
-            const headers = await getAuthHeaderClient();
+            const headers = await getSafeHeaders();
             const res = await fetch(`/api/schedules/${employee_id}`, {
                 cache: "no-store",
                 headers,
@@ -65,7 +59,7 @@ const SchedulesService = {
 
     async create(input: CreateScheduleInput): Promise<ShiftSchedule> {
         try {
-            const headers = await getAuthHeaderClient();
+            const headers = await getSafeHeaders();
             const res = await fetch("/api/schedules", {
                 method: "POST",
                 headers: {
@@ -90,7 +84,7 @@ const SchedulesService = {
 
     async update(employee_id: string, shift_schedule: any): Promise<ShiftSchedule> {
         try {
-            const headers = await getAuthHeaderClient();
+            const headers = await getSafeHeaders();
             const res = await fetch(`/api/schedules/${employee_id}`, {
                 method: "PUT",
                 headers: {
@@ -115,7 +109,7 @@ const SchedulesService = {
 
     async delete(employee_id: string): Promise<void> {
         try {
-            const headers = await getAuthHeaderClient();
+            const headers = await getSafeHeaders();
             const res = await fetch(`/api/schedules/${employee_id}`, {
                 method: "DELETE",
                 headers,

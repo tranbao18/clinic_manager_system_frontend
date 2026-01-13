@@ -1,5 +1,5 @@
-// KẾ THỪA 
-import { NextResponse } from "next/server";
+// KẾ THỪA
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.BACKEND_URL || "http://localhost:5050/api/users";
@@ -8,12 +8,17 @@ const API_URL = process.env.BACKEND_URL || "http://localhost:5050/api/users";
  * GET /api/users
  *  - Nếu có ?employee_id=... → proxy đến API backend thật
  */
-export async function GET(req: Request) {
+export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const employee_id = searchParams.get("employee_id");
 
-    const headers = await getAuthHeaderServer();
+    const rawHeaders = await getAuthHeaderServer();
+    const headers: Record<string, string> = {};
+
+    if (rawHeaders?.Authorization) {
+      headers.Authorization = rawHeaders.Authorization;
+    }
 
     const res = await fetch(
       `${API_URL}${employee_id ? `?employee_id=${employee_id}` : ""}`,
@@ -43,17 +48,21 @@ export async function GET(req: Request) {
  * POST /api/users
  *  - Tạo tài khoản mới qua API backend
  */
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const headers = await getAuthHeaderServer();
+    const rawHeaders = await getAuthHeaderServer();
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+
+    if (rawHeaders?.Authorization) {
+      headers.Authorization = rawHeaders.Authorization;
+    }
 
     const res = await fetch(API_URL, {
       method: "POST",
-      headers: {
-        ...headers,
-        "Content-Type": "application/json",
-      },
+      headers,
       body: JSON.stringify(body),
     });
 

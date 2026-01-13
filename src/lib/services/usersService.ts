@@ -1,14 +1,20 @@
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
-import { getAuthHeaderClient } from "@/lib/authHeaderClient";
+import { getSafeAuthHeaders } from "@/lib/authHeaderClient";
 
 const BASE_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 const API_URL = `${BASE_URL}/api/users`;
 
 async function getAuthHeaders() {
   if (typeof window === "undefined") {
-    return await getAuthHeaderServer();
+    const headers = await getAuthHeaderServer();
+    // Filter out undefined values for server-side
+    const safeHeaders: Record<string, string> = {};
+    if (headers.Authorization) {
+      safeHeaders.Authorization = headers.Authorization;
+    }
+    return safeHeaders;
   } else {
-    return getAuthHeaderClient();
+    return getSafeAuthHeaders();
   }
 }
 
@@ -17,7 +23,7 @@ const UsersService = {
     try {
       const headers = {
         "Content-Type": "application/json",
-        ...getAuthHeaderClient(),
+        ...getSafeAuthHeaders(),
       };
 
       console.log(

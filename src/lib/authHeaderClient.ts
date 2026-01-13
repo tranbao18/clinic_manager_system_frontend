@@ -1,12 +1,27 @@
 // TỰ VIẾT
 'use client';
 
-export function getAuthHeaderClient() {
+export function getAuthHeaderClient(): Record<string, string> {
   if (typeof window === "undefined") return {};
 
   const token = sessionStorage.getItem("token") || localStorage.getItem("token");
   if (!token) return {};
   return { Authorization: `Bearer ${token}` };
+}
+
+/**
+ * Safe headers getter that ensures no undefined values
+ */
+export function getSafeAuthHeaders(): Record<string, string> {
+  const headers = getAuthHeaderClient();
+  // Filter out any undefined values to ensure type safety
+  const safeHeaders: Record<string, string> = {};
+  Object.entries(headers).forEach(([key, value]) => {
+    if (value !== undefined) {
+      safeHeaders[key] = value;
+    }
+  });
+  return safeHeaders;
 }
 
 /**

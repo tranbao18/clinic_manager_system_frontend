@@ -1,17 +1,24 @@
 // KẾ THỪA
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/payrolls`;
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
     try {
         const body = await req.json();
-        const headers = await getAuthHeaderServer();
+        const rawHeaders = await getAuthHeaderServer();
+        const headers: Record<string, string> = {
+            "Content-Type": "application/json",
+        };
+
+        if (rawHeaders?.Authorization) {
+            headers.Authorization = rawHeaders.Authorization;
+        }
 
         const response = await fetch(`${API_URL}/send/bulk`, {
             method: "POST",
-            headers: { ...headers, "Content-Type": "application/json" },
+            headers,
             body: JSON.stringify(body),
         });
 

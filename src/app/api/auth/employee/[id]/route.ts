@@ -8,7 +8,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await context.params; // ✅ phải await trong Next.js 15
+    const { id } = await params; // ✅ phải await trong Next.js 15
     const authHeaders = await getAuthHeaderServer();
 
     const headers: Record<string, string> = {

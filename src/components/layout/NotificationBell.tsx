@@ -185,7 +185,7 @@ export default function NotificationBell() {
             </Button>
           ),
         },
-        { type: "divider" },
+        { type: "divider" as const },
       ]
       : []),
     ...notifications.slice(0, 10).map((notification) => ({

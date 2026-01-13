@@ -1,6 +1,6 @@
 // TỰ VIẾT
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
-import { getDoctors, getDoctorById } from "@/lib/services/doctorService";
+import { getDoctors, getDoctorById, Doctor } from "@/lib/services/doctorService";
 
 export const fetchDoctors = createAsyncThunk("doctors/fetchAll", async () => {
     return await getDoctors();
@@ -10,9 +10,15 @@ export const fetchDoctorById = createAsyncThunk("doctors/fetchById", async (id: 
     return await getDoctorById(id);
 });
 
+interface DoctorState {
+    list: Doctor[];
+    currentDoctor: Doctor | null;
+    loading: boolean;
+}
+
 const doctorSlice = createSlice({
     name: "doctors",
-    initialState: { list: [], currentDoctor: null, loading: false },
+    initialState: { list: [], currentDoctor: null, loading: false } as DoctorState,
     reducers: {},
     extraReducers: (builder) => {
         builder

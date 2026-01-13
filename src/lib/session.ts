@@ -1,5 +1,5 @@
 // KẾ THỪA
-import { IronSessionOptions } from "iron-session";
+import { SessionOptions } from "iron-session";
 
 export interface SessionData {
   user?: {
@@ -11,7 +11,7 @@ export interface SessionData {
   };
 }
 
-export const sessionOptions: IronSessionOptions = {
+export const sessionOptions: SessionOptions = {
   cookieName: "clinic_session",
   password:
     process.env.SESSION_SECRET ||
