@@ -1,6 +1,6 @@
 import { getAuthHeaderClient } from "@/lib/authHeaderClient";
 
-const BASE_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050"}/api/employees`;
+const BASE_URL = `${process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com"}/api/employees`;
 
 const EmployeesService = {
   async getAll() {

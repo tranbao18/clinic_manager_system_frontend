@@ -99,7 +99,7 @@ export default function ReportsPage() {
     }, []);
 
 
-    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
+    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 
     const downloadBlob = async (url: string, filenameFallback: string) => {
         const fullUrl = API_BASE ? `${API_BASE}${url}` : url;

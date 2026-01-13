@@ -50,7 +50,7 @@ export async function checkServerStatus(): Promise<boolean> {
  */
 export async function validateToken(token: string): Promise<boolean> {
     try {
-        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
+        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
         const res = await fetch(`${backendUrl}/api/auth/account/validate`, {
             method: "GET",
             headers: {

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 const PAYROLLS_IMPORT_URL = `${API_URL}/api/payrolls/import`;
 
 export async function POST(req: Request) {

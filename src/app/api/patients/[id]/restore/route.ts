@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
-const API_URL_PATIENTS = "http://127.0.0.1:5050/api/patients";
+const API_URL_PATIENTS = "https://meppod.onrender.com/api/patients";
 
 // TỰ VIẾT
 export async function PUT(req: Request, context: { params: Promise<{ id: string }> }) {

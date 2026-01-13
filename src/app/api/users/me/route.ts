@@ -3,7 +3,7 @@ import { sessionOptions, SessionData } from "@/lib/session";
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 
 // TỰ VIẾT
 export async function GET(req: Request) {

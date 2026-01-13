@@ -4,7 +4,7 @@ import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
 const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL 
     ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/schedules`
-    : "http://127.0.0.1:5050/api/schedules";
+    : "https://meppod.onrender.com/api/schedules";
 
 export async function GET(req: Request) {
     try {

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5050";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 
 /**
  * Xử lý VNPay Return URL

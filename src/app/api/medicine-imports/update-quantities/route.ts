@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
-const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
+const API_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 const UPDATE_QUANTITIES_URL = `${API_URL}/api/medicine-imports/update-quantities`;
 
 export async function POST(req: Request) {

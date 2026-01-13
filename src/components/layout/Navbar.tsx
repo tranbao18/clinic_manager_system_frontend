@@ -100,8 +100,8 @@ export default function Navbar() {
                     </div>
                     {!collapsed && (
                         <div>
-                            <div className="text-base font-bold">Phòng khám</div>
-                            <div className="text-xs text-white/70">Quản lý khám & dược</div>
+                            <div className="text-base font-bold">Phòng Khám Bảo Phát</div>
+                            <div className="text-xs text-white/70">Quản lý phòng khám & thuốc</div>
                         </div>
                     )}
                 </div>

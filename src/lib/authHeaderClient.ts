@@ -45,7 +45,7 @@ export async function validateCurrentToken(): Promise<boolean> {
   if (!token) return false;
 
   try {
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
     const res = await fetch(`${backendUrl}/api/auth/validate`, {
       method: "GET",
       headers: {

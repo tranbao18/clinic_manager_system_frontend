@@ -12,7 +12,7 @@ export async function GET(req: Request) {
 
     const token = authHeader.split(" ")[1];
 
-    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:5050";
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://meppod.onrender.com";
 
     const validateRes = await fetch(`${backendUrl}/api/auth/account/dummy`, {
       method: "GET",

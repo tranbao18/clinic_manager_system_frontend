@@ -2,7 +2,7 @@
 import { NextResponse } from "next/server";
 import { getAuthHeaderServer } from "@/lib/authHeaderServer";
 
-const API_URL = "http://127.0.0.1:5050/api/patients";
+const API_URL = "https://meppod.onrender.com/api/patients";
 
 export async function GET(req: Request) {
     try {

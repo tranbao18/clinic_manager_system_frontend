@@ -24,7 +24,6 @@ import {
 import { PlusOutlined, EditOutlined, DeleteOutlined, DollarOutlined, PrinterOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import {
-    getPatientById,
     updatePatient,
     Patient,
 } from "@/lib/services/patientsService";
@@ -283,6 +282,29 @@ export default function PatientDetailPage() {
                 (p: any) => p.medicine_id && p.quantity && p.dosage
             );
 
+            // Kiểm tra tồn kho trước khi tạo
+            for (const p of validPrescriptions) {
+                const medicine = medicines.find(m => m._id === p.medicine_id);
+                if (!medicine) {
+                    message.error(`Không tìm thấy thông tin thuốc với ID: ${p.medicine_id}`);
+                    setSavingRecord(false);
+                    return;
+                }
+
+                const stockQuantity = medicine.total_remaining || 0;
+                if (stockQuantity <= 0) {
+                    message.error(`Thuốc ${medicine.name} đã hết hàng trong kho`);
+                    setSavingRecord(false);
+                    return;
+                }
+
+                if (p.quantity > stockQuantity) {
+                    message.error(`Không đủ hàng trong kho cho thuốc ${medicine.name}. Chỉ còn ${stockQuantity} ${medicine.unit || 'đơn vị'}`);
+                    setSavingRecord(false);
+                    return;
+                }
+            }
+
             const medIdCounts: Record<string, number> = {};
             for (const p of validPrescriptions) {
                 const mid = String(p.medicine_id);
@@ -338,9 +360,6 @@ export default function PatientDetailPage() {
                     }))
                 });
 
-                if (availableAppointments.length > 0) {
-                    const latestAppointment = availableAppointments[0];
-                }
             } else if (values.appointment_id) {
                 payload.appointment_id = values.appointment_id;
             } else if (editingRecord && editingRecord.appointment_id) {
@@ -968,7 +987,7 @@ export default function PatientDetailPage() {
                                 const totalAmount = allPrescriptions.reduce((sum: number, p: any) => {
                                     if (!p?.medicine_id || !p?.quantity) return sum;
                                     const med = medicines.find(m => m._id === p.medicine_id);
-                                    if (!med || !med.price) return sum;
+                                    if (!med || !med.price || (med.total_remaining || 0) <= 0) return sum;
                                     return sum + (p.quantity * med.price);
                                 }, 0);
 
@@ -979,9 +998,10 @@ export default function PatientDetailPage() {
                                                 <div className="mb-3">
                                                     <Row gutter={16} className="mb-2 font-semibold text-sm text-gray-700 border-b pb-2">
                                                         <Col span={7}>Thuốc</Col>
-                                                        <Col span={3} className="text-center">Đơn vị</Col>
+                                                        <Col span={2} className="text-center">Đơn vị</Col>
+                                                        <Col span={2} className="text-center">Tồn kho</Col>
                                                         <Col span={3} className="text-center">Số lượng</Col>
-                                                        <Col span={4} className="text-right">Đơn giá</Col>
+                                                        <Col span={3} className="text-right">Đơn giá</Col>
                                                         <Col span={5}>Liều dùng</Col>
                                                         <Col span={2} className="text-center">Thao tác</Col>
                                                     </Row>
@@ -991,10 +1011,11 @@ export default function PatientDetailPage() {
                                                     const medicineId = currentPrescription?.medicine_id;
                                                     const quantity = currentPrescription?.quantity;
 
-                                                    const selectedMedicine = medicines.find(m => m._id === medicineId);
-                                                    const unit = selectedMedicine?.unit || "—";
-                                                    const price = selectedMedicine?.price || 0;
-                                                    const totalPrice = (quantity && price) ? quantity * price : 0;
+                                                                const selectedMedicine = medicines.find(m => m._id === medicineId);
+                                                                const unit = selectedMedicine?.unit || "—";
+                                                                const price = selectedMedicine?.price || 0;
+                                                                const stockQuantity = selectedMedicine?.total_remaining || 0;
+                                                                const totalPrice = (quantity && price) ? quantity * price : 0;
 
                                                     return (
                                                         <Form.Item key={field.key} noStyle shouldUpdate={(prevValues, curValues) => {
@@ -1038,6 +1059,13 @@ export default function PatientDetailPage() {
                                                                                                 if (occurrences > 1) {
                                                                                                     return Promise.reject(new Error("Không được chọn trùng thuốc trong cùng toa"));
                                                                                                 }
+
+                                                                                                // Kiểm tra tồn kho
+                                                                                                const selectedMedicine = medicines.find(m => m._id === currentValue);
+                                                                                                if (selectedMedicine && (selectedMedicine.total_remaining || 0) <= 0) {
+                                                                                                    return Promise.reject(new Error(`Thuốc ${selectedMedicine.name} đã hết hàng`));
+                                                                                                }
+
                                                                                                 return Promise.resolve();
                                                                                             } catch (err) {
                                                                                                 return Promise.resolve();
@@ -1053,23 +1081,58 @@ export default function PatientDetailPage() {
                                                                                     filterOption={(input, option) =>
                                                                                         (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
                                                                                     }
-                                                                                    options={medicines.map((med) => ({
-                                                                                        value: med._id,
-                                                                                        label: `${med.name} (${med.unit})`,
-                                                                                    }))}
+                                                                                    options={medicines
+                                                                                        .filter(med => (med.total_remaining || 0) > 0)
+                                                                                        .map((med) => ({
+                                                                                            value: med._id,
+                                                                                            label: `${med.name} (${med.unit}) - Còn ${med.total_remaining || 0}`,
+                                                                                        }))}
                                                                                 />
                                                                             </Form.Item>
                                                                         </Col>
-                                                                        <Col span={3}>
+                                                                        <Col span={2}>
                                                                             <div className="text-center py-2 px-2 bg-gray-50 rounded-md border border-gray-200">
                                                                                 <span className="text-sm font-medium text-gray-700">{unit}</span>
+                                                                            </div>
+                                                                        </Col>
+                                                                        <Col span={2}>
+                                                                            <div className={`text-center py-2 px-2 rounded-md border ${
+                                                                                stockQuantity > 10 ? 'bg-green-50 border-green-200' :
+                                                                                stockQuantity > 0 ? 'bg-yellow-50 border-yellow-200' :
+                                                                                'bg-red-50 border-red-200'
+                                                                            }`}>
+                                                                                <span className={`text-sm font-medium ${
+                                                                                    stockQuantity > 10 ? 'text-green-700' :
+                                                                                    stockQuantity > 0 ? 'text-yellow-700' :
+                                                                                    'text-red-700'
+                                                                                }`}>
+                                                                                    {stockQuantity}
+                                                                                </span>
                                                                             </div>
                                                                         </Col>
                                                                         <Col span={3}>
                                                                             <Form.Item
                                                                                 {...field}
                                                                                 name={[field.name, "quantity"]}
-                                                                                rules={[{ required: true, message: "Nhập số lượng" }]}
+                                                                                rules={[
+                                                                                    { required: true, message: "Nhập số lượng" },
+                                                                                    ({ getFieldValue }) => ({
+                                                                                        validator(_, value) {
+                                                                                            if (!value) return Promise.resolve();
+                                                                                            const medicineId = getFieldValue(['prescriptions', field.name, 'medicine_id']);
+                                                                                            if (!medicineId) return Promise.resolve();
+
+                                                                                            const selectedMedicine = medicines.find(m => m._id === medicineId);
+                                                                                            const stockQuantity = selectedMedicine?.total_remaining || 0;
+
+                                                                                            if (value > stockQuantity) {
+                                                                                                return Promise.reject(new Error(`Không đủ hàng trong kho. Chỉ còn ${stockQuantity} ${selectedMedicine?.unit || 'đơn vị'}`));
+                                                                                            }
+
+                                                                                            return Promise.resolve();
+                                                                                        },
+                                                                                    }),
+                                                                                ]}
                                                                                 className="mb-0"
                                                                             >
                                                                                 <InputNumber
@@ -1079,7 +1142,7 @@ export default function PatientDetailPage() {
                                                                                 />
                                                                             </Form.Item>
                                                                         </Col>
-                                                                        <Col span={4}>
+                                                                        <Col span={3}>
                                                                             <div className="text-right py-2 px-3 bg-gray-50 rounded-md border border-gray-200">
                                                                                 <span className="text-sm font-medium text-gray-700">
                                                                                     {price > 0 ? `${price.toLocaleString('vi-VN')} đ` : "—"}
