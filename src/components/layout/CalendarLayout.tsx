@@ -1,7 +1,7 @@
 // KẾ THỪA
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -141,7 +141,12 @@ export default function CalendarLayout({
   const [isCreating, setIsCreating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [conflictOpen, setConflictOpen] = useState(false);
+  const [conflictItems, setConflictItems] = useState<Appointment[]>([]);
+  const pendingCreateRef = useRef<CreateAppointmentData | null>(null);
   const [showOldAppointments, setShowOldAppointments] = useState(false);
+  const [conflictModalOpen, setConflictModalOpen] = useState(false);
+  const [conflictInfo, setConflictInfo] = useState<string>("");
   const [formData, setFormData] = useState<UpdateAppointmentData>({
     patient_id: "",
     doctor_id: "",
@@ -380,6 +385,45 @@ export default function CalendarLayout({
         status: formData.status || "Scheduled", // Default là "Scheduled"
         reason: formData.reason || "",
       };
+      // Conflict detection: prevent creating if same doctor has an appointment at the exact time
+      // or within +/- 30 minutes. Uses local-date parsing to avoid timezone mismatches.
+      const newApptDate = parseToLocalDate(createData.appointment_date);
+      const normalizeDoctorId = (val: any) => {
+        if (val == null) return "";
+        if (typeof val === "string") return val;
+        if (typeof val === "object") return String(val._id || val.toString());
+        return String(val);
+      };
+
+      const newDoctorId = normalizeDoctorId(createData.doctor_id);
+      // find conflict appointment (exact or within +/- 15 minutes)
+      const conflictingAppt = appointments.find((a) => {
+        if (!a.appointmentDate) return false;
+        if (a.status === "Cancelled") return false;
+        const aDoctor = normalizeDoctorId(a.doctor_id);
+        if (aDoctor !== newDoctorId) return false;
+        const existingDate = parseToLocalDate(a.appointmentDate);
+        if (!existingDate || !newApptDate) return false;
+        const diffMs = Math.abs(existingDate.getTime() - newApptDate.getTime());
+        // same exact time or within 15 minutes => conflict
+        if (diffMs === 0 || diffMs <= 15 * 60 * 1000) return true;
+        return false;
+      });
+
+      if (conflictingAppt) {
+        const exDate = parseToLocalDate(conflictingAppt.appointmentDate);
+        const exDisplay = exDate
+          ? exDate.toLocaleString("vi-VN", { dateStyle: "short", timeStyle: "short" })
+          : conflictingAppt.appointmentDate;
+        const docName = conflictingAppt.doctorName || "Bác sĩ";
+        const patientName = conflictingAppt.patientName || "Bệnh nhân";
+        setConflictInfo(
+          `Phát hiện lịch trùng với ${docName} vào ${exDisplay} (bệnh nhân: ${patientName}). Vui lòng chọn thời gian khác.`
+        );
+        setConflictModalOpen(true);
+        setIsSaving(false);
+        return;
+      }
 
       await createAppointment(createData);
       if (onRefresh) {
@@ -1027,6 +1071,21 @@ export default function CalendarLayout({
                 </div>
               </div>
             </Card>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Conflict modal */}
+      <Dialog open={conflictModalOpen} onOpenChange={(v) => setConflictModalOpen(v)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-bold text-red-600">⚠️ Lịch trùng</DialogTitle>
+            <DialogDescription>{conflictInfo}</DialogDescription>
+          </DialogHeader>
+          <div className="flex gap-2 justify-end pt-4">
+            <Button variant="outline" onClick={() => setConflictModalOpen(false)}>
+              Đóng
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

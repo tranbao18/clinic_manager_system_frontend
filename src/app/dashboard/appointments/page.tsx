@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import CalendarLayout from "@/components/layout/CalendarLayout";
 import { getPatients } from "@/lib/services/patientsService";
+import { getAuthHeaderClient } from "@/lib/authHeaderClient";
 
 type Appointment = {
     id: string;
@@ -90,7 +91,8 @@ export default function AppointmentsPage() {
 
                         let doctorsList: Doctor[] = [];
                         let allEmployeesData: any[] = [];
-                        const employeesRes = await fetch("/api/employees", { cache: "no-store" });
+                        const authHeaders = getAuthHeaderClient();
+                        const employeesRes = await fetch("/api/employees", { cache: "no-store", headers: authHeaders });
                         if (employeesRes.ok) {
                             const employeesData = await employeesRes.json();
                             allEmployeesData = Array.isArray(employeesData) ? employeesData : [];
@@ -119,7 +121,7 @@ export default function AppointmentsPage() {
                         // Fetch appointments if user has permission
                         if (role === "Admin" || role === "Receptionist" || role === "Doctor" || role === "Accountant") {
                             console.log("DEBUG: Fetching appointments API for role:", role);
-                            const appointmentsRes = await fetch("/api/appointments", { cache: "no-store" });
+                            const appointmentsRes = await fetch("/api/appointments", { cache: "no-store", headers: authHeaders });
                             if (appointmentsRes.ok) {
                                 const appointmentsData = await appointmentsRes.json();
                                 console.log("DEBUG: Received appointments data:", appointmentsData.length, "items");
@@ -227,9 +229,10 @@ export default function AppointmentsPage() {
 
     const handleRefresh = useCallback(async () => {
         try {
+            const authHeaders = getAuthHeaderClient();
             const [appointmentsRes, employeesRes, patientsRes] = await Promise.all([
-                fetch("/api/appointments", { cache: "no-store" }),
-                fetch("/api/employees", { cache: "no-store" }),
+                fetch("/api/appointments", { cache: "no-store", headers: authHeaders }),
+                fetch("/api/employees", { cache: "no-store", headers: authHeaders }),
                 getPatients(),
             ]);
 
