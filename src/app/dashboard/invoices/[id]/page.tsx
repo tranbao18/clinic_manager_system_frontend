@@ -153,7 +153,8 @@ export default function InvoiceDetailPage() {
 
             const invoiceId = urlParams.get('vnp_TxnRef') || id;
             if (invoiceId) {
-                window.location.href = `/api/payments/vnpay/return?${vnpParams.toString()}`;
+                // redirect to backend return handler (note: backend route is /api/payments/vnpay-return)
+                window.location.href = `/api/payments/vnpay-return?${vnpParams.toString()}`;
                 return;
             }
         }
