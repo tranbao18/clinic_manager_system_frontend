@@ -613,7 +613,7 @@ export default function InvoiceDetailPage() {
                                 type="dashed"
                                 onClick={() => {
                                     // Create a dev mock URL that calls backend mock return directly
-                                    const mockUrl = `${BACKEND_URL}/api/payments/vnpay-mock-return?invoice_id=${id}&amount=${remaining}`;
+                                    const mockUrl = `${BACKEND_URL}/api/payments/vnpay-mock-return?invoice_id=${id}&amount=${remaining}&__enable_mock=true`;
                                     setQrCodeData(mockUrl);
                                     message.info("Mock QR đã được tạo (dev). Quét để kích hoạt mock return.");
                                 }}
