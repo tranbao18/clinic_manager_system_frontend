@@ -10,26 +10,22 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
     console.log(`🔍 [GET /api/invoices/${id}] Incoming request`);
 
-    // Get auth header from the incoming request first
+    // Get auth header from the incoming request
     const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
     const headers: Record<string, string> = {};
 
-    console.log(`🔑 [GET /api/invoices/${id}] Auth header from request:`, authHeader ? 'Present' : 'Missing');
+    console.log(`🔑 [GET /api/invoices/${id}] Auth header:`, authHeader ? 'Present' : 'Missing');
 
-    if (authHeader) {
-      headers.Authorization = authHeader;
-      console.log(`✅ [GET /api/invoices/${id}] Using auth header from request`);
-    } else {
-      // Fallback to getAuthHeaderServer for backward compatibility
-      console.log(`⚠️ [GET /api/invoices/${id}] No auth header in request, trying fallback`);
-      const authHeaders = await getAuthHeaderServer();
-      if (authHeaders.Authorization) {
-        headers.Authorization = authHeaders.Authorization;
-        console.log(`✅ [GET /api/invoices/${id}] Using auth header from fallback`);
-      } else {
-        console.log(`❌ [GET /api/invoices/${id}] No auth header available`);
-      }
+    if (!authHeader) {
+      console.log(`❌ [GET /api/invoices/${id}] No auth header provided`);
+      return NextResponse.json(
+        { error: "Không có quyền truy cập - thiếu token xác thực" },
+        { status: 401 }
+      );
     }
+
+    headers.Authorization = authHeader;
+    console.log(`✅ [GET /api/invoices/${id}] Using auth header from request`);
 
     const url = `${API_URL}/api/invoices/${id}`;
 
@@ -67,21 +63,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { id } = await params;
 
-    // Get auth header from the incoming request first
+    // Get auth header from the incoming request
     const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
     const headers: Record<string, string> = {
       "Content-Type": "application/json",
     };
 
-    if (authHeader) {
-      headers.Authorization = authHeader;
-    } else {
-      // Fallback to getAuthHeaderServer for backward compatibility
-      const authHeaders = await getAuthHeaderServer();
-      if (authHeaders.Authorization) {
-        headers.Authorization = authHeaders.Authorization;
-      }
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: "Không có quyền truy cập - thiếu token xác thực" },
+        { status: 401 }
+      );
     }
+
+    headers.Authorization = authHeader;
 
     const body = await req.json();
     const url = `${API_URL}/api/invoices/${id}`;
@@ -114,19 +109,18 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
 
-    // Get auth header from the incoming request first
+    // Get auth header from the incoming request
     const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
     const headers: Record<string, string> = {};
 
-    if (authHeader) {
-      headers.Authorization = authHeader;
-    } else {
-      // Fallback to getAuthHeaderServer for backward compatibility
-      const authHeaders = await getAuthHeaderServer();
-      if (authHeaders.Authorization) {
-        headers.Authorization = authHeaders.Authorization;
-      }
+    if (!authHeader) {
+      return NextResponse.json(
+        { error: "Không có quyền truy cập - thiếu token xác thực" },
+        { status: 401 }
+      );
     }
+
+    headers.Authorization = authHeader;
 
     const url = `${API_URL}/api/invoices/${id}`;
 
