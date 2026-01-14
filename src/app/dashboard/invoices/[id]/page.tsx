@@ -41,6 +41,7 @@ import {
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:5050";
 
 // TỰ VIẾT
 const getStatusColor = (status: string) => {
@@ -606,6 +607,20 @@ export default function InvoiceDetailPage() {
                                 errorLevel="M"
                             />
                         )}
+
+                        <div style={{ marginTop: 12 }}>
+                            <Button
+                                type="dashed"
+                                onClick={() => {
+                                    // Create a dev mock URL that calls backend mock return directly
+                                    const mockUrl = `${BACKEND_URL}/api/payments/vnpay-mock-return?invoice_id=${id}&amount=${remaining}`;
+                                    setQrCodeData(mockUrl);
+                                    message.info("Mock QR đã được tạo (dev). Quét để kích hoạt mock return.");
+                                }}
+                            >
+                                Tạo Mock QR (dev)
+                            </Button>
+                        </div>
 
                         <div>
                             <Text type="secondary" style={{ fontSize: "12px" }}>
