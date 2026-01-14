@@ -21,8 +21,9 @@ import {
     Typography,
     Divider,
     Empty,
+    QRCode,
 } from "antd";
-import { PlusOutlined, DeleteOutlined, DollarOutlined } from "@ant-design/icons";
+import { PlusOutlined, DeleteOutlined, DollarOutlined, QrcodeOutlined } from "@ant-design/icons";
 import dayjs from "dayjs";
 import {
     getInvoiceById,
@@ -34,6 +35,7 @@ import {
     createPayment,
     deletePayment,
     createVNPayUrl,
+    createVNPayQR,
     Payment,
 } from "@/lib/services/paymentService";
 
@@ -79,6 +81,9 @@ export default function InvoiceDetailPage() {
     const [isPaymentModalVisible, setIsPaymentModalVisible] = useState(false);
     const [creatingPayment, setCreatingPayment] = useState(false);
     const [processingVNPay, setProcessingVNPay] = useState(false);
+    const [processingQR, setProcessingQR] = useState(false);
+    const [qrCodeData, setQrCodeData] = useState<string>("");
+    const [isQRModalVisible, setIsQRModalVisible] = useState(false);
     const [role, setRole] = useState<string>("");
 
     // TỰ VIẾT
@@ -175,6 +180,13 @@ export default function InvoiceDetailPage() {
             return;
         }
 
+        if (values.method === 'VNPayQR') {
+            setIsPaymentModalVisible(false);
+            paymentForm.resetFields();
+            await handleVNPayQRPayment();
+            return;
+        }
+
         try {
             setCreatingPayment(true);
             await createPayment({
@@ -233,6 +245,25 @@ export default function InvoiceDetailPage() {
             console.error(' Lỗi khi tạo VNPay URL:', error);
             message.error(error.message || "Không thể tạo URL thanh toán VNPay");
             setProcessingVNPay(false);
+        }
+    };
+
+    const handleVNPayQRPayment = async () => {
+        if (!id) return;
+        try {
+            setProcessingQR(true);
+            const result = await createVNPayQR({ invoice_id: id });
+            if (result.qrData) {
+                setQrCodeData(result.paymentUrl);
+                setIsQRModalVisible(true);
+            } else {
+                throw new Error('Không nhận được QR code từ server');
+            }
+        } catch (error: any) {
+            console.error(' Lỗi khi tạo VNPay QR:', error);
+            message.error(error.message || "Không thể tạo QR code VNPay");
+        } finally {
+            setProcessingQR(false);
         }
     };
 
@@ -444,12 +475,13 @@ export default function InvoiceDetailPage() {
                         <Select
                             placeholder="Chọn phương thức"
                             onChange={(value) => {
-                                if (value === 'VNPay') {
+                                if (value === 'VNPay' || value === 'VNPayQR') {
                                     paymentForm.setFieldsValue({ amount: remaining, date: dayjs() });
                                 }
                             }}
                         >
-                            <Option value="VNPay">VNPay</Option>
+                            <Option value="VNPay">VNPay (Web)</Option>
+                            <Option value="VNPayQR">VNPay (QR Code)</Option>
                             <Option value="Cash">Tiền mặt</Option>
                         </Select>
                     </Form.Item>
@@ -532,6 +564,55 @@ export default function InvoiceDetailPage() {
                         </Space>
                     </Form.Item>
                 </Form>
+            </Modal>
+
+            {/* QR Code Modal */}
+            <Modal
+                title="Thanh toán VNPay bằng QR Code"
+                open={isQRModalVisible}
+                onCancel={() => {
+                    setIsQRModalVisible(false);
+                    setQrCodeData("");
+                }}
+                footer={[
+                    <Button
+                        key="close"
+                        onClick={() => {
+                            setIsQRModalVisible(false);
+                            setQrCodeData("");
+                        }}
+                    >
+                        Đóng
+                    </Button>,
+                ]}
+                width={400}
+            >
+                <div style={{ textAlign: "center", padding: "20px 0" }}>
+                    <Space direction="vertical" size="large">
+                        <div>
+                            <Text strong>Quét mã QR để thanh toán</Text>
+                            <br />
+                            <Text type="secondary">
+                                Sử dụng ứng dụng ngân hàng hoặc VNPay để quét mã
+                            </Text>
+                        </div>
+
+                        {qrCodeData && (
+                            <QRCode
+                                value={qrCodeData}
+                                size={256}
+                                icon="/logo_phong_kham.png"
+                                errorLevel="M"
+                            />
+                        )}
+
+                        <div>
+                            <Text type="secondary" style={{ fontSize: "12px" }}>
+                                QR code có hiệu lực trong 15 phút
+                            </Text>
+                        </div>
+                    </Space>
+                </div>
             </Modal>
         </div>
     );

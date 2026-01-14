@@ -182,3 +182,65 @@ export async function createVNPayUrl(data: CreateVNPayUrlData): Promise<VNPayUrl
     }
 }
 
+export interface CreateVNPayQRData {
+    invoice_id: string;
+}
+
+export interface VNPayQRResponse {
+    qrData: string;
+    paymentUrl: string;
+    invoice_id: string;
+    amount: number;
+    expireDate: string;
+}
+
+export async function createVNPayQR(data: CreateVNPayQRData): Promise<VNPayQRResponse> {
+    try {
+        const authHeaders = await getAuthHeaderClient();
+        const res = await fetch("/api/payments/vnpay/create-qr", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                ...authHeaders
+            },
+            body: JSON.stringify(data),
+        });
+
+        if (!res.ok) {
+            const text = await res.text();
+            let errorData;
+            try {
+                errorData = JSON.parse(text);
+            } catch {
+                errorData = { error: text || "Lỗi không xác định" };
+            }
+            console.error("❌ VNPay QR API error:", {
+                status: res.status,
+                statusText: res.statusText,
+                error: errorData
+            });
+
+            let errorMessage = "Không thể tạo QR code VNPay";
+            if (res.status === 403) {
+                errorMessage = errorData.error || "Bạn không có quyền thực hiện thao tác này. Vui lòng đăng nhập với tài khoản Admin hoặc Accountant.";
+            } else if (res.status === 401) {
+                errorMessage = errorData.error || "Bạn cần đăng nhập để thực hiện thao tác này.";
+            } else {
+                errorMessage = errorData.error || errorData.detail || errorMessage;
+            }
+
+            throw new Error(errorMessage);
+        }
+
+        const text = await res.text();
+        try {
+            return JSON.parse(text);
+        } catch {
+            throw new Error("Response không phải JSON hợp lệ");
+        }
+    } catch (error: any) {
+        console.error("createVNPayQR error:", error);
+        throw error;
+    }
+}
+
