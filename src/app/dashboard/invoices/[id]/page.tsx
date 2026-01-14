@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import {
     Button,
@@ -86,6 +86,8 @@ export default function InvoiceDetailPage() {
     const [qrCodeData, setQrCodeData] = useState<string>("");
     const [isQRModalVisible, setIsQRModalVisible] = useState(false);
     const [role, setRole] = useState<string>("");
+    const pollRef = useRef<number | null>(null);
+    const prevPaymentsCountRef = useRef<number>(0);
 
     // TỰ VIẾT
     useEffect(() => {
@@ -171,6 +173,49 @@ export default function InvoiceDetailPage() {
             window.history.replaceState({}, '', window.location.pathname);
         }
     }, [id]);
+
+    // Poll when QR modal is open to detect payment created by mobile redirect/mock
+    useEffect(() => {
+        if (!isQRModalVisible) {
+            if (pollRef.current) {
+                window.clearInterval(pollRef.current);
+                pollRef.current = null;
+            }
+            return;
+        }
+
+        // start polling every 3s
+        const idInterval = window.setInterval(async () => {
+            try {
+                await fetchPayments();
+                await fetchInvoice();
+                // if number of payments increased or invoice status changed, close modal and notify
+                const currentCount = payments.length;
+                if (currentCount > prevPaymentsCountRef.current || (invoice && invoice.status === 'Paid')) {
+                    message.success('Thanh toán đã được xử lý, đang cập nhật giao diện...');
+                    setIsQRModalVisible(false);
+                    if (pollRef.current) {
+                        window.clearInterval(pollRef.current);
+                        pollRef.current = null;
+                    }
+                    // refresh data once more
+                    await fetchPayments();
+                    await fetchInvoice();
+                }
+            } catch (err) {
+                console.error('Polling error:', err);
+            }
+        }, 3000);
+
+        pollRef.current = idInterval as unknown as number;
+
+        return () => {
+            if (pollRef.current) {
+                window.clearInterval(pollRef.current);
+                pollRef.current = null;
+            }
+        };
+    }, [isQRModalVisible, payments.length, invoice?.status]);
 
     const handleCreatePayment = async (values: any) => {
         if (!id) return;
@@ -258,6 +303,8 @@ export default function InvoiceDetailPage() {
             if (result.qrData) {
                 setQrCodeData(result.paymentUrl);
                 setIsQRModalVisible(true);
+                // initialize previous payments count
+                prevPaymentsCountRef.current = payments.length;
             } else {
                 throw new Error('Không nhận được QR code từ server');
             }
