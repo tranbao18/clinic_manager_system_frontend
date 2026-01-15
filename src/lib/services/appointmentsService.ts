@@ -101,7 +101,7 @@ export async function updateAppointment(
 }
 
 export async function deleteAppointment(id: string): Promise<void> {
-    const res = await fetch(`/api/appointments/${id}`, {
+    const res = await fetch(`/api/appointments/${id}?hard=true`, {
         method: "DELETE",
         headers: getSafeAuthHeaders()
     });
@@ -111,29 +111,3 @@ export async function deleteAppointment(id: string): Promise<void> {
     }
 }
 
-export async function getDisabledAppointments(): Promise<Appointment[]> {
-    const res = await fetch("/api/appointments?disabled=true", {
-        cache: "no-store",
-        headers: getSafeAuthHeaders()
-    });
-    if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Không thể lấy danh sách lịch hẹn đã xóa" }));
-        throw new Error(error.error || "Không thể lấy danh sách lịch hẹn đã xóa");
-    }
-    return res.json();
-}
-
-export async function restoreAppointment(id: string): Promise<Appointment> {
-    const res = await fetch(`/api/appointments/${id}/restore`, {
-        method: "PUT",
-        headers: {
-            "Content-Type": "application/json",
-            ...getSafeAuthHeaders()
-        },
-    });
-    if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Không thể khôi phục lịch hẹn" }));
-        throw new Error(error.error || "Không thể khôi phục lịch hẹn");
-    }
-    return res.json();
-}
