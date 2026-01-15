@@ -101,13 +101,41 @@ export async function updateAppointment(
 }
 
 export async function deleteAppointment(id: string): Promise<void> {
-    const res = await fetch(`/api/appointments/${id}?hard=true`, {
+    const url = `/api/appointments/${id}?hard=true`;
+    const headers = getSafeAuthHeaders();
+
+    console.log("🔄 [DELETE APPOINTMENT] Starting deletion");
+    console.log("🔄 [DELETE APPOINTMENT] URL:", url);
+    console.log("🔄 [DELETE APPOINTMENT] Headers:", headers);
+
+    const res = await fetch(url, {
         method: "DELETE",
-        headers: getSafeAuthHeaders()
+        headers
     });
+
+    console.log("🔄 [DELETE APPOINTMENT] Response status:", res.status);
+
     if (!res.ok) {
-        const error = await res.json().catch(() => ({ error: "Không thể xóa lịch hẹn" }));
-        throw new Error(error.error || "Không thể xóa lịch hẹn");
+        let errorBody = "";
+        try {
+            errorBody = await res.text();
+            console.error("❌ [DELETE APPOINTMENT] Response body:", errorBody);
+        } catch (e) {
+            console.error("❌ [DELETE APPOINTMENT] Could not read response body");
+        }
+
+        const error = { error: "Không thể xóa lịch hẹn" };
+        try {
+            const parsed = JSON.parse(errorBody);
+            error.error = parsed.error || errorBody;
+        } catch (e) {
+            error.error = errorBody || error.error;
+        }
+
+        console.error("❌ [DELETE APPOINTMENT] Final error:", error.error);
+        throw new Error(error.error);
     }
+
+    console.log("✅ [DELETE APPOINTMENT] Successfully deleted appointment:", id);
 }
 

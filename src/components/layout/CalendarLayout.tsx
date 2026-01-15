@@ -139,7 +139,7 @@ export default function CalendarLayout({
     useState<Appointment | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [conflictOpen, setConflictOpen] = useState(false);
   const [conflictItems, setConflictItems] = useState<Appointment[]>([]);
@@ -317,8 +317,12 @@ export default function CalendarLayout({
     if (!deleteAppointmentId) return;
 
     try {
-      setIsDeleting(true);
+      setDeletingId(deleteAppointmentId);
+      console.log("🔄 Attempting to delete appointment:", deleteAppointmentId);
+
       await deleteAppointment(deleteAppointmentId);
+      console.log("✅ Successfully deleted appointment:", deleteAppointmentId);
+
       if (onRefresh) {
         await onRefresh();
       } else {
@@ -329,10 +333,25 @@ export default function CalendarLayout({
       setSelectedAppointments([]);
       setDeleteAppointmentId(null);
     } catch (error: any) {
-      console.error("Error deleting appointment:", error);
-      alert(error.message || "Không thể xóa lịch hẹn. Vui lòng thử lại.");
+      console.error("❌ Error deleting appointment:", error);
+      console.error("Error details:", {
+        message: error.message,
+        status: error.status,
+        response: error.response
+      });
+
+      let errorMessage = "Không thể xóa lịch hẹn. Vui lòng thử lại.";
+      if (error.message.includes("Completed appointment cannot be deleted")) {
+        errorMessage = "Không thể xóa lịch hẹn đã hoàn thành.";
+      } else if (error.message.includes("not found")) {
+        errorMessage = "Lịch hẹn không tồn tại.";
+      } else if (error.message.includes("permission") || error.message.includes("auth")) {
+        errorMessage = "Bạn không có quyền xóa lịch hẹn này.";
+      }
+
+      alert(errorMessage);
     } finally {
-      setIsDeleting(false);
+      setDeletingId(null);
     }
   };
 
@@ -909,10 +928,10 @@ export default function CalendarLayout({
                             variant="destructive"
                             size="sm"
                             onClick={() => handleDelete(a.id)}
-                            disabled={isDeleting}
+                            disabled={deletingId === a.id}
                             className="min-w-[120px] bg-red-500 "
                           >
-                            {isDeleting ? "⏳ Đang xóa..." : "🗑️ Xóa"}
+                            {deletingId === a.id ? "⏳ Đang xóa..." : "🗑️ Xóa"}
                           </Button>
                         </div>
                       )}
@@ -1117,17 +1136,17 @@ export default function CalendarLayout({
                 setOpenDeleteConfirm(false);
                 setDeleteAppointmentId(null);
               }}
-              disabled={isDeleting}
+              disabled={deletingId !== null}
             >
               Hủy
             </Button>
             <Button
               variant="destructive"
               onClick={confirmDelete}
-              disabled={isDeleting}
+              disabled={deletingId !== null}
               className="bg-red-600 hover:bg-red-700"
             >
-              {isDeleting ? "⏳ Đang xóa..." : "Xóa"}
+              {deletingId !== null ? "⏳ Đang xóa..." : "Xóa"}
             </Button>
           </div>
         </DialogContent>

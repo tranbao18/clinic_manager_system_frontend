@@ -80,15 +80,24 @@ export async function DELETE(req: NextRequest, { params }: { params: Promise<{ i
             headers.Authorization = authHeaders.Authorization;
         }
 
-        const res = await fetch(`${APPOINTMENTS_URL}/${id}`, { method: "DELETE", headers });
+        const backendUrl = `${APPOINTMENTS_URL}/${id}?hard=true`;
+        console.log(`🔄 [API ROUTE] Proxying DELETE to backend: ${backendUrl}`);
+        console.log(`🔄 [API ROUTE] Headers:`, headers);
+
+        const res = await fetch(backendUrl, { method: "DELETE", headers });
+
+        console.log(`🔄 [API ROUTE] Backend response status: ${res.status}`);
+
         if (!res.ok) {
             const text = await res.text();
-            console.error(`External API (DELETE appointment ${id}) error:`, res.status, text);
+            console.error(`❌ [API ROUTE] Backend error:`, res.status, text);
             return NextResponse.json(
                 { error: `Không thể xóa lịch hẹn ${id}`, detail: text },
                 { status: res.status }
             );
         }
+
+        console.log(`✅ [API ROUTE] Successfully deleted appointment: ${id}`);
         return NextResponse.json({ message: "Xóa lịch hẹn thành công" });
     } catch (err: any) {
         console.error("DELETE /api/appointments/[id] exception:", err);
